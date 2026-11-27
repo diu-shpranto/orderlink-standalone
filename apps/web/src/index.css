@@ -2,6 +2,21 @@
 @tailwind components;
 @tailwind utilities;
 
+/* বাংলা সংখ্যা (০–৯) — Noto Sans Bengali, শুধু সংখ্যার জন্য।
+   Hind Siliguri-র সংখ্যাগুলো, বিশেষ করে ১, খুব পাতলা ও সরু দেখায় —
+   তাই সংখ্যা এই ফেসে রেন্ডার হবে, বাকি সব বাংলা লেখা Hind Siliguri-তেই
+   থাকবে। একটাই variable ফাইল (400–700), অ্যাপে Noto Sans Bengali
+   আগে থেকেই Google Fonts দিয়ে লোড হয়, তাই নতুন ডাউনলোড নয়। */
+@font-face {
+  font-family: 'OrderLink Bengali Digits';
+  font-style: normal;
+  font-weight: 400 700;
+  font-display: swap;
+  src: url('https://fonts.gstatic.com/s/notosansbengali/v33/Cn-fJsCGWQxOjaGwMQ6fIiMywrNJIky6nvd8BjzVMvJx2mc4I3mYvNY.woff2')
+    format('woff2');
+  unicode-range: U+09E6-09EF;
+}
+
 html {
   scroll-behavior: smooth;
 }
@@ -9,6 +24,7 @@ html {
 body {
   margin: 0;
   font-family:
+    'OrderLink Bengali Digits',
     'Hind Siliguri',
     'Noto Sans Bengali',
     system-ui,

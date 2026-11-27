@@ -999,7 +999,7 @@ export default function Orders() {
         </div>
       ) : (
         <>
-          <div className="mt-5 rounded-[20px] border border-gray-200 bg-white p-4 shadow-sm">
+          <div className="mt-5 rounded-[20px] border border-gray-200 bg-white p-3 shadow-sm">
             <div className="relative">
               <span className="pointer-events-none absolute left-4 top-1/2 -translate-y-1/2 text-gray-400">
                 <IconSearch className="h-5 w-5" />
@@ -1012,15 +1012,15 @@ export default function Orders() {
                 className="w-full rounded-2xl border border-gray-300 py-3 pl-11 pr-4 text-[15px] placeholder:text-gray-400 outline-none transition focus:border-brand focus:ring-2 focus:ring-brand/20"
               />
             </div>
-            <div className="mt-3 grid grid-cols-2 gap-3 lg:flex lg:gap-3">
+            <div className="mt-2 grid grid-cols-2 gap-2 lg:flex lg:gap-2">
               <label className="block lg:w-52">
-                <span className="text-xs font-medium text-gray-500">
+                <span className="text-[11px] font-medium leading-tight text-gray-500">
                   পণ্য / ল্যান্ডিং পেজ
                 </span>
                 <select
                   value={filters.productId}
                   onChange={(e) => setFilter({ productId: e.target.value })}
-                  className="mt-0.5 w-full rounded-2xl border border-gray-300 bg-white px-3 py-2.5 text-sm outline-none"
+                  className="mt-0.5 w-full rounded-xl border border-gray-300 bg-white px-3 py-1.5 text-sm outline-none"
                 >
                   <option value="all">সব পণ্য</option>
                   {products.map((p) => (
@@ -1031,29 +1031,29 @@ export default function Orders() {
                 </select>
               </label>
               <label className="block lg:w-40">
-                <span className="text-xs font-medium text-gray-500">
+                <span className="text-[11px] font-medium leading-tight text-gray-500">
                   তারিখ থেকে
                 </span>
                 <input
                   type="date"
                   value={filters.dateFrom}
                   onChange={(e) => setFilter({ dateFrom: e.target.value })}
-                  className="mt-0.5 w-full rounded-2xl border border-gray-300 px-3 py-2.5 text-sm outline-none"
+                  className="mt-0.5 w-full rounded-xl border border-gray-300 px-3 py-1.5 text-sm outline-none"
                 />
               </label>
               <label className="block lg:w-40">
-                <span className="text-xs font-medium text-gray-500">
+                <span className="text-[11px] font-medium leading-tight text-gray-500">
                   তারিখ পর্যন্ত
                 </span>
                 <input
                   type="date"
                   value={filters.dateTo}
                   onChange={(e) => setFilter({ dateTo: e.target.value })}
-                  className="mt-0.5 w-full rounded-2xl border border-gray-300 px-3 py-2.5 text-sm outline-none"
+                  className="mt-0.5 w-full rounded-xl border border-gray-300 px-3 py-1.5 text-sm outline-none"
                 />
               </label>
             </div>
-            <div className="-mx-1 mt-3 flex gap-2 overflow-x-auto px-1 pb-1">
+            <div className="-mx-1 mt-2 flex gap-2 overflow-x-auto px-1 pb-1">
               {STATUS_PILLS.map((pill) => {
                 const isActive =
                   syncFilter === 'all' && filters.status === pill.key
