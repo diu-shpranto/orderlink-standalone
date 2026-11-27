@@ -23,7 +23,6 @@ import {
   IconCheck,
   IconEye,
   IconEyeOff,
-  IconShield,
 } from '../components/icons.tsx'
 
 type Mode = 'signin' | 'signup' | 'reset-request' | 'reset-code'
@@ -36,6 +35,7 @@ const TEXT: Record<
   AuthLang,
   {
     headline: string
+    signinHeadline: string
     tabSignup: string
     tabLogin: string
     google: string
@@ -57,7 +57,6 @@ const TEXT: Record<
     emailPh: string
     passwordPh: string
     backHome: string
-    secureLogin: string
     footerNote: string
     resetRequestTitle: string
     resetCodeTitle: string
@@ -72,6 +71,7 @@ const TEXT: Record<
 > = {
   bn: {
     headline: 'Orderlink-এ আপনার দোকান খুলুন',
+    signinHeadline: 'Orderlink-এ লগ ইন করুন',
     tabSignup: 'অ্যাকাউন্ট খুলুন',
     tabLogin: 'লগইন',
     google: 'Google দিয়ে চালিয়ে যান',
@@ -93,7 +93,6 @@ const TEXT: Record<
     emailPh: 'you@example.com',
     passwordPh: 'কমপক্ষে ৮ অক্ষর',
     backHome: 'হোমে ফিরুন',
-    secureLogin: 'নিরাপদ লগইন',
     footerNote:
       'প্রতেক সেলার শুধু নিজের দোকান, প্রোডাক্ট আর অর্ডার দেখতে পায়।',
     resetRequestTitle: 'পাসওয়ার্ড রিসেট',
@@ -108,6 +107,7 @@ const TEXT: Record<
   },
   en: {
     headline: 'Open your shop on Orderlink',
+    signinHeadline: 'Log in to Orderlink',
     tabSignup: 'Create account',
     tabLogin: 'Log in',
     google: 'Continue with Google',
@@ -129,7 +129,6 @@ const TEXT: Record<
     emailPh: 'you@example.com',
     passwordPh: 'At least 8 characters',
     backHome: 'Back to home',
-    secureLogin: 'Secure login',
     footerNote:
       'Every seller only sees their own shop, products and orders.',
     resetRequestTitle: 'Reset password',
@@ -462,7 +461,9 @@ export default function Auth({
       ? t.resetRequestTitle
       : mode === 'reset-code'
         ? t.resetCodeTitle
-        : t.headline
+        : mode === 'signin'
+          ? t.signinHeadline
+          : t.headline
 
   return (
     <main className="min-h-screen bg-[#f6f8f7]">
@@ -523,16 +524,10 @@ export default function Auth({
               </div>
             ) : null}
 
-            {/* লগইন: লোগো টাইল + নিরাপদ লগইন ব্যাজ */}
+            {/* লগইন: লোগো — মাঝখানে, ব্যাকগ্রাউন্ড ছাড়া */}
             {mode === 'signin' ? (
-              <div className="mt-4 flex flex-wrap items-center gap-3 sm:mt-6 lg:mt-8">
-                <div className="inline-flex rounded-2xl border border-[#e3e8e6] bg-white px-3 py-2 shadow-sm sm:px-4 sm:py-3">
-                  <LogoWordmark size={30} />
-                </div>
-                <span className="inline-flex items-center gap-1.5 rounded-full border border-[#cde7da] bg-[#e9f5ef] px-3 py-1.5 text-sm font-semibold text-[#006B50] shadow-sm">
-                  <IconShield className="h-4 w-4 text-[#006B50]" />
-                  {t.secureLogin}
-                </span>
+              <div className="mt-4 flex justify-center sm:mt-6 lg:mt-8 lg:justify-start">
+                <LogoWordmark size={30} />
               </div>
             ) : null}
 
