@@ -1,7 +1,9 @@
-// ৮টি ল্যান্ডিং পেজ টেমপ্লেট — বিল্ডারে সবগুলোই বাছাই করা যায়।
+// ১০টি ল্যান্ডিং পেজ টেমপ্লেট — বিল্ডারে সবগুলোই বাছাই করা যায়।
 // হোম পেজের গ্যালারিতে শুধু ৪টি দেখানো হয় (নিচে INTRO_TEMPLATES)।
 // নিয়ম: ভুয়া রিভিউ/রেটিং/ছাড়/কাউন্টডাউন নেই — শুধু আসল সেভ করা ডাটা।
-// স্টিকি মোবাইল অর্ডার বার শুধু aura/nova/social-proof-এ।
+// স্টিকি মোবাইল অর্ডার বার: aura/nova/social-proof/luxury-premium-এ
+// শেয়ার করা বার; fashion-store-এ নিজের সবুজ বার (রেজিস্ট্রিতে
+// stickyBar: false — শেয়ার করা লাল বার যাতে না বসে)।
 
 import type { TemplateId } from './types.ts'
 
@@ -78,6 +80,22 @@ export const TEMPLATES: TemplateMeta[] = [
     dark: false,
     stickyBar: true,
     accentClass: 'bg-brand text-white',
+  },
+  {
+    id: 'luxury-premium',
+    nameBn: 'Luxury Premium',
+    taglineBn: 'কালো-সোনালি বিলাসবহুল ডার্ক থিম',
+    dark: true,
+    stickyBar: true,
+    accentClass: 'bg-[#D6B36A] text-[#0B0B0D]',
+  },
+  {
+    id: 'fashion-store',
+    nameBn: 'Fashion Store',
+    taglineBn: 'ফ্যাশন এডিটোরিয়াল, হালকা আইভরি লুক',
+    dark: false,
+    stickyBar: false,
+    accentClass: 'bg-[#EAF3ED] text-[#1D7658]',
   },
 ]
 

@@ -57,6 +57,8 @@ export type TemplateId =
   | 'aura-premium'
   | 'nova-editorial'
   | 'social-proof'
+  | 'luxury-premium'
+  | 'fashion-store'
 
 export interface PageRow {
   id: string

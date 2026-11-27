@@ -134,6 +134,7 @@ function OrderSection({
   preview,
   onPlaced,
   onOrderAgain,
+  dark = false,
 }: {
   data: CustomerPageData
   t: StringsType
@@ -141,6 +142,8 @@ function OrderSection({
   preview: boolean
   onPlaced: (placed: PlacedOrder) => void
   onOrderAgain: () => void
+  /** Luxury Premium টেমপ্লেটের গাঢ় সোনালি রূপ — অন্য টেমপ্লেটে বদলায় না। */
+  dark?: boolean
 }) {
   const { shop, sellerWhatsapp, product } = data
   if (placed) {
@@ -150,27 +153,51 @@ function OrderSection({
     return (
       <section
         id="order"
-        className="rounded-2xl border border-gray-200 bg-white p-5 text-center"
+        className={`rounded-2xl border p-5 text-center ${
+          dark ? 'border-[#34343A] bg-[#1D1D21]' : 'border-gray-200 bg-white'
+        }`}
       >
-        <p className="text-4xl">✓</p>
-        <h2 className="mt-2 text-xl font-extrabold text-gray-900">
+        <p className="text-4xl text-[#D6B36A]">✓</p>
+        <h2
+          className={`mt-2 text-xl font-extrabold ${
+            dark ? 'text-white' : 'text-gray-900'
+          }`}
+        >
           {t.orderPlaced}
         </h2>
-        <p className="mt-2 text-sm leading-relaxed text-gray-600">
+        <p
+          className={`mt-2 text-sm leading-relaxed ${
+            dark ? 'text-[#B8B8B8]' : 'text-gray-600'
+          }`}
+        >
           {t.orderReceived}
         </p>
-        <div className="mx-auto mt-4 max-w-sm space-y-1 rounded-xl bg-gray-50 px-4 py-3 text-left text-sm">
+        <div
+          className={`mx-auto mt-4 max-w-sm space-y-1 rounded-xl px-4 py-3 text-left text-sm ${
+            dark
+              ? 'border border-[#34343A] bg-[#151518] text-white'
+              : 'bg-gray-50'
+          }`}
+        >
           <p className="flex justify-between">
-            <span className="text-gray-600">{t.orderNumber}</span>
+            <span className={dark ? 'text-[#B8B8B8]' : 'text-gray-600'}>
+              {t.orderNumber}
+            </span>
             <span className="font-bold">{placed.orderCode}</span>
           </p>
           <p className="flex justify-between">
-            <span className="text-gray-600">{product.name}</span>
+            <span className={dark ? 'text-[#B8B8B8]' : 'text-gray-600'}>
+              {product.name}
+            </span>
             <span className="font-semibold">
               × {toBnDigits(placed.quantity)}
             </span>
           </p>
-          <p className="flex justify-between border-t border-gray-200 pt-2 font-extrabold">
+          <p
+            className={`flex justify-between border-t pt-2 font-extrabold ${
+              dark ? 'border-[#34343A]' : 'border-gray-200'
+            }`}
+          >
             <span>{t.total}</span>
             <span>{formatBDT(placed.total)}</span>
           </p>
@@ -188,7 +215,9 @@ function OrderSection({
         <button
           type="button"
           onClick={onOrderAgain}
-          className="mt-3 text-sm font-semibold text-brand-dark underline"
+          className={`mt-3 text-sm font-semibold underline ${
+            dark ? 'text-[#D6B36A]' : 'text-brand-dark'
+          }`}
         >
           {t.orderAgain}
         </button>
@@ -196,9 +225,22 @@ function OrderSection({
     )
   }
   return (
-    <section id="order" className="rounded-2xl border border-gray-200 bg-white p-5">
-      <h2 className="text-lg font-bold text-gray-900">{t.orderNow}</h2>
-      <div className="mt-3 space-y-1 text-sm text-gray-700">
+    <section
+      id="order"
+      className={`rounded-2xl border p-5 ${
+        dark ? 'border-[#34343A] bg-[#1D1D21]' : 'border-gray-200 bg-white'
+      }`}
+    >
+      <h2
+        className={`text-lg font-bold ${dark ? 'text-white' : 'text-gray-900'}`}
+      >
+        {t.orderNow}
+      </h2>
+      <div
+        className={`mt-3 space-y-1 text-sm ${
+          dark ? 'text-[#B8B8B8]' : 'text-gray-700'
+        }`}
+      >
         <p>
           {t.deliveryInside}:{' '}
           {shop.delivery_inside_charge > 0
@@ -213,31 +255,60 @@ function OrderSection({
         </p>
       </div>
       {preview ? (
-        <p className="mt-4 rounded-lg bg-gray-50 px-4 py-3 text-sm text-gray-600">
+        <p
+          className={`mt-4 rounded-lg px-4 py-3 text-sm ${
+            dark
+              ? 'border border-[#34343A] bg-[#151518] text-[#B8B8B8]'
+              : 'bg-gray-50 text-gray-600'
+          }`}
+        >
           এটা প্রিভিউ — এখান থেকে অর্ডার দেওয়া যাবে না। প্রকাশ করা পেজে
           কাস্টমাররা এই ফর্মে অর্ডার দেবে।
         </p>
       ) : (
         <div className="mt-4">
-          <OrderForm data={data} t={t} onPlaced={onPlaced} />
+          <OrderForm data={data} t={t} onPlaced={onPlaced} dark={dark} />
         </div>
       )}
     </section>
   )
 }
 
-function StickyOrderBar({ data, t }: { data: CustomerPageData; t: StringsType }) {
+function StickyOrderBar({
+  data,
+  t,
+  gold = false,
+}: {
+  data: CustomerPageData
+  t: StringsType
+  /** Luxury Premium টেমপ্লেটের সোনালি বার। */
+  gold?: boolean
+}) {
   return (
-    <div className="fixed inset-x-0 bottom-0 z-40 flex items-center justify-between gap-3 border-t border-gray-200 bg-white px-4 py-3 shadow-lg md:hidden">
+    <div
+      className={`fixed inset-x-0 bottom-0 z-40 flex items-center justify-between gap-3 border-t px-4 py-3 shadow-lg md:hidden ${
+        gold
+          ? 'border-[#34343A] bg-[#151518]'
+          : 'border-gray-200 bg-white'
+      }`}
+    >
       <div>
-        <p className="text-xs text-gray-500">{data.product.name}</p>
-        <p className="text-lg font-extrabold text-gray-900">
+        <p className={`text-xs ${gold ? 'text-[#B8B8B8]' : 'text-gray-500'}`}>
+          {data.product.name}
+        </p>
+        <p
+          className={`text-lg font-extrabold ${
+            gold ? 'text-[#D6B36A]' : 'text-gray-900'
+          }`}
+        >
           {formatBDT(data.product.price)}
         </p>
       </div>
       <a
         href="#order"
-        className="rounded-lg bg-accent px-5 py-2.5 font-semibold text-white"
+        className={`rounded-lg px-5 py-2.5 font-semibold ${
+          gold ? 'bg-[#D6B36A] text-[#0B0B0D]' : 'bg-accent text-white'
+        }`}
       >
         {t.orderNow}
       </a>
@@ -252,8 +323,12 @@ export default function CustomerPage({
   data: CustomerPageData
   preview?: boolean
 }) {
-  const { page, product, shop, images } = data
+  const { page, product, shop, images, sellerWhatsapp } = data
   const [placed, setPlaced] = useState<PlacedOrder | null>(null)
+  // Fashion Store-এর মেনু ও FAQ অ্যাকর্ডিয়নের অবস্থা — সবার ওপরে ঘোষিত,
+  // তাই হুকের নিয়ম ভাঙে না (শুধু fashion-store ব্রাঞ্চে ব্যবহৃত হয়)।
+  const [fashionMenuOpen, setFashionMenuOpen] = useState(false)
+  const [fashionOpenFaq, setFashionOpenFaq] = useState<number | null>(null)
   const t: StringsType = customerStrings(page.page_lang)
   const meta = templateById(page.template)
   const dark = meta.dark
@@ -570,7 +645,436 @@ const footer = (
 
   const sticky = meta.stickyBar ? <StickyOrderBar data={data} t={t} /> : null
 
-  // ---- ৮ টেমপ্লেটের লেআউট ----
+  // ---- Luxury Premium (Template 01) — কালো-সোনালি বিলাসবহুল ডার্ক থিম ----
+  // ব্রিফের ১৫ সেকশন: ঘোষণা, হেডার, হিরো, গ্যালারি, আস্থা, কেন বেছে নেবেন,
+  // গল্প, বৈশিষ্ট্য, স্পেসিফিকেশন, রিভিউ, অফার, অর্ডার ফর্ম, ডেলিভারি তথ্য,
+  // FAQ, ফুটার। আসল ডাটা ছাড়া কোনো সেকশন ভুয়া কনটেন্ট দিয়ে ভরা হয় না:
+  // গল্প শুধু বিবরণ থাকলে, বৈশিষ্ট্য শুধু benefits থাকলে, অফার শুধু ছাড়
+  // থাকলে, ভিডিও শুধু লিংক থাকলে দেখায়। ভেরিয়েন্ট মডেলে নেই — ফর্মে নেই।
+  if (page.template === 'luxury-premium') {
+    const showBenefits =
+      page.sections['benefits'] !== false && product.benefits.length > 0
+    const specEntries = Object.entries(product.specs)
+    const showSpecs =
+      page.sections['specs'] !== false && specEntries.length > 0
+    const videoEmbedId =
+      page.sections['video'] !== false && page.video_url
+        ? youtubeEmbedId(page.video_url)
+        : null
+    const showReviews = page.sections['reviews'] !== false
+    const showFaq = page.sections['faq'] !== false && page.faqs.length > 0
+    const freeThreshold =
+      shop.free_delivery_threshold !== null &&
+      shop.free_delivery_threshold > 0
+        ? Number(shop.free_delivery_threshold)
+        : null
+    const storyImage =
+      images.length > 1 ? images[1] : images.length > 0 ? images[0] : null
+    const luxRated = page.reviews.filter(
+      (r) => typeof r.rating === 'number' && r.rating > 0,
+    )
+    const luxAvg =
+      luxRated.length > 0
+        ? luxRated.reduce((sum, r) => sum + (r.rating ?? 0), 0) /
+          luxRated.length
+        : 0
+    const trustItems = [
+      { glyph: '✦', title: t.luxuryTrustAuthentic, desc: t.luxuryTrustAuthenticDesc },
+      { glyph: '◆', title: t.luxuryTrustQuality, desc: t.luxuryTrustQualityDesc },
+      { glyph: '✓', title: t.luxuryTrustSecure, desc: t.luxuryTrustSecureDesc },
+      { glyph: '➤', title: t.luxuryTrustFast, desc: t.luxuryTrustFastDesc },
+    ]
+    const whyItems = [
+      { title: t.luxuryWhyQuality, desc: t.luxuryWhyQualityDesc },
+      { title: t.luxuryWhyCraft, desc: t.luxuryWhyCraftDesc },
+      { title: t.luxuryWhyDurable, desc: t.luxuryWhyDurableDesc },
+      { title: t.luxuryWhyPractical, desc: t.luxuryWhyPracticalDesc },
+    ]
+    const luxH2 = 'font-serif text-2xl font-bold text-white'
+    const luxEyebrow =
+      'text-[11px] font-bold uppercase tracking-[0.25em] text-[#D6B36A]'
+    return (
+      <div className="min-h-screen bg-[#0B0B0D] text-white">
+        {/* ০১ ঘোষণা বার — শুধু আসল ছাড় বা আসল ফ্রি-ডেলিভারি সীমা থাকলে */}
+        {discount > 0 ? (
+          <div className="bg-[#D6B36A] px-4 py-2 text-center text-sm font-bold text-[#0B0B0D]">
+            {t.discountRunning(discount)}
+          </div>
+        ) : freeThreshold ? (
+          <div className="bg-[#D6B36A] px-4 py-2 text-center text-sm font-bold text-[#0B0B0D]">
+            {t.freeDeliveryAbove(formatBDT(freeThreshold))}
+          </div>
+        ) : null}
+        {/* ০২ দোকানের হেডার */}
+        <header className="flex items-center justify-between border-b border-[#34343A] bg-[#0B0B0D] px-4 py-3">
+          <span className="flex items-center gap-2 font-bold text-white">
+            {shop.logo_url ? (
+              <img
+                src={shop.logo_url}
+                alt=""
+                className="h-9 w-9 rounded-full border border-[#34343A] object-cover"
+              />
+            ) : (
+              <span className="flex h-9 w-9 items-center justify-center rounded-full bg-[#D6B36A] text-sm font-extrabold text-[#0B0B0D]">
+                {shop.name.charAt(0)}
+              </span>
+            )}
+            <span>{shop.name}</span>
+          </span>
+          {sellerWhatsapp ? (
+            <a
+              href={`https://wa.me/${sellerWhatsapp}`}
+              target="_blank"
+              rel="noreferrer"
+              className="rounded-full border border-[#34343A] px-3 py-1.5 text-xs font-semibold text-[#D6B36A]"
+            >
+              WhatsApp
+            </a>
+          ) : (
+            <span className="text-xs text-[#B8B8B8]">{t.shopPage}</span>
+          )}
+        </header>
+        <main className="mx-auto max-w-2xl px-4 pb-28 pt-6 md:max-w-4xl md:pb-12">
+          {/* ০৩ হিরো + ০৪ গ্যালারি */}
+          <div className="grid gap-6 md:grid-cols-2 md:items-start">
+            <div>
+              {showGallery ? (
+                <Gallery images={images} productName={product.name} />
+              ) : (
+                <div className="flex aspect-[4/3] w-full items-center justify-center rounded-2xl border border-[#34343A] bg-[#151518] text-[#B8B8B8]">
+                  ছবি যোগ করা হয়নি
+                </div>
+              )}
+            </div>
+            <div>
+              <p className={luxEyebrow}>{t.luxuryEyebrow}</p>
+              <h1 className="mt-2 font-serif text-3xl font-bold leading-tight text-white md:text-4xl">
+                {product.name}
+              </h1>
+              {luxRated.length > 0 ? (
+                <p className="mt-2 text-sm text-[#B8B8B8]">
+                  <span className="font-bold text-[#D6B36A]">
+                    {'★'.repeat(Math.round(luxAvg))}
+                  </span>{' '}
+                  {toBnDigits(String(Math.round(luxAvg * 10) / 10))} ·{' '}
+                  {t.basedOnReviews(luxRated.length)}
+                </p>
+              ) : null}
+              <div className="mt-4 flex flex-wrap items-baseline gap-2">
+                <span className="text-3xl font-extrabold text-[#D6B36A]">
+                  {formatBDT(product.price)}
+                </span>
+                {product.old_price && product.old_price > product.price ? (
+                  <>
+                    <span className="text-lg text-[#B8B8B8] line-through">
+                      {formatBDT(product.old_price)}
+                    </span>
+                    <span className="rounded-full bg-[#D6B36A] px-2.5 py-0.5 text-xs font-bold text-[#0B0B0D]">
+                      {toBnDigits(discount)}% {t.off}
+                    </span>
+                  </>
+                ) : null}
+              </div>
+              {product.description ? (
+                <p className="mt-4 text-sm leading-relaxed text-[#B8B8B8]">
+                  {product.description}
+                </p>
+              ) : null}
+              <a
+                href="#order"
+                className="mt-6 block rounded-xl bg-[#D6B36A] px-4 py-3.5 text-center font-bold text-[#0B0B0D]"
+              >
+                {t.orderNow}
+              </a>
+            </div>
+          </div>
+
+          {/* ০৫ আস্থার নিশ্চয়তা */}
+          <section className="mt-12">
+            <p className={luxEyebrow}>{t.luxuryTrustTitle}</p>
+            <div className="mt-4 grid grid-cols-2 gap-3">
+              {trustItems.map((item) => (
+                <div
+                  key={item.title}
+                  className="rounded-2xl border border-[#34343A] bg-[#1D1D21] p-4"
+                >
+                  <span className="flex h-9 w-9 items-center justify-center rounded-full border border-[#D6B36A]/60 text-base text-[#D6B36A]">
+                    {item.glyph}
+                  </span>
+                  <p className="mt-3 text-sm font-bold text-white">
+                    {item.title}
+                  </p>
+                  <p className="mt-1 text-xs leading-relaxed text-[#B8B8B8]">
+                    {item.desc}
+                  </p>
+                </div>
+              ))}
+            </div>
+          </section>
+
+          {/* ০৬ কেন এই পণ্যটি বেছে নেবেন */}
+          <section className="mt-12">
+            <h2 className={luxH2}>{t.luxuryWhyTitle}</h2>
+            <span className="mt-3 block h-px w-12 bg-[#D6B36A]" />
+            <div className="mt-5 space-y-3">
+              {whyItems.map((item, i) => (
+                <div
+                  key={item.title}
+                  className="flex gap-4 rounded-2xl border border-[#34343A] bg-[#1D1D21] p-4"
+                >
+                  <span className="font-serif text-2xl font-bold text-[#D6B36A]">
+                    {toBnDigits(i + 1)}
+                  </span>
+                  <div>
+                    <p className="font-bold text-white">{item.title}</p>
+                    <p className="mt-1 text-sm leading-relaxed text-[#B8B8B8]">
+                      {item.desc}
+                    </p>
+                  </div>
+                </div>
+              ))}
+            </div>
+          </section>
+
+          {/* ০৭ পণ্যের গল্প — শুধু বিবরণ থাকলে */}
+          {product.description ? (
+            <section className="mt-12">
+              <p className={luxEyebrow}>{t.luxuryStoryTitle}</p>
+              {storyImage ? (
+                <div className="mt-4">
+                  <FramedPhoto src={storyImage.url} alt={product.name} />
+                </div>
+              ) : null}
+              <p className="mt-5 font-serif text-lg leading-relaxed text-[#E8E8E8]">
+                {product.description}
+              </p>
+            </section>
+          ) : null}
+
+          {/* ০৮ পণ্যের বৈশিষ্ট্য — আসল benefits থাকলে */}
+          {showBenefits ? (
+            <section className="mt-12">
+              <h2 className={luxH2}>{t.luxuryFeaturesTitle}</h2>
+              <span className="mt-3 block h-px w-12 bg-[#D6B36A]" />
+              <div className="mt-5 grid gap-3 sm:grid-cols-2">
+                {product.benefits.map((b, i) => (
+                  <div
+                    key={i}
+                    className="flex items-start gap-3 rounded-2xl border border-[#34343A] bg-[#1D1D21] p-4"
+                  >
+                    <span className="flex h-7 w-7 shrink-0 items-center justify-center rounded-full bg-[#D6B36A] text-sm font-extrabold text-[#0B0B0D]">
+                      ✓
+                    </span>
+                    <span className="text-sm leading-relaxed text-white">
+                      {b}
+                    </span>
+                  </div>
+                ))}
+              </div>
+            </section>
+          ) : null}
+
+          {/* ০৯ স্পেসিফিকেশন */}
+          {showSpecs ? (
+            <section className="mt-12">
+              <h2 className={luxH2}>{t.specs}</h2>
+              <span className="mt-3 block h-px w-12 bg-[#D6B36A]" />
+              <dl className="mt-5 divide-y divide-[#34343A] overflow-hidden rounded-2xl border border-[#34343A]">
+                {specEntries.map(([key, value]) => (
+                  <div
+                    key={key}
+                    className="flex justify-between gap-4 bg-[#1D1D21] px-4 py-3 text-sm"
+                  >
+                    <dt className="text-[#B8B8B8]">{key}</dt>
+                    <dd className="text-right font-medium text-white">
+                      {value}
+                    </dd>
+                  </div>
+                ))}
+              </dl>
+            </section>
+          ) : null}
+
+          {/* ভিডিও — বিল্ডারে চালু থাকলে ও লিংক থাকলে */}
+          {videoEmbedId ? (
+            <section className="mt-12">
+              <h2 className={luxH2}>{t.video}</h2>
+              <span className="mt-3 block h-px w-12 bg-[#D6B36A]" />
+              <div className="mt-5 aspect-video w-full overflow-hidden rounded-2xl border border-[#34343A]">
+                <iframe
+                  src={`https://www.youtube.com/embed/${videoEmbedId}`}
+                  title={product.name}
+                  className="h-full w-full"
+                  allowFullScreen
+                />
+              </div>
+            </section>
+          ) : null}
+
+          {/* ১০ কাস্টমার রিভিউ — শুধু আসল রিভিউ */}
+          {showReviews ? (
+            <section className="mt-12">
+              <h2 className={luxH2}>{t.reviews}</h2>
+              <span className="mt-3 block h-px w-12 bg-[#D6B36A]" />
+              {page.reviews.length === 0 ? (
+                <p className="mt-4 text-sm text-[#B8B8B8]">{t.noReviews}</p>
+              ) : (
+                <div className="mt-5 space-y-3">
+                  {luxRated.length > 0 ? (
+                    <p className="text-sm text-[#B8B8B8]">
+                      <span className="font-bold text-[#D6B36A]">
+                        {'★'.repeat(Math.round(luxAvg))}
+                      </span>{' '}
+                      {toBnDigits(String(Math.round(luxAvg * 10) / 10))} ·{' '}
+                      {t.basedOnReviews(luxRated.length)}
+                    </p>
+                  ) : null}
+                  {page.reviews.map((r, i) => (
+                    <article
+                      key={i}
+                      className="rounded-2xl border border-[#34343A] bg-[#1D1D21] p-4"
+                    >
+                      <p className="font-semibold text-white">{r.name}</p>
+                      {typeof r.rating === 'number' && r.rating > 0 ? (
+                        <p className="text-sm font-bold text-[#D6B36A]">
+                          {'★'.repeat(Math.round(r.rating))}
+                        </p>
+                      ) : null}
+                      <p className="mt-1 text-sm leading-relaxed text-[#B8B8B8]">
+                        {r.text}
+                      </p>
+                    </article>
+                  ))}
+                </div>
+              )}
+            </section>
+          ) : null}
+
+          {/* ১১ বিশেষ অফার — শুধু আসল ছাড় থাকলে */}
+          {discount > 0 ? (
+            <section className="mt-12 rounded-2xl border border-[#D6B36A]/60 bg-gradient-to-b from-[#1D1D21] to-[#151518] p-6 text-center">
+              <p className={luxEyebrow}>{t.luxuryOfferTitle}</p>
+              <p className="mt-3 font-serif text-4xl font-bold text-[#D6B36A]">
+                {toBnDigits(discount)}% {t.off}
+              </p>
+              <p className="mt-2 text-sm text-[#B8B8B8]">
+                {t.discountRunning(discount)}
+              </p>
+              <div className="mt-4 flex items-baseline justify-center gap-2">
+                <span className="text-2xl font-extrabold text-white">
+                  {formatBDT(product.price)}
+                </span>
+                {product.old_price && product.old_price > product.price ? (
+                  <span className="text-base text-[#B8B8B8] line-through">
+                    {formatBDT(product.old_price)}
+                  </span>
+                ) : null}
+              </div>
+              <a
+                href="#order"
+                className="mt-5 block rounded-xl bg-[#D6B36A] px-4 py-3.5 font-bold text-[#0B0B0D]"
+              >
+                {t.orderNow}
+              </a>
+            </section>
+          ) : null}
+
+          {/* ১২ অর্ডার ফর্ম — আসল ফর্ম, গাঢ় রূপ */}
+          <div className="mt-12">
+            <OrderSection
+              data={data}
+              t={t}
+              placed={placed}
+              preview={preview}
+              onPlaced={setPlaced}
+              onOrderAgain={() => setPlaced(null)}
+              dark
+            />
+          </div>
+
+          {/* ১৩ ডেলিভারি তথ্য — দোকানের আসল চার্জ থেকে */}
+          <section className="mt-12 rounded-2xl border border-[#34343A] bg-[#1D1D21] p-5">
+            <h2 className={luxH2}>{t.luxuryDeliveryTitle}</h2>
+            <span className="mt-3 block h-px w-12 bg-[#D6B36A]" />
+            <div className="mt-4 space-y-2 text-sm">
+              <p className="flex justify-between gap-4">
+                <span className="text-[#B8B8B8]">{t.deliveryInside}</span>
+                <span className="font-semibold text-white">
+                  {shop.delivery_inside_charge > 0
+                    ? formatBDT(shop.delivery_inside_charge)
+                    : t.freeDelivery}
+                </span>
+              </p>
+              <p className="flex justify-between gap-4">
+                <span className="text-[#B8B8B8]">{t.deliveryOutside}</span>
+                <span className="font-semibold text-white">
+                  {shop.delivery_outside_charge > 0
+                    ? formatBDT(shop.delivery_outside_charge)
+                    : t.freeDelivery}
+                </span>
+              </p>
+              {freeThreshold ? (
+                <p className="text-xs leading-relaxed text-[#D6B36A]">
+                  {t.freeDeliveryAbove(formatBDT(freeThreshold))}
+                </p>
+              ) : null}
+              <p className="border-t border-[#34343A] pt-3 text-xs leading-relaxed text-[#B8B8B8]">
+                {t.luxuryDeliverySupport}
+              </p>
+            </div>
+          </section>
+
+          {/* ১৪ জিজ্ঞাসা — অ্যাকর্ডিয়ন */}
+          {showFaq ? (
+            <section className="mt-12">
+              <h2 className={luxH2}>{t.faq}</h2>
+              <span className="mt-3 block h-px w-12 bg-[#D6B36A]" />
+              <div className="mt-5 space-y-3">
+                {page.faqs.map((f, i) => (
+                  <details
+                    key={i}
+                    className="rounded-2xl border border-[#34343A] bg-[#1D1D21] px-4 py-3"
+                  >
+                    <summary className="flex cursor-pointer list-none items-center justify-between gap-3 font-semibold text-white">
+                      {f.q}
+                      <span className="shrink-0 text-lg text-[#D6B36A]">+</span>
+                    </summary>
+                    <p className="mt-2 text-sm leading-relaxed text-[#B8B8B8]">
+                      {f.a}
+                    </p>
+                  </details>
+                ))}
+              </div>
+            </section>
+          ) : null}
+        </main>
+        <ContactCard data={data} dark />
+        <footer className="mt-10 border-t border-[#34343A] px-4 py-8 text-center">
+          <p className="font-serif text-xl font-bold">
+            <span className="text-[#D6B36A]">Order</span>
+            <span className="text-white">link</span>
+          </p>
+          <p className="mt-2 text-sm font-semibold text-white">{shop.name}</p>
+          {sellerWhatsapp ? (
+            <a
+              href={`https://wa.me/${sellerWhatsapp}`}
+              target="_blank"
+              rel="noreferrer"
+              className="mt-3 inline-block rounded-full border border-[#34343A] px-4 py-2 text-xs font-semibold text-[#D6B36A]"
+            >
+              WhatsApp-এ যোগাযোগ করুন
+            </a>
+          ) : null}
+          <p className="mt-4 text-xs text-[#B8B8B8]">
+            © {toBnDigits(new Date().getFullYear())} {shop.name}
+          </p>
+        </footer>
+        <StickyOrderBar data={data} t={t} gold />
+      </div>
+    )
+  }
+
+  // ---- বাকি ৮ টেমপ্লেটের লেআউট ----
   if (page.template === 'premium-ecommerce') {
     return (
       <div className={`min-h-screen ${pageShell}`}>
@@ -733,6 +1237,402 @@ const footer = (
         </main>
         {footer}
         {sticky}
+      </div>
+    )
+  }
+
+  // Fashion Store (light, editorial) — Template 02
+  // প্যালেট: bg #FAF9F6, surface #FFFFFF, text #171717, secondary #777777,
+  // accent #1D7658, soft #EAF3ED, border #EAE8E2। সাইজ/রং ভেরিয়েন্ট নেই —
+  // মডেলে সেসব ফিল্ড নেই বলে Choose-Your-Style ও সাইজ গাইড সেকশন নেই।
+  if (page.template === 'fashion-store') {
+    // পেজের ভাষা অনুযায়ী শিরোনাম (t-তে নেই এমন ফ্যাশন-নির্দিষ্ট লেখা)।
+    const L = (bn: string, en: string) =>
+      page.page_lang === 'en' ? en : bn
+    const specEntries = Object.entries(product.specs)
+    const showBenefits =
+      page.sections['benefits'] !== false && product.benefits.length > 0
+    const showSpecs =
+      page.sections['specs'] !== false && specEntries.length > 0
+    const videoEmbedId = page.video_url ? youtubeEmbedId(page.video_url) : null
+    const showVideo =
+      page.sections['video'] !== false && videoEmbedId !== null
+    const showReviews = page.sections['reviews'] !== false
+    const showFaq =
+      page.sections['faq'] !== false && page.faqs.length > 0
+    const extraImages = images.slice(1)
+
+    const fashionAnnouncement =
+      discount > 0 ? (
+        <div className="bg-[#1D7658] px-4 py-2 text-center text-sm font-semibold text-white">
+          {t.discountRunning(discount)}
+        </div>
+      ) : shop.free_delivery_threshold !== null &&
+        shop.free_delivery_threshold > 0 ? (
+        <div className="bg-[#EAF3ED] px-4 py-2 text-center text-sm font-semibold text-[#1D7658]">
+          {t.freeDeliveryAbove(formatBDT(shop.free_delivery_threshold))}
+        </div>
+      ) : null
+
+    return (
+      <div className="min-h-screen bg-[#FAF9F6] text-[#171717]">
+        {fashionAnnouncement}
+        <header className="relative border-b border-[#EAE8E2] bg-white">
+          <div className="mx-auto flex max-w-5xl items-center justify-between px-4 py-3">
+            <span className="flex items-center gap-2.5">
+              {shop.logo_url ? (
+                <img
+                  src={shop.logo_url}
+                  alt=""
+                  className="h-9 w-9 rounded-full object-cover"
+                />
+              ) : (
+                <span className="flex h-9 w-9 items-center justify-center rounded-full bg-[#1D7658] text-base font-extrabold text-white">
+                  {shop.name.charAt(0)}
+                </span>
+              )}
+              <span className="text-base font-extrabold tracking-wide">
+                {shop.name}
+              </span>
+            </span>
+            <div className="flex items-center gap-1">
+              <a
+                href="#order"
+                className="hidden rounded-full bg-[#1D7658] px-4 py-2 text-sm font-bold text-white sm:block"
+              >
+                {L('এখনই অর্ডার করুন', 'Order Now')}
+              </a>
+              <button
+                type="button"
+                onClick={() => setFashionMenuOpen((v) => !v)}
+                className="flex h-10 w-10 items-center justify-center rounded-full text-xl text-[#171717]"
+                aria-label="মেনু"
+                aria-expanded={fashionMenuOpen}
+              >
+                ☰
+              </button>
+            </div>
+          </div>
+          {fashionMenuOpen ? (
+            <nav className="absolute inset-x-4 top-full z-50 rounded-2xl border border-[#EAE8E2] bg-white p-2 shadow-lg">
+              {[
+                { href: '#order', label: L('এখনই অর্ডার করুন', 'Order Now') },
+                { href: '#reviews', label: L('কাস্টমার রিভিউ', 'Customer Reviews') },
+                { href: '#delivery', label: L('ডেলিভারি ও রিটার্ন', 'Delivery & Returns') },
+                { href: '#faq', label: L('জিজ্ঞাসা', 'FAQ') },
+              ].map((item) => (
+                <a
+                  key={item.href}
+                  href={item.href}
+                  onClick={() => setFashionMenuOpen(false)}
+                  className="block rounded-xl px-4 py-3 text-sm font-semibold text-[#171717] hover:bg-[#FAF9F6]"
+                >
+                  {item.label}
+                </a>
+              ))}
+            </nav>
+          ) : null}
+        </header>
+
+        <main className="mx-auto max-w-5xl px-4 pb-28 pt-6 md:pb-10">
+          <div className="grid gap-8 md:grid-cols-2 md:gap-10">
+            <div>
+              {showGallery ? (
+                <Gallery images={images} productName={product.name} />
+              ) : null}
+            </div>
+            <div>
+              <p className="text-xs font-bold uppercase tracking-[0.2em] text-[#1D7658]">
+                {shop.name}
+              </p>
+              <h1 className="mt-2 font-serif text-3xl font-bold leading-tight md:text-4xl">
+                {product.name}
+              </h1>
+              <div className="mt-3">
+                <RatingSummary data={data} t={t} />
+              </div>
+              <div className="mt-4 flex flex-wrap items-baseline gap-2">
+                <span className="text-3xl font-extrabold">
+                  {formatBDT(product.price)}
+                </span>
+                {product.old_price && product.old_price > product.price ? (
+                  <>
+                    <span className="text-lg text-[#777777] line-through">
+                      {formatBDT(product.old_price)}
+                    </span>
+                    <span className="rounded-full bg-[#1D7658] px-2.5 py-0.5 text-xs font-bold text-white">
+                      {toBnDigits(discount)}% {L('ছাড়', 'OFF')}
+                    </span>
+                  </>
+                ) : null}
+              </div>
+              {product.description ? (
+                <p className="mt-4 text-[15px] leading-relaxed text-[#555555]">
+                  {product.description}
+                </p>
+              ) : null}
+              <a
+                href="#order"
+                className="mt-6 block rounded-full bg-[#1D7658] px-4 py-3.5 text-center font-bold text-white"
+              >
+                {L('এখনই অর্ডার করুন', 'Order Now')}
+              </a>
+              <p className="mt-3 text-center text-xs text-[#777777]">
+                {t.deliveryInside}:{' '}
+                {shop.delivery_inside_charge > 0
+                  ? formatBDT(shop.delivery_inside_charge)
+                  : t.freeDelivery}
+                {' · '}
+                {t.deliveryOutside}:{' '}
+                {shop.delivery_outside_charge > 0
+                  ? formatBDT(shop.delivery_outside_charge)
+                  : t.freeDelivery}
+              </p>
+            </div>
+          </div>
+
+          {showBenefits ? (
+            <section className="mt-12">
+              <p className="text-xs font-bold uppercase tracking-[0.2em] text-[#1D7658]">
+                {L('কেন এই পণ্যটি', 'Why this product')}
+              </p>
+              <h2 className="mt-1 font-serif text-2xl font-bold">
+                {L('ফ্যাশন হাইলাইটস', 'Fashion Highlights')}
+              </h2>
+              <div className="mt-5 grid grid-cols-2 gap-3">
+                {product.benefits.map((b, i) => (
+                  <div
+                    key={i}
+                    className="rounded-2xl border border-[#EAE8E2] bg-white p-4"
+                  >
+                    <span className="flex h-9 w-9 items-center justify-center rounded-full bg-[#EAF3ED] font-bold text-[#1D7658]">
+                      ✓
+                    </span>
+                    <p className="mt-3 text-sm font-semibold leading-relaxed">
+                      {b}
+                    </p>
+                  </div>
+                ))}
+              </div>
+            </section>
+          ) : null}
+
+          {extraImages.length > 0 && showGallery ? (
+            <section className="mt-12">
+              <p className="text-xs font-bold uppercase tracking-[0.2em] text-[#1D7658]">
+                {L('লাইফস্টাইল', 'Lifestyle')}
+              </p>
+              <h2 className="mt-1 font-serif text-2xl font-bold">
+                {L('স্টাইলে দেখুন', 'Styled in Real Life')}
+              </h2>
+              <div className="mt-5 space-y-4">
+                {extraImages.map((img) => (
+                  <FramedPhoto key={img.id} src={img.url} alt={product.name} />
+                ))}
+              </div>
+            </section>
+          ) : null}
+
+          {showSpecs ? (
+            <section className="mt-12">
+              <p className="text-xs font-bold uppercase tracking-[0.2em] text-[#1D7658]">
+                {L('বিস্তারিত', 'Details')}
+              </p>
+              <h2 className="mt-1 font-serif text-2xl font-bold">
+                {L('পণ্যের বিবরণ', 'Product Details')}
+              </h2>
+              <dl className="mt-5 divide-y divide-[#EAE8E2] overflow-hidden rounded-2xl border border-[#EAE8E2] bg-white">
+                {specEntries.map(([key, value]) => (
+                  <div
+                    key={key}
+                    className="flex justify-between gap-4 px-4 py-3 text-sm"
+                  >
+                    <dt className="text-[#777777]">{key}</dt>
+                    <dd className="text-right font-medium">{value}</dd>
+                  </div>
+                ))}
+              </dl>
+            </section>
+          ) : null}
+
+          {discount > 0 ? (
+            <section className="mt-12 rounded-3xl bg-[#1D7658] p-6 text-white">
+              <p className="text-xs font-bold uppercase tracking-[0.2em] text-white/80">
+                {L('বিশেষ অফার', 'Special Offer')}
+              </p>
+              <p className="mt-2 font-serif text-3xl font-bold">
+                {toBnDigits(discount)}% {L('ছাড়', 'OFF')}
+              </p>
+              <p className="mt-2 text-sm text-white/85">
+                {L(
+                  'এখন অর্ডার করলেই ছাড়ের দামে পাচ্ছেন',
+                  'Order now at the discounted price',
+                )}
+              </p>
+              <div className="mt-4 flex items-baseline gap-2">
+                <span className="text-2xl font-extrabold">
+                  {formatBDT(product.price)}
+                </span>
+                {product.old_price ? (
+                  <span className="text-white/70 line-through">
+                    {formatBDT(product.old_price)}
+                  </span>
+                ) : null}
+              </div>
+              <a
+                href="#order"
+                className="mt-5 block rounded-full bg-white px-4 py-3 text-center font-bold text-[#1D7658]"
+              >
+                {L('এখনই অর্ডার করুন', 'Order Now')}
+              </a>
+            </section>
+          ) : null}
+
+          {showVideo && videoEmbedId ? (
+            <section className="mt-12">
+              <h2 className="font-serif text-2xl font-bold">{t.video}</h2>
+              <div className="mt-4 aspect-video w-full overflow-hidden rounded-2xl">
+                <iframe
+                  src={`https://www.youtube.com/embed/${videoEmbedId}`}
+                  title={product.name}
+                  className="h-full w-full"
+                  allowFullScreen
+                />
+              </div>
+            </section>
+          ) : null}
+
+          {showReviews ? (
+            <section id="reviews" className="mt-12">
+              <p className="text-xs font-bold uppercase tracking-[0.2em] text-[#1D7658]">
+                {L('মতামত', 'Reviews')}
+              </p>
+              <h2 className="mt-1 font-serif text-2xl font-bold">
+                {t.reviews}
+              </h2>
+              {page.reviews.length === 0 ? (
+                <p className="mt-4 text-sm text-[#777777]">{t.noReviews}</p>
+              ) : (
+                <div className="mt-5 space-y-3">
+                  <RatingSummary data={data} t={t} />
+                  {page.reviews.map((r, i) => (
+                    <article
+                      key={i}
+                      className="rounded-2xl border border-[#EAE8E2] bg-white p-4"
+                    >
+                      <p className="font-semibold">{r.name}</p>
+                      {typeof r.rating === 'number' && r.rating > 0 ? (
+                        <p className="text-sm font-bold text-amber-500">
+                          {'★'.repeat(Math.round(r.rating))}
+                        </p>
+                      ) : null}
+                      <p className="mt-1 text-sm leading-relaxed text-[#555555]">
+                        {r.text}
+                      </p>
+                    </article>
+                  ))}
+                </div>
+              )}
+            </section>
+          ) : null}
+
+          <div className="mt-12">{orderBox}</div>
+
+          <section id="delivery" className="mt-12">
+            <p className="text-xs font-bold uppercase tracking-[0.2em] text-[#1D7658]">
+              {L('ডেলিভারি', 'Delivery')}
+            </p>
+            <h2 className="mt-1 font-serif text-2xl font-bold">
+              {L('ডেলিভারি ও রিটার্ন', 'Delivery & Returns')}
+            </h2>
+            <div className="mt-5 space-y-2 rounded-2xl border border-[#EAE8E2] bg-white p-5 text-sm leading-relaxed">
+              <p className="flex justify-between gap-4">
+                <span className="text-[#777777]">{t.deliveryInside}</span>
+                <span className="font-semibold">
+                  {shop.delivery_inside_charge > 0
+                    ? formatBDT(shop.delivery_inside_charge)
+                    : t.freeDelivery}
+                </span>
+              </p>
+              <p className="flex justify-between gap-4">
+                <span className="text-[#777777]">{t.deliveryOutside}</span>
+                <span className="font-semibold">
+                  {shop.delivery_outside_charge > 0
+                    ? formatBDT(shop.delivery_outside_charge)
+                    : t.freeDelivery}
+                </span>
+              </p>
+              {shop.free_delivery_threshold !== null &&
+              shop.free_delivery_threshold > 0 ? (
+                <p className="font-semibold text-[#1D7658]">
+                  {t.freeDeliveryAbove(
+                    formatBDT(shop.free_delivery_threshold),
+                  )}
+                </p>
+              ) : null}
+              <p className="border-t border-[#EAE8E2] pt-3 text-[#555555]">
+                {L(
+                  'রিটার্ন বা বিনিময় সম্পর্কে জানতে নিচের WhatsApp বাটনে যোগাযোগ করুন।',
+                  'For returns or exchanges, contact us on WhatsApp below.',
+                )}
+              </p>
+            </div>
+          </section>
+
+          {showFaq ? (
+            <section id="faq" className="mt-12">
+              <p className="text-xs font-bold uppercase tracking-[0.2em] text-[#1D7658]">
+                {L('জিজ্ঞাসা', 'FAQ')}
+              </p>
+              <h2 className="mt-1 font-serif text-2xl font-bold">{t.faq}</h2>
+              <div className="mt-5 space-y-2">
+                {page.faqs.map((f, i) => {
+                  const open = fashionOpenFaq === i
+                  return (
+                    <div
+                      key={i}
+                      className="overflow-hidden rounded-2xl border border-[#EAE8E2] bg-white"
+                    >
+                      <button
+                        type="button"
+                        onClick={() =>
+                          setFashionOpenFaq(open ? null : i)
+                        }
+                        className="flex w-full items-center justify-between gap-3 px-4 py-3.5 text-left"
+                        aria-expanded={open}
+                      >
+                        <span className="text-sm font-semibold">{f.q}</span>
+                        <span className="shrink-0 text-lg text-[#1D7658]">
+                          {open ? '−' : '+'}
+                        </span>
+                      </button>
+                      {open ? (
+                        <p className="border-t border-[#EAE8E2] px-4 py-3 text-sm leading-relaxed text-[#555555]">
+                          {f.a}
+                        </p>
+                      ) : null}
+                    </div>
+                  )
+                })}
+              </div>
+            </section>
+          ) : null}
+        </main>
+        {footer}
+        <div className="fixed inset-x-0 bottom-0 z-40 flex items-center justify-between gap-3 border-t border-[#EAE8E2] bg-white/95 px-4 py-3 shadow-lg backdrop-blur md:hidden">
+          <div className="min-w-0">
+            <p className="truncate text-xs text-[#777777]">{product.name}</p>
+            <p className="text-lg font-extrabold">
+              {formatBDT(product.price)}
+            </p>
+          </div>
+          <a
+            href="#order"
+            className="shrink-0 rounded-full bg-[#1D7658] px-5 py-2.5 text-sm font-bold text-white"
+          >
+            {L('এখনই অর্ডার করুন', 'Order Now')}
+          </a>
+        </div>
       </div>
     )
   }

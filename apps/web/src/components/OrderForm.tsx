@@ -27,18 +27,26 @@ export interface PlacedOrder {
   customerName: string
 }
 
-const inputClass = 'mt-1 w-full rounded-lg border border-gray-300 px-3 py-2 text-sm'
-
 export default function OrderForm({
   data,
   t,
   onPlaced,
+  dark = false,
 }: {
   data: CustomerPageData
   t: StringsType
   onPlaced: (placed: PlacedOrder) => void
+  /** Luxury Premium টেমপ্লেটের গাঢ় সোনালি রূপ — অন্য টেমপ্লেটে বদলায় না। */
+  dark?: boolean
 }) {
   const { shop, product } = data
+  // গাঢ় থিমের ইনপুট/লেবেল — হালকা থিমের ক্লাস একদম আগের মতো।
+  const labelClass = dark
+    ? 'text-sm font-semibold text-[#B8B8B8]'
+    : 'text-sm font-semibold text-gray-700'
+  const inputClass = dark
+    ? 'mt-1 w-full rounded-lg border border-[#34343A] bg-[#151518] px-3 py-2 text-sm text-white placeholder:text-[#8a8a90]'
+    : 'mt-1 w-full rounded-lg border border-gray-300 px-3 py-2 text-sm'
   const [name, setName] = useState('')
   const [phone, setPhone] = useState('')
   const [division, setDivision] = useState('')
@@ -184,7 +192,7 @@ export default function OrderForm({
       ) : null}
 
       <label className="block">
-        <span className="text-sm font-semibold text-gray-700">{t.yourName} *</span>
+        <span className={labelClass}>{t.yourName} *</span>
         <input
           type="text"
           required
@@ -196,7 +204,7 @@ export default function OrderForm({
       </label>
 
       <label className="block">
-        <span className="text-sm font-semibold text-gray-700">{t.phone} *</span>
+        <span className={labelClass}>{t.phone} *</span>
         <input
           type="tel"
           required
@@ -209,7 +217,7 @@ export default function OrderForm({
 
       <div className="grid grid-cols-2 gap-3">
         <label className="block">
-          <span className="text-sm font-semibold text-gray-700">{t.division} *</span>
+          <span className={labelClass}>{t.division} *</span>
           <select
             required
             value={division}
@@ -225,7 +233,7 @@ export default function OrderForm({
           </select>
         </label>
         <label className="block">
-          <span className="text-sm font-semibold text-gray-700">{t.district} *</span>
+          <span className={labelClass}>{t.district} *</span>
           <select
             required
             value={district}
@@ -244,7 +252,7 @@ export default function OrderForm({
       </div>
 
       <label className="block">
-        <span className="text-sm font-semibold text-gray-700">{t.upazila}</span>
+        <span className={labelClass}>{t.upazila}</span>
         <input
           type="text"
           value={upazila}
@@ -255,7 +263,7 @@ export default function OrderForm({
       </label>
 
       <label className="block">
-        <span className="text-sm font-semibold text-gray-700">{t.addressLine} *</span>
+        <span className={labelClass}>{t.addressLine} *</span>
         <textarea
           required
           rows={2}
@@ -267,7 +275,7 @@ export default function OrderForm({
       </label>
 
       <fieldset>
-        <legend className="text-sm font-semibold text-gray-700">
+        <legend className={labelClass}>
           {t.deliveryArea} *
         </legend>
         <div className="mt-2 flex gap-2">
@@ -283,8 +291,12 @@ export default function OrderForm({
               onClick={() => setArea(value)}
               className={`flex-1 rounded-lg border px-3 py-2 text-sm font-semibold ${
                 area === value
-                  ? 'border-brand bg-brand text-white'
-                  : 'border-gray-300 bg-white text-gray-700'
+                  ? dark
+                    ? 'border-[#D6B36A] bg-[#D6B36A] text-[#0B0B0D]'
+                    : 'border-brand bg-brand text-white'
+                  : dark
+                    ? 'border-[#34343A] bg-[#151518] text-white'
+                    : 'border-gray-300 bg-white text-gray-700'
               }`}
             >
               {label}
@@ -309,25 +321,25 @@ export default function OrderForm({
       </fieldset>
 
       <div className="flex items-center justify-between">
-        <span className="text-sm font-semibold text-gray-700">{t.quantity}</span>
+        <span className={labelClass}>{t.quantity}</span>
         <span className="flex items-center gap-3">
           <button
             type="button"
             onClick={() => changeQuantity(-1)}
             disabled={quantity <= 1}
-            className="flex h-9 w-9 items-center justify-center rounded-lg border border-gray-300 text-lg font-bold disabled:opacity-40"
+            className={`flex h-9 w-9 items-center justify-center rounded-lg border text-lg font-bold disabled:opacity-40 ${dark ? 'border-[#34343A] text-white' : 'border-gray-300'}`} 
             aria-label="কম"
           >
             −
           </button>
-          <span className="w-8 text-center text-lg font-bold">
+          <span className={`w-8 text-center text-lg font-bold ${dark ? 'text-white' : ''}`}>
             {toBnDigits(quantity)}
           </span>
           <button
             type="button"
             onClick={() => changeQuantity(1)}
             disabled={quantity >= 99}
-            className="flex h-9 w-9 items-center justify-center rounded-lg border border-gray-300 text-lg font-bold disabled:opacity-40"
+            className={`flex h-9 w-9 items-center justify-center rounded-lg border text-lg font-bold disabled:opacity-40 ${dark ? 'border-[#34343A] text-white' : 'border-gray-300'}`} 
             aria-label="বেশি"
           >
             +
@@ -335,14 +347,24 @@ export default function OrderForm({
         </span>
       </div>
 
-      <div className="space-y-1 rounded-xl bg-gray-50 px-4 py-3 text-sm">
+      <div
+        className={`space-y-1 rounded-xl px-4 py-3 text-sm ${
+          dark ? 'border border-[#34343A] bg-[#151518]' : 'bg-gray-50'
+        }`}
+      >
         <p className="flex justify-between">
-          <span className="text-gray-600">{t.subtotal} (× {toBnDigits(quantity)})</span>
-          <span className="font-semibold">{formatBDT(subtotal)}</span>
+          <span className={dark ? 'text-[#B8B8B8]' : 'text-gray-600'}>
+            {t.subtotal} (× {toBnDigits(quantity)})
+          </span>
+          <span className={`font-semibold ${dark ? 'text-white' : ''}`}>
+            {formatBDT(subtotal)}
+          </span>
         </p>
         <p className="flex justify-between">
-          <span className="text-gray-600">{t.deliveryCharge}</span>
-          <span className="font-semibold">
+          <span className={dark ? 'text-[#B8B8B8]' : 'text-gray-600'}>
+            {t.deliveryCharge}
+          </span>
+          <span className={`font-semibold ${dark ? 'text-white' : ''}`}>
             {deliveryCharge > 0 ? formatBDT(deliveryCharge) : t.freeDelivery}
           </span>
         </p>
@@ -356,7 +378,11 @@ export default function OrderForm({
             {t.freeDeliveryAbove(formatBDT(freeThreshold))}
           </p>
         ) : null}
-        <p className="flex justify-between border-t border-gray-200 pt-2 text-base font-extrabold">
+        <p
+          className={`flex justify-between border-t pt-2 text-base font-extrabold ${
+            dark ? 'border-[#34343A] text-white' : 'border-gray-200'
+          }`}
+        >
           <span>{t.total}</span>
           <span>{formatBDT(total)}</span>
         </p>
@@ -365,7 +391,11 @@ export default function OrderForm({
       <button
         type="submit"
         disabled={busy}
-        className="w-full rounded-lg bg-accent px-4 py-3 font-semibold text-white disabled:opacity-50"
+        className={`w-full rounded-lg px-4 py-3 font-semibold disabled:opacity-50 ${
+          dark
+            ? 'bg-[#D6B36A] text-[#0B0B0D]'
+            : 'bg-accent text-white'
+        }`}
       >
         {busy ? t.placingOrder : `${t.placeOrder} — ${formatBDT(total)}`}
       </button>
@@ -377,7 +407,7 @@ export default function OrderForm({
           )}`}
           target="_blank"
           rel="noreferrer"
-          className="block rounded-lg border border-gray-300 px-4 py-3 text-center text-sm font-semibold text-gray-700"
+          className={`block rounded-lg border px-4 py-3 text-center text-sm font-semibold ${dark ? 'border-[#34343A] text-white' : 'border-gray-300 text-gray-700'}`} 
         >
           {t.whatsappOrder}
         </a>

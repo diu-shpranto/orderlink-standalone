@@ -49,6 +49,30 @@ export type CustomerStrings = {
   selectDistrict: string
   freeDeliveryApplies: string
   freeDeliveryAbove: (amount: string) => string
+  luxuryEyebrow: string
+  luxuryTrustTitle: string
+  luxuryTrustAuthentic: string
+  luxuryTrustAuthenticDesc: string
+  luxuryTrustQuality: string
+  luxuryTrustQualityDesc: string
+  luxuryTrustSecure: string
+  luxuryTrustSecureDesc: string
+  luxuryTrustFast: string
+  luxuryTrustFastDesc: string
+  luxuryWhyTitle: string
+  luxuryWhyQuality: string
+  luxuryWhyQualityDesc: string
+  luxuryWhyCraft: string
+  luxuryWhyCraftDesc: string
+  luxuryWhyDurable: string
+  luxuryWhyDurableDesc: string
+  luxuryWhyPractical: string
+  luxuryWhyPracticalDesc: string
+  luxuryStoryTitle: string
+  luxuryFeaturesTitle: string
+  luxuryOfferTitle: string
+  luxuryDeliveryTitle: string
+  luxuryDeliverySupport: string
 }
 
 const BN: CustomerStrings = {
@@ -98,6 +122,30 @@ const BN: CustomerStrings = {
   selectDistrict: 'জেলা বাছুন',
   freeDeliveryApplies: 'ফ্রি ডেলিভারি প্রযোজ্য হয়েছে',
   freeDeliveryAbove: (amount) => `${amount}-এর বেশি অর্ডারে ডেলিভারি ফ্রি`,
+  luxuryEyebrow: 'প্রিমিয়াম কালেকশন',
+  luxuryTrustTitle: 'আমাদের প্রতিশ্রুতি',
+  luxuryTrustAuthentic: 'অরিজিনাল পণ্য',
+  luxuryTrustAuthenticDesc: '১০০% আসল পণ্যের নিশ্চয়তা',
+  luxuryTrustQuality: 'প্রিমিয়াম কোয়ালিটি',
+  luxuryTrustQualityDesc: 'সেরা উপাদান ও নিখুঁত ফিনিশিং',
+  luxuryTrustSecure: 'নিরাপদ অর্ডার',
+  luxuryTrustSecureDesc: 'সহজ ও নিরাপদ অর্ডার প্রক্রিয়া',
+  luxuryTrustFast: 'দ্রুত ডেলিভারি',
+  luxuryTrustFastDesc: 'সারা দেশে দ্রুত ডেলিভারি',
+  luxuryWhyTitle: 'কেন এই পণ্যটি বেছে নেবেন?',
+  luxuryWhyQuality: 'প্রিমিয়াম মান',
+  luxuryWhyQualityDesc: 'প্রতিটি পণ্য যাচাই করে সেরা মান নিশ্চিত করা হয়।',
+  luxuryWhyCraft: 'নিখুঁত কারিগরি',
+  luxuryWhyCraftDesc: 'অভিজ্ঞ কারিগরের হাতে যত্নে তৈরি।',
+  luxuryWhyDurable: 'টেকসই ও দীর্ঘস্থায়ী',
+  luxuryWhyDurableDesc: 'দীর্ঘদিন ব্যবহারের জন্য তৈরি।',
+  luxuryWhyPractical: 'ব্যবহারে সুবিধাজনক',
+  luxuryWhyPracticalDesc: 'দেখতে সুন্দর, ব্যবহারে আরামদায়ক।',
+  luxuryStoryTitle: 'পণ্যের গল্প',
+  luxuryFeaturesTitle: 'পণ্যের বৈশিষ্ট্য',
+  luxuryOfferTitle: 'বিশেষ অফার',
+  luxuryDeliveryTitle: 'ডেলিভারি তথ্য',
+  luxuryDeliverySupport: 'সাহায্য লাগলে WhatsApp-এ মেসেজ করুন।',
 }
 
 const EN: CustomerStrings = {
@@ -148,6 +196,30 @@ const EN: CustomerStrings = {
   selectDistrict: 'Select district',
   freeDeliveryApplies: 'Free delivery applied',
   freeDeliveryAbove: (amount) => `Free delivery on orders above ${amount}`,
+  luxuryEyebrow: 'Premium Collection',
+  luxuryTrustTitle: 'Our Promise',
+  luxuryTrustAuthentic: 'Authentic Product',
+  luxuryTrustAuthenticDesc: '100% genuine product, guaranteed',
+  luxuryTrustQuality: 'Premium Quality',
+  luxuryTrustQualityDesc: 'Finest materials and flawless finishing',
+  luxuryTrustSecure: 'Secure Ordering',
+  luxuryTrustSecureDesc: 'Simple and secure ordering',
+  luxuryTrustFast: 'Fast Delivery',
+  luxuryTrustFastDesc: 'Fast delivery across the country',
+  luxuryWhyTitle: 'Why Choose This Product?',
+  luxuryWhyQuality: 'Premium Quality',
+  luxuryWhyQualityDesc: 'Every product is checked to ensure the finest quality.',
+  luxuryWhyCraft: 'Fine Craftsmanship',
+  luxuryWhyCraftDesc: 'Carefully crafted by skilled hands.',
+  luxuryWhyDurable: 'Durable & Long-lasting',
+  luxuryWhyDurableDesc: 'Built to last for years.',
+  luxuryWhyPractical: 'Practical Everyday Use',
+  luxuryWhyPracticalDesc: 'Beautiful to look at, comfortable to use.',
+  luxuryStoryTitle: 'The Story Behind It',
+  luxuryFeaturesTitle: 'Product Features',
+  luxuryOfferTitle: 'Special Offer',
+  luxuryDeliveryTitle: 'Delivery Information',
+  luxuryDeliverySupport: 'Need help? Message us on WhatsApp.',
 }
 
 export function customerStrings(lang: PageLang): CustomerStrings {
