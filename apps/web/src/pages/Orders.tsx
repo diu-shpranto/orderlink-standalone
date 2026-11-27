@@ -1,7 +1,9 @@
-// সেলারের অর্ডার ব্যবস্থাপনা — আসল ডাটা থেকে ৬টি স্ট্যাট কার্ড,
-// খোঁজা (অর্ডার নম্বর/নাম/ফোন), স্ট্যাটাস + তারিখ + প্রোডাক্ট ছাঁকনি,
-// বিস্তারিত ভিউ (স্ট্যাটাস পরিবর্তন, ইতিহাস, ভেতরের নোট, কল ও কপি)।
-// বাল্ক পরিবর্তন / CSV / প্রিন্ট — পরের পলিশ, এখানে নেই।
+// সেলারের অর্ডার ব্যবস্থাপনা — লাইভ অ্যাপের ডিজাইন অনুযায়ী:
+// মোট অর্ডার + সর্বমোট বিক্রি, CSV ডাউনলোড, ৬টি স্ট্যাটাস কার্ড
+// (ক্লিক করলে ছাঁকনি), Google Sheet কানেক্ট কার্ড, খোঁজা,
+// স্ট্যাটাস + তারিখ + প্রোডাক্ট ছাঁকনি, বিস্তারিত ভিউ
+// (স্ট্যাটাস পরিবর্তন, ইতিহাস, ভেতরের নোট, কল ও কপি)।
+// বাল্ক পরিবর্তন / প্রিন্ট — পরের পলিশ, এখানে নেই।
 import { useEffect, useMemo, useState } from 'react'
 import SellerShell, { STATUS_BN } from '../components/SellerShell.tsx'
 import { useAuth } from '../lib/auth.tsx'
@@ -18,19 +20,12 @@ import {
   type OrderStatus,
 } from '../lib/orders.ts'
 import { fetchSellerProducts } from '../lib/products.ts'
-import { formatBDT, formatCountBn, toBnDigits } from '../lib/pricing.ts'
-import { SHEET_STATUS_BN } from '../lib/sheets.ts'
+import { formatBDT, formatCountBn, todayDhaka, toBnDigits } from '../lib/pricing.ts'
+import { SHEET_STATUS_BN, fetchSheetConnection } from '../lib/sheets.ts'
+import type { SheetConnection } from '../lib/sheets.ts'
+import { navigate } from '../lib/router.ts'
+import { IconDoc, IconDownload, IconSearch } from '../components/icons.tsx'
 import type { OrderEventRow, OrderRow, ProductRow } from '../lib/types.ts'
-
-const STATUS_OPTIONS: { value: string; label: string }[] = [
-  { value: 'all', label: 'সব স্ট্যাটাস' },
-  { value: 'new', label: 'নতুন' },
-  { value: 'confirmed', label: 'নিশ্চিত' },
-  { value: 'processing', label: 'প্রস্তুত হচ্ছে' },
-  { value: 'shipped', label: 'পাঠানো হয়েছে' },
-  { value: 'delivered', label: 'ডেলিভার করা হয়েছে' },
-  { value: 'cancelled', label: 'বাতিল' },
-]
 
 const PAGE_SIZE = 20
 
@@ -61,6 +56,118 @@ function StatusBadge({ status }: { status: string }) {
     >
       {STATUS_BN[status] ?? status}
     </span>
+  )
+}
+
+/** ছাঁকনি করা অর্ডারের CSV — Sheet-এর কলাম অনুযায়ী। */
+function downloadOrdersCsv(
+  orders: OrderRow[],
+  productNameById: Map<string, string>,
+) {
+  const headers = [
+    'Order ID',
+    'Date',
+    'Customer Name',
+    'Phone',
+    'Product',
+    'Quantity',
+    'Unit Price',
+    'Delivery Charge',
+    'Total',
+    'Address',
+    'Status',
+  ]
+  const rows = orders.map((o) => {
+    const address = [o.address_line, o.upazila, o.district, o.division]
+      .filter((part) => part && part.trim().length > 0)
+      .join(', ')
+    const unitPrice =
+      o.quantity > 0
+        ? Math.round((Number(o.total) - Number(o.delivery_charge)) / o.quantity)
+        : Number(o.total)
+    return [
+      o.order_code,
+      formatDateTime(o.created_at),
+      o.customer_name,
+      o.customer_phone,
+      o.product_id ? (productNameById.get(o.product_id) ?? '') : '',
+      String(o.quantity),
+      String(unitPrice),
+      String(Number(o.delivery_charge)),
+      String(Number(o.total)),
+      address,
+      STATUS_BN[o.status] ?? o.status,
+    ]
+  })
+  const csv =
+    '\uFEFF' +
+    [headers, ...rows]
+      .map((r) =>
+        r.map((cell) => `"${String(cell).replace(/"/g, '""')}"`).join(','),
+      )
+      .join('\r\n')
+  const blob = new Blob([csv], { type: 'text/csv;charset=utf-8' })
+  const url = URL.createObjectURL(blob)
+  const a = document.createElement('a')
+  a.href = url
+  a.download = `orders-${todayDhaka()}.csv`
+  a.click()
+  URL.revokeObjectURL(url)
+}
+
+/** Google Sheet কানেক্ট কার্ড — যুক্ত না থাকলে লাইভ অ্যাপের মতো কার্ড,
+ * যুক্ত থাকলে ছোট সবুজ অবস্থা। */
+function SheetConnectCard() {
+  const { seller } = useAuth()
+  const [connection, setConnection] = useState<SheetConnection | null>(null)
+  const [loaded, setLoaded] = useState(false)
+
+  useEffect(() => {
+    if (!seller) return
+    fetchSheetConnection(seller.id)
+      .then((conn) => setConnection(conn))
+      .catch(() => setConnection(null))
+      .finally(() => setLoaded(true))
+  }, [seller])
+
+  if (!loaded) return null
+  if (connection?.sheet_id) {
+    return (
+      <div className="mt-5 flex items-center gap-3 rounded-[24px] border border-gray-200 bg-white p-5 shadow-sm">
+        <span className="flex h-12 w-12 shrink-0 items-center justify-center rounded-2xl bg-brand text-white shadow-md">
+          <IconDoc className="h-6 w-6" />
+        </span>
+        <div className="min-w-0">
+          <p className="font-extrabold">Google Sheet যুক্ত আছে ✓</p>
+          <p className="mt-0.5 truncate text-sm text-gray-500">
+            {connection.google_email ?? ''} — প্রতিটা অর্ডার অটোমেটিক শিটে
+            জমা হচ্ছে।
+          </p>
+        </div>
+      </div>
+    )
+  }
+  return (
+    <div className="mt-5 rounded-[24px] border border-gray-200 bg-white p-5 shadow-sm">
+      <h2 className="flex items-center gap-3 text-lg font-extrabold">
+        <span className="flex h-12 w-12 shrink-0 items-center justify-center rounded-2xl bg-gradient-to-br from-brand-dark to-brand text-white shadow-md">
+          <IconDoc className="h-6 w-6" />
+        </span>
+        Google Sheet কানেক্ট করুন
+      </h2>
+      <p className="mt-3 text-[15px] leading-relaxed text-gray-600">
+        কানেক্ট করলেই প্রতিটি অর্ডার অটোমেটিক আপনার শিটে জমা হবে — Order ID,
+        কাস্টমারের নাম, ফোন, ঠিকানা, মোট টাকাসহ। প্রতিদিনের অর্ডার সেই দিনের
+        নামের আলাদা ট্যাবে যায়।
+      </p>
+      <button
+        type="button"
+        onClick={() => navigate('/dashboard/settings')}
+        className="mt-4 rounded-2xl bg-gradient-to-r from-brand-dark via-brand to-brand px-5 py-3 text-sm font-bold text-white shadow-lg shadow-brand/25"
+      >
+        সেটিংসে গিয়ে কানেক্ট করুন
+      </button>
+    </div>
   )
 }
 
@@ -153,7 +260,7 @@ function OrderDetail({
 
   return (
     <div className="fixed inset-0 z-50 flex items-end justify-center bg-black/50 sm:items-center sm:p-4">
-      <div className="max-h-[90vh] w-full max-w-lg overflow-y-auto rounded-t-2xl bg-white p-5 sm:rounded-2xl">
+      <div className="max-h-[90vh] w-full max-w-lg overflow-y-auto rounded-t-[28px] bg-white p-5 shadow-xl sm:rounded-[28px] sm:p-6">
         <div className="flex items-start justify-between gap-3">
           <div>
             <h2 className="text-xl font-extrabold">{order.order_code}</h2>
@@ -164,7 +271,7 @@ function OrderDetail({
           <button
             type="button"
             onClick={onClose}
-            className="rounded-lg border border-gray-300 px-3 py-1 text-sm font-bold"
+            className="rounded-xl border border-gray-300 px-3 py-1.5 text-sm font-bold"
             aria-label="বন্ধ করুন"
           >
             ✕
@@ -176,36 +283,36 @@ function OrderDetail({
         </div>
 
         {error ? (
-          <p className="mt-4 rounded-lg bg-red-50 px-4 py-3 text-sm text-red-700">
+          <p className="mt-4 rounded-2xl bg-red-50 px-4 py-3 text-sm font-medium text-red-700">
             {error}
           </p>
         ) : null}
 
         {phoneOrderCount > 1 ? (
-          <p className="mt-4 rounded-lg bg-amber-50 px-4 py-3 text-sm text-amber-800">
+          <p className="mt-4 rounded-2xl bg-amber-50 px-4 py-3 text-sm text-amber-800">
             সতর্কতা: এই ফোন নম্বরে এই দোকানে মোট{' '}
             {toBnDigits(phoneOrderCount)}টি অর্ডার আছে — ডুপ্লিকেট হতে পারে।
           </p>
         ) : null}
 
-        <div className="mt-4 space-y-2 rounded-xl bg-gray-50 px-4 py-3 text-sm">
+        <div className="mt-4 space-y-2 rounded-2xl bg-cream px-4 py-3 text-sm">
           <p className="flex justify-between">
             <span className="text-gray-500">কাস্টমার</span>
-            <span className="font-semibold">{order.customer_name}</span>
+            <span className="font-bold">{order.customer_name}</span>
           </p>
           <p className="flex items-center justify-between gap-2">
             <span className="text-gray-500">ফোন</span>
             <span className="flex items-center gap-2">
               <a
                 href={`tel:${order.customer_phone}`}
-                className="font-semibold text-brand-dark"
+                className="font-bold text-brand-dark"
               >
                 {order.customer_phone}
               </a>
               <button
                 type="button"
                 onClick={copyPhone}
-                className="rounded border border-gray-300 bg-white px-2 py-0.5 text-xs font-semibold"
+                className="rounded-lg border border-gray-300 bg-white px-2 py-0.5 text-xs font-bold"
               >
                 {copied ? 'কপি হয়েছে ✓' : 'কপি'}
               </button>
@@ -252,21 +359,21 @@ function OrderDetail({
         <div className="mt-4 flex gap-2">
           <a
             href={`tel:${order.customer_phone}`}
-            className="flex-1 rounded-lg bg-brand px-4 py-2.5 text-center text-sm font-semibold text-white"
+            className="flex-1 rounded-2xl bg-gradient-to-r from-brand-dark via-brand to-brand px-4 py-3 text-center text-sm font-bold text-white shadow"
           >
-            📞 কল করুন
+            কল করুন
           </a>
         </div>
 
         <div className="mt-5">
-          <h3 className="font-bold">স্ট্যাটাস বদলান</h3>
+          <h3 className="font-extrabold">স্ট্যাটাস বদলান</h3>
           <div className="mt-2 flex flex-wrap gap-2">
             {nextStatus ? (
               <button
                 type="button"
                 disabled={busy}
                 onClick={() => void changeStatus(nextStatus)}
-                className="rounded-lg bg-brand px-4 py-2 text-sm font-semibold text-white disabled:opacity-50"
+                className="rounded-2xl bg-gradient-to-r from-brand-dark to-brand px-4 py-2.5 text-sm font-bold text-white disabled:opacity-50"
               >
                 {STATUS_BN[nextStatus] ?? nextStatus} করুন
               </button>
@@ -276,7 +383,7 @@ function OrderDetail({
                 type="button"
                 disabled={busy}
                 onClick={() => setConfirmingCancel(true)}
-                className="rounded-lg border border-red-300 px-4 py-2 text-sm font-semibold text-red-600 disabled:opacity-50"
+                className="rounded-2xl border border-red-300 px-4 py-2.5 text-sm font-bold text-red-600 disabled:opacity-50"
               >
                 বাতিল করুন
               </button>
@@ -288,7 +395,7 @@ function OrderDetail({
             ) : null}
           </div>
           {confirmingCancel ? (
-            <div className="mt-3 rounded-lg bg-red-50 px-4 py-3 text-sm">
+            <div className="mt-3 rounded-2xl bg-red-50 px-4 py-3 text-sm">
               <p className="text-red-800">
                 এই অর্ডারটি বাতিল করবেন? বাতিল হলে আর ফেরানো যাবে না।
               </p>
@@ -297,14 +404,14 @@ function OrderDetail({
                   type="button"
                   disabled={busy}
                   onClick={() => void changeStatus('cancelled')}
-                  className="rounded-lg bg-red-600 px-4 py-2 text-sm font-semibold text-white disabled:opacity-50"
+                  className="rounded-2xl bg-red-600 px-4 py-2 text-sm font-bold text-white disabled:opacity-50"
                 >
                   হ্যাঁ, বাতিল করুন
                 </button>
                 <button
                   type="button"
                   onClick={() => setConfirmingCancel(false)}
-                  className="rounded-lg border border-gray-300 bg-white px-4 py-2 text-sm font-semibold"
+                  className="rounded-2xl border border-gray-300 bg-white px-4 py-2 text-sm font-bold"
                 >
                   ফিরে যান
                 </button>
@@ -314,7 +421,7 @@ function OrderDetail({
         </div>
 
         <div className="mt-5">
-          <h3 className="font-bold">ভেতরের নোট (শুধু আপনি দেখবেন)</h3>
+          <h3 className="font-extrabold">ভেতরের নোট (শুধু আপনি দেখবেন)</h3>
           <textarea
             rows={3}
             value={notes}
@@ -322,7 +429,7 @@ function OrderDetail({
               setNotes(e.target.value)
               setNotesSaved(false)
             }}
-            className="mt-2 w-full rounded-lg border border-gray-300 px-3 py-2 text-sm"
+            className="mt-2 w-full rounded-2xl border border-gray-300 px-3 py-2 text-sm outline-none focus:border-brand focus:ring-2 focus:ring-brand/20"
             placeholder="যেমন: কাস্টমারকে বিকেলে ফোন দিতে হবে।"
           />
           <div className="mt-2 flex items-center gap-3">
@@ -330,18 +437,18 @@ function OrderDetail({
               type="button"
               disabled={notesSaving}
               onClick={() => void saveNotes()}
-              className="rounded-lg bg-gray-900 px-4 py-2 text-sm font-semibold text-white disabled:opacity-50"
+              className="rounded-2xl bg-gray-900 px-4 py-2 text-sm font-bold text-white disabled:opacity-50"
             >
               {notesSaving ? 'সেভ হচ্ছে…' : 'নোট সেভ করুন'}
             </button>
             {notesSaved ? (
-              <span className="text-sm font-semibold text-brand">সেভ হয়েছে ✓</span>
+              <span className="text-sm font-bold text-brand">সেভ হয়েছে ✓</span>
             ) : null}
           </div>
         </div>
 
         <div className="mt-5">
-          <h3 className="font-bold">স্ট্যাটাসের ইতিহাস</h3>
+          <h3 className="font-extrabold">স্ট্যাটাসের ইতিহাস</h3>
           {eventsLoading ? (
             <p className="mt-2 text-sm text-gray-500">লোড হচ্ছে…</p>
           ) : events.length === 0 ? (
@@ -356,7 +463,7 @@ function OrderDetail({
                     {ev.old_status
                       ? `${STATUS_BN[ev.old_status] ?? ev.old_status} → `
                       : ''}
-                    <span className="font-semibold">
+                    <span className="font-bold">
                       {STATUS_BN[ev.new_status] ?? ev.new_status}
                     </span>
                   </span>
@@ -430,13 +537,26 @@ export default function Orders() {
   const totalPages = Math.max(1, Math.ceil(filtered.length / PAGE_SIZE))
   const pageOrders = filtered.slice((page - 1) * PAGE_SIZE, page * PAGE_SIZE)
 
-  const statCards = [
-    { label: 'মোট অর্ডার', value: formatCountBn(stats.total) },
-    { label: 'নতুন অর্ডার', value: formatCountBn(stats.newCount) },
-    { label: 'আজকের অর্ডার', value: formatCountBn(stats.todayOrders) },
-    { label: 'আজকের বিক্রি', value: formatBDT(stats.todaySales) },
-    { label: 'ডেলিভার করা হয়েছে', value: formatCountBn(stats.delivered) },
-    { label: 'বাতিল', value: formatCountBn(stats.cancelled) },
+  // স্ট্যাটাস কার্ডগুলোই ছাঁকনি — ক্লিক করলে সেই স্ট্যাটাসের অর্ডার দেখায়।
+  const statCards: { label: string; value: string; status: string }[] = [
+    { label: 'মোট অর্ডার', value: formatCountBn(stats.total), status: 'all' },
+    { label: 'নতুন', value: formatCountBn(stats.newCount), status: 'new' },
+    {
+      label: 'কনফার্মড',
+      value: formatCountBn(stats.confirmed),
+      status: 'confirmed',
+    },
+    {
+      label: 'প্রসেসিং',
+      value: formatCountBn(stats.processing),
+      status: 'processing',
+    },
+    {
+      label: 'ডেলিভারড',
+      value: formatCountBn(stats.delivered),
+      status: 'delivered',
+    },
+    { label: 'বাতিল', value: formatCountBn(stats.cancelled), status: 'cancelled' },
   ]
 
   function setFilter(patch: Partial<OrderFilters>) {
@@ -445,52 +565,75 @@ export default function Orders() {
 
   return (
     <SellerShell active="orders">
-      <h1 className="text-2xl font-extrabold">অর্ডার</h1>
+      <h1 className="text-[28px] font-extrabold leading-tight text-gray-900 sm:text-3xl">
+        অর্ডার
+      </h1>
+      <p className="mt-1.5 text-[15px] text-gray-500">
+        মোট {formatCountBn(stats.total)}টি অর্ডার · সর্বমোট বিক্রি{' '}
+        {formatBDT(stats.totalSales)}
+      </p>
 
-      <div className="mt-6 grid grid-cols-2 gap-3 lg:grid-cols-3">
-        {statCards.map((card) => (
-          <div
-            key={card.label}
-            className="rounded-2xl border border-gray-200 bg-white p-4"
-          >
-            <p className="text-sm text-gray-500">{card.label}</p>
-            <p className="mt-1 text-2xl font-extrabold">{card.value}</p>
-          </div>
-        ))}
+      <button
+        type="button"
+        onClick={() => downloadOrdersCsv(filtered, productNameById)}
+        disabled={filtered.length === 0}
+        className="mt-5 inline-flex items-center gap-2 rounded-2xl border border-gray-200 bg-white px-4 py-2.5 text-sm font-bold shadow-sm disabled:opacity-50"
+      >
+        <IconDownload className="h-4 w-4" />
+        CSV ডাউনলোড
+      </button>
+
+      <div className="mt-5 grid grid-cols-2 gap-3 lg:grid-cols-3">
+        {statCards.map((card) => {
+          const isActive = filters.status === card.status
+          return (
+            <button
+              key={card.label}
+              type="button"
+              onClick={() => setFilter({ status: card.status })}
+              className={`rounded-[24px] border bg-white p-4 text-left shadow-sm transition ${
+                isActive
+                  ? 'border-brand ring-2 ring-brand/60'
+                  : 'border-gray-200'
+              }`}
+            >
+              <p className="text-2xl font-extrabold text-gray-900 sm:text-3xl">
+                {card.value}
+              </p>
+              <p className="mt-1 text-sm text-gray-500">{card.label}</p>
+            </button>
+          )
+        })}
       </div>
+
+      <SheetConnectCard />
 
       {loading ? (
         <p className="mt-6 text-gray-600">লোড হচ্ছে…</p>
       ) : error ? (
-        <p className="mt-6 rounded bg-red-50 px-4 py-3 text-sm text-red-700">
+        <p className="mt-6 rounded-2xl bg-red-50 px-4 py-3 text-sm text-red-700">
           {error}
         </p>
       ) : (
         <>
-          <div className="mt-6 space-y-3 rounded-2xl border border-gray-200 bg-white p-4">
-            <input
-              type="search"
-              value={filters.search}
-              onChange={(e) => setFilter({ search: e.target.value })}
-              placeholder="অর্ডার নম্বর, নাম বা ফোন দিয়ে খুঁজুন"
-              className="w-full rounded-lg border border-gray-300 px-3 py-2 text-sm"
-            />
-            <div className="grid grid-cols-2 gap-3 lg:grid-cols-4">
-              <select
-                value={filters.status}
-                onChange={(e) => setFilter({ status: e.target.value })}
-                className="rounded-lg border border-gray-300 px-3 py-2 text-sm"
-              >
-                {STATUS_OPTIONS.map((opt) => (
-                  <option key={opt.value} value={opt.value}>
-                    {opt.label}
-                  </option>
-                ))}
-              </select>
+          <div className="mt-6 space-y-3 rounded-[24px] border border-gray-200 bg-white p-4 shadow-sm">
+            <div className="relative">
+              <span className="pointer-events-none absolute left-4 top-1/2 -translate-y-1/2 text-gray-400">
+                <IconSearch className="h-5 w-5" />
+              </span>
+              <input
+                type="search"
+                value={filters.search}
+                onChange={(e) => setFilter({ search: e.target.value })}
+                placeholder="অর্ডার আইডি, নাম বা ফোন নম্বর দিয়ে খুঁজুন"
+                className="w-full rounded-2xl border border-gray-300 py-3 pl-11 pr-4 text-[15px] placeholder:text-gray-400 outline-none transition focus:border-brand focus:ring-2 focus:ring-brand/20"
+              />
+            </div>
+            <div className="grid grid-cols-2 gap-3 lg:grid-cols-3">
               <select
                 value={filters.productId}
                 onChange={(e) => setFilter({ productId: e.target.value })}
-                className="rounded-lg border border-gray-300 px-3 py-2 text-sm"
+                className="rounded-2xl border border-gray-300 bg-white px-3 py-2.5 text-sm outline-none"
               >
                 <option value="all">সব প্রোডাক্ট</option>
                 {products.map((p) => (
@@ -505,7 +648,7 @@ export default function Orders() {
                   type="date"
                   value={filters.dateFrom}
                   onChange={(e) => setFilter({ dateFrom: e.target.value })}
-                  className="mt-0.5 w-full rounded-lg border border-gray-300 px-3 py-2 text-sm"
+                  className="mt-0.5 w-full rounded-2xl border border-gray-300 px-3 py-2.5 text-sm outline-none"
                 />
               </label>
               <label className="block">
@@ -514,20 +657,20 @@ export default function Orders() {
                   type="date"
                   value={filters.dateTo}
                   onChange={(e) => setFilter({ dateTo: e.target.value })}
-                  className="mt-0.5 w-full rounded-lg border border-gray-300 px-3 py-2 text-sm"
+                  className="mt-0.5 w-full rounded-2xl border border-gray-300 px-3 py-2.5 text-sm outline-none"
                 />
               </label>
             </div>
           </div>
 
           {filtered.length === 0 ? (
-            <p className="mt-6 rounded-2xl border border-gray-200 bg-white p-5 text-sm text-gray-500">
+            <p className="mt-6 rounded-[24px] border border-gray-200 bg-white p-5 text-sm text-gray-500 shadow-sm">
               কোনো অর্ডার পাওয়া যায়নি।
             </p>
           ) : (
             <>
               {/* ডেস্কটপ টেবিল */}
-              <div className="mt-6 hidden overflow-x-auto rounded-2xl border border-gray-200 bg-white md:block">
+              <div className="mt-6 hidden overflow-x-auto rounded-[24px] border border-gray-200 bg-white shadow-sm md:block">
                 <table className="w-full text-left text-sm">
                   <thead>
                     <tr className="border-b border-gray-200 text-gray-500">
@@ -547,7 +690,7 @@ export default function Orders() {
                         onClick={() => setSelected(o)}
                         className="cursor-pointer border-b border-gray-100 last:border-0 hover:bg-gray-50"
                       >
-                        <td className="px-4 py-3 font-semibold">
+                        <td className="px-4 py-3 font-bold">
                           {o.order_code}
                         </td>
                         <td className="px-4 py-3">{o.customer_name}</td>
@@ -557,7 +700,7 @@ export default function Orders() {
                             ? (productNameById.get(o.product_id) ?? '—')
                             : '—'}
                         </td>
-                        <td className="px-4 py-3 font-bold">
+                        <td className="px-4 py-3 font-extrabold">
                           {formatBDT(Number(o.total))}
                         </td>
                         <td className="px-4 py-3">
@@ -579,10 +722,10 @@ export default function Orders() {
                     key={o.id}
                     type="button"
                     onClick={() => setSelected(o)}
-                    className="block w-full rounded-2xl border border-gray-200 bg-white p-4 text-left"
+                    className="block w-full rounded-[24px] border border-gray-200 bg-white p-4 text-left shadow-sm"
                   >
                     <span className="flex items-center justify-between gap-2">
-                      <span className="font-bold">{o.order_code}</span>
+                      <span className="font-extrabold">{o.order_code}</span>
                       <StatusBadge status={o.status} />
                     </span>
                     <span className="mt-2 block text-sm text-gray-600">
@@ -612,7 +755,7 @@ export default function Orders() {
                     type="button"
                     disabled={page <= 1}
                     onClick={() => setPage((p) => Math.max(1, p - 1))}
-                    className="rounded-lg border border-gray-300 bg-white px-4 py-2 text-sm font-semibold disabled:opacity-40"
+                    className="rounded-2xl border border-gray-300 bg-white px-4 py-2 text-sm font-bold disabled:opacity-40"
                   >
                     ← আগের পেজ
                   </button>
@@ -623,7 +766,7 @@ export default function Orders() {
                     type="button"
                     disabled={page >= totalPages}
                     onClick={() => setPage((p) => Math.min(totalPages, p + 1))}
-                    className="rounded-lg border border-gray-300 bg-white px-4 py-2 text-sm font-semibold disabled:opacity-40"
+                    className="rounded-2xl border border-gray-300 bg-white px-4 py-2 text-sm font-bold disabled:opacity-40"
                   >
                     পরের পেজ →
                   </button>

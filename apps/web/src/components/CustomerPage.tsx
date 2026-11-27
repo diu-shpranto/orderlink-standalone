@@ -494,7 +494,66 @@ export default function CustomerPage({
     </div>
   )
 
-  const footer = (
+// যোগাযোগ কার্ড — লাইভ অ্যাপের মতো সব টেমপ্লেটের ফুটারের ওপরে:
+// দোকানের লোগো/অক্ষর টাইল, WhatsApp বাটন, ট্রাস্ট লাইন।
+// স্ট্যান্ডঅ্যালোনে সেলারের ফোন নম্বর নেই (শুধু WhatsApp) —
+// তাই কল বাটন নেই, শুধু WhatsApp + ট্রাস্ট লাইন।
+function ContactCard({ data, dark }: { data: CustomerPageData; dark: boolean }) {
+  const { shop, sellerWhatsapp, product } = data
+  if (!sellerWhatsapp) return null
+  const waText = encodeURIComponent(
+    `আসসালামু আলাইকুম, ${shop.name} — ${product.name} সম্পর্কে জানতে চাই।`,
+  )
+  return (
+    <div className="mx-auto mt-10 max-w-2xl px-4">
+      <div
+        className={`rounded-2xl border p-5 shadow-sm ${
+          dark
+            ? 'border-gray-700 bg-gray-800'
+            : 'border-gray-200 bg-white'
+        }`}
+      >
+        <div className="flex items-center gap-3">
+          <span className="flex h-11 w-11 shrink-0 items-center justify-center rounded-full bg-brand text-lg font-extrabold text-white">
+            {shop.name.charAt(0)}
+          </span>
+          <div>
+            <p
+              className={`font-extrabold ${dark ? 'text-white' : 'text-gray-900'}`}
+            >
+              আমাদের সাথে যোগাযোগ করুন
+            </p>
+            <p className={`text-sm ${dark ? 'text-gray-400' : 'text-gray-500'}`}>
+              {shop.name}
+            </p>
+          </div>
+        </div>
+        <a
+          href={`https://wa.me/${sellerWhatsapp}?text=${waText}`}
+          target="_blank"
+          rel="noreferrer"
+          className="mt-4 block rounded-xl bg-[#25d366] px-4 py-3 text-center font-bold text-white"
+        >
+          WhatsApp-এ মেসেজ করুন
+        </a>
+        <div
+          className={`mt-4 flex flex-wrap justify-center gap-x-5 gap-y-1 border-t pt-3 text-xs ${
+            dark
+              ? 'border-gray-700 text-gray-400'
+              : 'border-gray-100 text-gray-500'
+          }`}
+        >
+          <span>✓ সারা দেশে ডেলিভারি</span>
+          <span>✓ অর্ডার কনফার্ম করে পাঠানো হয়</span>
+        </div>
+      </div>
+    </div>
+  )
+}
+
+const footer = (
+  <>
+    <ContactCard data={data} dark={dark} />
     <footer
       className={`mt-10 border-t px-4 py-6 text-center text-xs ${
         dark ? 'border-gray-700 text-gray-400' : 'border-gray-200 text-gray-500'
@@ -506,6 +565,7 @@ export default function CustomerPage({
       </p>
       <p className="mt-1">{shop.name}</p>
     </footer>
+  </>
   )
 
   const sticky = meta.stickyBar ? <StickyOrderBar data={data} t={t} /> : null

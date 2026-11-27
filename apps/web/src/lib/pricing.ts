@@ -10,7 +10,8 @@ export function toBnDigits(input: string | number): string {
 
 export function formatBDT(amount: number): string {
   const rounded = Math.round(amount)
-  return `৳${toBnDigits(rounded.toLocaleString('en-US'))}`
+  // লাইভ অ্যাপের মতো ৳ সংখ্যার পরে — যেমন ৫,৩৫০৳, ৮৫০৳।
+  return `${toBnDigits(rounded.toLocaleString('en-US'))}৳`
 }
 
 export function formatCountBn(n: number): string {

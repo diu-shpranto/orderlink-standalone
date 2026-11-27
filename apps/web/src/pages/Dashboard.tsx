@@ -1,23 +1,40 @@
-// সেলার ড্যাশবোর্ড — আসল ডাটা থেকে পরিসংখ্যান (আজকের অর্ডার, নতুন
-// অর্ডার, আজকের বিক্রি, সক্রিয় ল্যান্ডিং পেজ), সাম্প্রতিক অর্ডার,
-// Sheet সংযোগের অবস্থা। কোনো বানানো সংখ্যা নেই — ডাটা না থাকলে ০।
+// সেলার ড্যাশবোর্ড — লাইভ অ্যাপের ডিজাইন অনুযায়ী:
+// স্বাগতম + বাংলা তারিখ + প্ল্যান চিপ, আইকন চিপসহ ৪টি স্ট্যাট কার্ড,
+// বিক্রি ওভারভিউ (আজ/৭ দিন/৩০ দিন + দৈনিক বার চার্ট), আমার ল্যান্ডিং পেজ,
+// সাম্প্রতিক অর্ডার, Sheet সংযোগের অবস্থা, দ্রুত কাজ।
+// সব সংখ্যা আসল ডাটা থেকে — ডাটা না থাকলে ০।
 import { useEffect, useState } from 'react'
 import SellerShell, { STATUS_BN } from '../components/SellerShell.tsx'
 import GoogleSheetsSettings from '../components/GoogleSheetsSettings.tsx'
 import { useAuth } from '../lib/auth.tsx'
 import {
   fetchDashboardStats,
+  fetchSellerProducts,
   fetchSellerShop,
   type DashboardStats,
+  type ProductListItem,
 } from '../lib/products.ts'
 import { formatBDT, formatCountBn } from '../lib/pricing.ts'
 import { navigate } from '../lib/router.ts'
+import { requireSupabase } from '../lib/supabase.ts'
 import {
   fetchSheetConnection,
   fetchSheetSyncSummary,
   type SheetConnection,
   type SheetSyncSummary,
 } from '../lib/sheets.ts'
+import {
+  IconBell,
+  IconBox,
+  IconChart,
+  IconChevronRight,
+  IconDoc,
+  IconShield,
+  IconStore,
+  IconSun,
+  IconTruck,
+  IconUser,
+} from '../components/icons.tsx'
 import type { ShopRow } from '../lib/types.ts'
 import SetupWizard from './SetupWizard.tsx'
 
@@ -29,6 +46,68 @@ function formatDateTimeShort(iso: string): string {
     hour: 'numeric',
     minute: '2-digit',
   })
+}
+
+function todayBnLong(): string {
+  return new Date().toLocaleDateString('bn-BD', {
+    timeZone: 'Asia/Dhaka',
+    weekday: 'long',
+    day: 'numeric',
+    month: 'long',
+    year: 'numeric',
+  })
+}
+
+// দৈনিক বিক্রির বার চার্ট — লাইভ অ্যাপের মতো ঋজু সবুজ বার,
+// শূন্য দিনে বার নেই, শূন্য নয় এমন বারের ওপরে মান লেখা।
+function SalesChart({
+  data,
+  labels,
+  showValues,
+}: {
+  data: number[]
+  labels: string[]
+  showValues: boolean
+}) {
+  const max = Math.max(1, ...data)
+  return (
+    <div>
+      <div className="flex h-44 items-end gap-1.5">
+        {data.map((v, i) => (
+          <div
+            key={i}
+            className="flex min-w-0 flex-1 flex-col items-center justify-end gap-1"
+          >
+            {showValues && v > 0 ? (
+              <span className="whitespace-nowrap text-[11px] font-bold text-gray-600">
+                {formatBDT(v)}
+              </span>
+            ) : (
+              <span className="text-[11px]">&nbsp;</span>
+            )}
+            <div
+              className="w-full max-w-10 rounded-t-lg bg-[#a7c9b8]"
+              style={{ height: `${Math.max(0, (v / max) * 120)}px` }}
+            />
+          </div>
+        ))}
+      </div>
+      <div className="mt-1.5 flex gap-1.5 border-t border-gray-200 pt-1.5">
+        {labels.map((l, i) => (
+          <span
+            key={i}
+            className={`min-w-0 flex-1 truncate text-center text-xs ${
+              l === 'আজ'
+                ? 'font-extrabold text-brand-dark'
+                : 'text-gray-500'
+            }`}
+          >
+            {l}
+          </span>
+        ))}
+      </div>
+    </div>
+  )
 }
 
 // ড্যাশবোর্ডের Google Sheet কার্ড — আসল সংযোগ ও সিঙ্কের অবস্থা।
@@ -55,8 +134,8 @@ function SheetStatusCard() {
   }, [seller])
 
   return (
-    <div className="rounded-2xl border border-gray-200 bg-white p-5">
-      <h2 className="font-bold">Google Sheet সংযোগ</h2>
+    <div className="rounded-[24px] border border-gray-200 bg-white p-5 shadow-sm">
+      <h2 className="text-base font-extrabold">Google Sheet সংযোগ</h2>
       {loading ? (
         <p className="mt-2 text-sm text-gray-500">লোড হচ্ছে…</p>
       ) : !connection ? (
@@ -68,7 +147,7 @@ function SheetStatusCard() {
           <button
             type="button"
             onClick={() => navigate('/dashboard/settings')}
-            className="mt-3 text-sm font-semibold text-brand-dark underline"
+            className="mt-3 text-sm font-bold text-brand-dark underline"
           >
             Google Sheet যুক্ত করুন →
           </button>
@@ -82,7 +161,7 @@ function SheetStatusCard() {
           <button
             type="button"
             onClick={() => navigate('/dashboard/settings')}
-            className="mt-3 text-sm font-semibold text-brand-dark underline"
+            className="mt-3 text-sm font-bold text-brand-dark underline"
           >
             Sheet বাছুন →
           </button>
@@ -112,14 +191,14 @@ function SheetStatusCard() {
               href={connection.sheet_url ?? '#'}
               target="_blank"
               rel="noreferrer"
-              className="text-sm font-semibold text-brand-dark underline"
+              className="text-sm font-bold text-brand-dark underline"
             >
               শিট খুলুন ↗
             </a>
             <button
               type="button"
               onClick={() => navigate('/dashboard/settings')}
-              className="text-sm font-semibold text-brand-dark underline"
+              className="text-sm font-bold text-brand-dark underline"
             >
               সিঙ্কের অবস্থা দেখুন →
             </button>
@@ -141,76 +220,136 @@ const RANGE_LABEL: Record<SalesRange, string> = {
 export function DashboardOverview() {
   const { seller } = useAuth()
   const [stats, setStats] = useState<DashboardStats | null>(null)
-  const [range, setRange] = useState<SalesRange>('today')
+  const [products, setProducts] = useState<ProductListItem[]>([])
+  const [range, setRange] = useState<SalesRange>('7d')
   const [loading, setLoading] = useState(true)
   const [error, setError] = useState('')
 
   useEffect(() => {
     if (!seller) return
     setLoading(true)
-    fetchDashboardStats(seller.id)
-      .then((s) => setStats(s))
+    Promise.all([
+      fetchDashboardStats(seller.id),
+      fetchSellerProducts(seller.id),
+    ])
+      .then(([s, list]) => {
+        setStats(s)
+        setProducts(list)
+      })
       .catch((err: unknown) => {
         setError(err instanceof Error ? err.message : 'লোড করা যায়নি।')
       })
       .finally(() => setLoading(false))
   }, [seller])
 
-  const salesForRange =
+  const rangeSales =
     range === 'today'
       ? (stats?.todaySales ?? 0)
       : range === '7d'
         ? (stats?.salesLast7Days ?? 0)
         : (stats?.salesLast30Days ?? 0)
+  const rangeSalesLabel =
+    range === '30d' ? 'গত ৩০ দিনের বিক্রি' : 'গত ৭ দিনের বিক্রি'
+
+  const chartData =
+    range === '30d'
+      ? (stats?.dailySales30 ?? []).map((d) => d.total)
+      : (stats?.dailySales7 ?? []).map((d) => d.total)
+  const chartLabels =
+    range === '30d'
+      ? (stats?.dailySales30 ?? []).map((_d, i, arr) =>
+          i === arr.length - 1 ? 'আজ' : '',
+        )
+      : (stats?.dailySales7 ?? []).map((d) => d.label)
 
   const statCards = [
-    { label: 'আজকের অর্ডার', value: formatCountBn(stats?.todayOrders ?? 0) },
-    { label: 'নতুন অর্ডার', value: formatCountBn(stats?.newOrders ?? 0) },
-    { label: 'আজকের বিক্রি', value: formatBDT(stats?.todaySales ?? 0) },
+    {
+      label: 'আজকের অর্ডার',
+      value: formatCountBn(stats?.todayOrders ?? 0),
+      sub: `মোট অর্ডার ${formatCountBn(stats?.totalOrders ?? 0)}টি`,
+      icon: <IconDoc className="h-5 w-5" />,
+    },
+    {
+      label: 'নতুন অর্ডার',
+      value: formatCountBn(stats?.newOrders ?? 0),
+      sub: 'কনফার্ম করা বাকি আছে',
+      icon: <IconBell className="h-5 w-5" />,
+    },
+    {
+      label: 'আজকের বিক্রি',
+      value: formatBDT(stats?.todaySales ?? 0),
+      sub: `এই মাসের বিক্রি ${formatBDT(stats?.monthSales ?? 0)}`,
+      icon: <IconChart className="h-5 w-5" />,
+    },
     {
       label: 'সক্রিয় ল্যান্ডিং পেজ',
       value: formatCountBn(stats?.activePages ?? 0),
+      sub: `মোট ${formatCountBn(stats?.totalPages ?? 0)}টি পেজ · ড্রাফট ${formatCountBn(stats?.draftPages ?? 0)}টি`,
+      icon: <IconStore className="h-5 w-5" />,
     },
   ]
 
   return (
     <SellerShell active="dashboard">
-      <h1 className="text-2xl font-extrabold">
-        স্বাগতম{seller?.shop_name ? `, ${seller.shop_name}` : ''}!
+      <h1 className="text-[28px] font-extrabold leading-tight text-gray-900 sm:text-3xl">
+        স্বাগতম{seller?.shop_name ? `, ${seller.shop_name}` : ''}
       </h1>
+      <p className="mt-1.5 text-[15px] text-gray-500">{todayBnLong()}</p>
+      {/* সাবস্ক্রিপশন সিস্টেম (Phase 5) এখনো নেই — সবাই ফ্রি প্ল্যানে। */}
+      <span className="mt-4 inline-flex items-center gap-2 rounded-full border border-gray-200 bg-white px-3.5 py-2 text-sm font-bold text-gray-700 shadow-sm">
+        <span className="h-2.5 w-2.5 rounded-full bg-brand" />
+        ফ্রি প্ল্যান · দোকান সক্রিয়
+      </span>
+
       {loading ? (
         <p className="mt-6 text-gray-600">লোড হচ্ছে…</p>
       ) : error ? (
-        <p className="mt-6 rounded bg-red-50 px-4 py-3 text-sm text-red-700">
+        <p className="mt-6 rounded-2xl bg-red-50 px-4 py-3 text-sm text-red-700">
           {error}
         </p>
       ) : (
         <>
-          <div className="mt-6 grid grid-cols-2 gap-3 lg:grid-cols-4">
+          <div className="mt-5 grid grid-cols-2 gap-3 lg:grid-cols-4">
             {statCards.map((card) => (
               <div
                 key={card.label}
-                className="rounded-2xl border border-gray-200 bg-white p-4"
+                className="rounded-[24px] border border-gray-200 bg-white p-4 shadow-sm sm:p-5"
               >
-                <p className="text-sm text-gray-500">{card.label}</p>
-                <p className="mt-1 text-2xl font-extrabold">{card.value}</p>
+                <div className="flex items-start justify-between gap-2">
+                  <p className="text-[15px] font-bold leading-snug text-gray-700">
+                    {card.label}
+                  </p>
+                  <span className="flex h-10 w-10 shrink-0 items-center justify-center rounded-2xl bg-brand-mint text-brand-dark">
+                    {card.icon}
+                  </span>
+                </div>
+                <p className="mt-3 text-4xl font-extrabold text-gray-900">
+                  {card.value}
+                </p>
+                <p className="mt-1.5 text-sm text-gray-500">{card.sub}</p>
               </div>
             ))}
           </div>
 
-          <div className="mt-6 rounded-2xl border border-gray-200 bg-white p-5">
+          {/* বিক্রি ওভারভিউ */}
+          <div className="mt-5 rounded-[24px] border border-gray-200 bg-white p-5 shadow-sm">
             <div className="flex flex-wrap items-center justify-between gap-3">
-              <h2 className="font-bold">বিক্রির হিসাব</h2>
-              <div className="flex gap-2">
+              <h2 className="flex items-center gap-2.5 text-lg font-extrabold">
+                <span className="flex h-10 w-10 items-center justify-center rounded-2xl bg-brand-mint text-brand-dark">
+                  <IconChart className="h-5 w-5" />
+                </span>
+                বিক্রি ওভারভিউ
+              </h2>
+              <div className="flex rounded-full bg-gray-100 p-1">
                 {(Object.keys(RANGE_LABEL) as SalesRange[]).map((r) => (
                   <button
                     key={r}
                     type="button"
                     onClick={() => setRange(r)}
-                    className={`rounded-full px-3 py-1 text-sm font-semibold ${
+                    className={`rounded-full px-3.5 py-1.5 text-sm font-bold transition ${
                       range === r
-                        ? 'bg-brand text-white'
-                        : 'bg-gray-100 text-gray-700'
+                        ? 'bg-white text-gray-900 shadow'
+                        : 'text-gray-500'
                     }`}
                   >
                     {RANGE_LABEL[r]}
@@ -218,17 +357,100 @@ export function DashboardOverview() {
                 ))}
               </div>
             </div>
-            <p className="mt-4 text-3xl font-extrabold">
-              {formatBDT(salesForRange)}
-            </p>
-            <p className="text-sm text-gray-500">
-              {RANGE_LABEL[range]}-এর মোট বিক্রি (বাতিল অর্ডার ছাড়া)
-            </p>
+            <div className="mt-5 grid grid-cols-2 gap-4">
+              <div>
+                <p className="text-sm text-gray-500">আজকের বিক্রি</p>
+                <p className="mt-1 text-2xl font-extrabold">
+                  {formatBDT(stats?.todaySales ?? 0)}
+                </p>
+              </div>
+              <div>
+                <p className="text-sm text-gray-500">{rangeSalesLabel}</p>
+                <p className="mt-1 text-2xl font-extrabold">
+                  {formatBDT(rangeSales)}
+                </p>
+              </div>
+            </div>
+            <div className="mt-4">
+              <SalesChart
+                data={chartData}
+                labels={chartLabels}
+                showValues={range !== '30d'}
+              />
+            </div>
           </div>
 
-          <div className="mt-6 grid gap-6 lg:grid-cols-2">
-            <div className="rounded-2xl border border-gray-200 bg-white p-5">
-              <h2 className="font-bold">সাম্প্রতিক অর্ডার</h2>
+          {/* আমার ল্যান্ডিং পেজ */}
+          <div className="mt-5 rounded-[24px] border border-gray-200 bg-white p-5 shadow-sm">
+            <div className="flex items-center justify-between gap-3">
+              <h2 className="text-lg font-extrabold">আমার ল্যান্ডিং পেজ</h2>
+              <button
+                type="button"
+                onClick={() => navigate('/dashboard/products')}
+                className="text-sm font-bold text-brand-dark"
+              >
+                সব দেখুন →
+              </button>
+            </div>
+            {products.length === 0 ? (
+              <p className="mt-3 text-sm text-gray-500">
+                এখনো কোনো ল্যান্ডিং পেজ নেই — প্রথম প্রোডাক্ট যোগ করে বানান।
+              </p>
+            ) : (
+              <div className="mt-4 grid gap-3 sm:grid-cols-2">
+                {products.slice(0, 4).map((item) => (
+                  <button
+                    key={item.product.id}
+                    type="button"
+                    onClick={() =>
+                      navigate(`/dashboard/products/${item.product.id}`)
+                    }
+                    className="flex items-center gap-3 rounded-2xl border border-gray-200 p-3 text-left transition hover:border-brand/40"
+                  >
+                    {item.imageUrl ? (
+                      <img
+                        src={item.imageUrl}
+                        alt=""
+                        className="h-14 w-14 shrink-0 rounded-xl object-cover"
+                      />
+                    ) : (
+                      <span className="flex h-14 w-14 shrink-0 items-center justify-center rounded-xl bg-gray-100 text-gray-400">
+                        <IconBox className="h-6 w-6" />
+                      </span>
+                    )}
+                    <span className="min-w-0 flex-1">
+                      <span className="block truncate text-[15px] font-bold">
+                        {item.product.name}
+                      </span>
+                      <span className="mt-0.5 block text-sm font-bold text-brand-dark">
+                        {formatBDT(item.product.price)}
+                      </span>
+                    </span>
+                    <span
+                      className={`shrink-0 rounded-full px-2 py-0.5 text-xs font-bold ${
+                        item.page?.is_published
+                          ? 'bg-brand-light text-brand-dark'
+                          : 'bg-gray-100 text-gray-600'
+                      }`}
+                    >
+                      {item.page?.is_published ? 'প্রকাশিত' : 'খসড়া'}
+                    </span>
+                  </button>
+                ))}
+              </div>
+            )}
+            <button
+              type="button"
+              onClick={() => navigate('/dashboard/products/new')}
+              className="mt-4 w-full rounded-2xl bg-gradient-to-r from-brand-dark via-brand to-brand px-4 py-3 text-sm font-bold text-white shadow-lg shadow-brand/25"
+            >
+              + নতুন ল্যান্ডিং পেজ তৈরি করুন
+            </button>
+          </div>
+
+          <div className="mt-5 grid gap-5 lg:grid-cols-2">
+            <div className="rounded-[24px] border border-gray-200 bg-white p-5 shadow-sm">
+              <h2 className="text-base font-extrabold">সাম্প্রতিক অর্ডার</h2>
               {!stats || stats.recentOrders.length === 0 ? (
                 <p className="mt-3 text-sm text-gray-500">
                   এখনো কোনো অর্ডার আসেনি।
@@ -236,14 +458,19 @@ export function DashboardOverview() {
               ) : (
                 <ul className="mt-3 divide-y divide-gray-100">
                   {stats.recentOrders.map((o) => (
-                    <li key={o.id} className="flex justify-between gap-3 py-2 text-sm">
+                    <li
+                      key={o.id}
+                      className="flex justify-between gap-3 py-2.5 text-sm"
+                    >
                       <span>
-                        <span className="font-semibold">{o.order_code}</span>
+                        <span className="font-bold">{o.order_code}</span>
                         <span className="block text-gray-500">
                           {o.customer_name} · {STATUS_BN[o.status] ?? o.status}
                         </span>
                       </span>
-                      <span className="font-bold">{formatBDT(o.total)}</span>
+                      <span className="font-extrabold">
+                        {formatBDT(o.total)}
+                      </span>
                     </li>
                   ))}
                 </ul>
@@ -251,27 +478,27 @@ export function DashboardOverview() {
               <button
                 type="button"
                 onClick={() => navigate('/dashboard/orders')}
-                className="mt-4 text-sm font-semibold text-brand-dark underline"
+                className="mt-4 text-sm font-bold text-brand-dark"
               >
                 সব অর্ডার দেখুন →
               </button>
             </div>
-            <div className="space-y-6">
+            <div className="space-y-5">
               <SheetStatusCard />
-              <div className="rounded-2xl border border-gray-200 bg-white p-5">
-                <h2 className="font-bold">দ্রুত কাজ</h2>
+              <div className="rounded-[24px] border border-gray-200 bg-white p-5 shadow-sm">
+                <h2 className="text-base font-extrabold">দ্রুত কাজ</h2>
                 <div className="mt-3 flex flex-wrap gap-2">
                   <button
                     type="button"
                     onClick={() => navigate('/dashboard/products/new')}
-                    className="rounded-lg bg-brand px-4 py-2 text-sm font-semibold text-white"
+                    className="rounded-2xl bg-gradient-to-r from-brand-dark via-brand to-brand px-4 py-2.5 text-sm font-bold text-white shadow"
                   >
                     নতুন প্রোডাক্ট যোগ করুন
                   </button>
                   <button
                     type="button"
                     onClick={() => navigate('/dashboard/settings')}
-                    className="rounded-lg border border-gray-300 px-4 py-2 text-sm font-semibold"
+                    className="rounded-2xl border border-gray-300 bg-white px-4 py-2.5 text-sm font-bold"
                   >
                     দোকানের তথ্য বদলান
                   </button>
@@ -285,11 +512,246 @@ export function DashboardOverview() {
   )
 }
 
-export function SettingsPage() {
+// ---------- সেটিংস ----------
+
+type SettingsCategory =
+  | 'shop'
+  | 'delivery'
+  | 'sheets'
+  | 'account'
+  | 'subscription'
+  | 'security'
+  | 'notifications'
+  | 'appearance'
+
+const SETTINGS_CATEGORIES: {
+  id: SettingsCategory
+  title: string
+  sub: string
+  icon: (className?: string) => React.ReactNode
+}[] = [
+  {
+    id: 'shop',
+    title: 'দোকানের সেটিংস',
+    sub: 'নাম, লোগো, যোগাযোগ আর দোকানের লিংক',
+    icon: (c) => <IconStore className={c} />,
+  },
+  {
+    id: 'delivery',
+    title: 'ডেলিভারি সেটিংস',
+    sub: 'ঢাকার ভিতরে ও বাইরের চার্জ, সময় আর ফ্রি ডেলিভারি',
+    icon: (c) => <IconTruck className={c} />,
+  },
+  {
+    id: 'sheets',
+    title: 'Google Sheets',
+    sub: 'শিট কানেকশন, সিঙ্কের অবস্থা আর শেষ সিঙ্ক',
+    icon: (c) => <IconDoc className={c} />,
+  },
+  {
+    id: 'account',
+    title: 'অ্যাকাউন্ট সেটিংস',
+    sub: 'প্রোফাইল ছবি, নাম, ইমেইল আর নম্বর',
+    icon: (c) => <IconUser className={c} />,
+  },
+  {
+    id: 'subscription',
+    title: 'সাবস্ক্রিপশন',
+    sub: 'বর্তমান প্যাকেজ, ব্যবহার, প্যাকেজ বদল আর পেমেন্ট',
+    icon: (c) => <IconDoc className={c} />,
+  },
+  {
+    id: 'security',
+    title: 'নিরাপত্তা ও গোপনীয়তা',
+    sub: 'পাসওয়ার্ড, সেশন, ডেটা এক্সপোর্ট আর অ্যাকাউন্ট মোছা',
+    icon: (c) => <IconShield className={c} />,
+  },
+  {
+    id: 'notifications',
+    title: 'নোটিফিকেশন সেটিংস',
+    sub: 'কোন ঘটনায় কীভাবে জানানো হবে',
+    icon: (c) => <IconBell className={c} />,
+  },
+  {
+    id: 'appearance',
+    title: 'অ্যাপিয়ারেন্স',
+    sub: 'ভাষা আর প্যানেলের থিম',
+    icon: (c) => <IconSun className={c} />,
+  },
+]
+
+/** ডেলিভারি চার্জ + ফ্রি ডেলিভারির সীমা — shops টেবিলের আসল কলামে লেখে। */
+function DeliverySettings({ shop }: { shop: ShopRow | null }) {
   const { seller } = useAuth()
+  const [inside, setInside] = useState(
+    shop ? String(Number(shop.delivery_inside_charge)) : '60',
+  )
+  const [outside, setOutside] = useState(
+    shop ? String(Number(shop.delivery_outside_charge)) : '120',
+  )
+  const [freeThreshold, setFreeThreshold] = useState(
+    shop ? String(Number(shop.free_delivery_threshold ?? 0)) : '0',
+  )
+  const [busy, setBusy] = useState(false)
+  const [saved, setSaved] = useState(false)
+  const [error, setError] = useState('')
+
+  async function handleSave(event: React.FormEvent) {
+    event.preventDefault()
+    setError('')
+    setSaved(false)
+    const insideNum = Number(inside)
+    const outsideNum = Number(outside)
+    const thresholdNum = Number(freeThreshold)
+    if (
+      !Number.isFinite(insideNum) ||
+      insideNum < 0 ||
+      !Number.isFinite(outsideNum) ||
+      outsideNum < 0 ||
+      !Number.isFinite(thresholdNum) ||
+      thresholdNum < 0
+    ) {
+      setError('চার্জে সঠিক সংখ্যা দিন (০ বা তার বেশি)।')
+      return
+    }
+    if (!seller) return
+    setBusy(true)
+    try {
+      const client = requireSupabase()
+      const { error: saveError } = await client
+        .from('shops')
+        .update({
+          delivery_inside_charge: insideNum,
+          delivery_outside_charge: outsideNum,
+          free_delivery_threshold: thresholdNum,
+        })
+        .eq('seller_id', seller.id)
+      if (saveError) throw saveError
+      setSaved(true)
+    } catch (err) {
+      setError(
+        err instanceof Error ? err.message : 'সেভ করা যায়নি — আবার চেষ্টা করুন।',
+      )
+    } finally {
+      setBusy(false)
+    }
+  }
+
+  const inputClass =
+    'mt-1.5 w-full rounded-2xl border border-gray-300 bg-white px-4 py-3 text-[15px] outline-none transition focus:border-brand focus:ring-2 focus:ring-brand/20'
+
+  return (
+    <form
+      onSubmit={handleSave}
+      className="rounded-[28px] border border-gray-200 bg-white p-5 shadow-sm sm:p-6"
+    >
+      <h2 className="text-lg font-extrabold">ডেলিভারি সেটিংস</h2>
+      {saved ? (
+        <p className="mt-4 rounded-2xl bg-brand-light px-4 py-3 text-sm font-bold text-brand-dark">
+          ডেলিভারি সেটিংস সেভ হয়েছে ✓
+        </p>
+      ) : null}
+      {error ? (
+        <p className="mt-4 rounded-2xl bg-red-50 px-4 py-3 text-sm font-medium text-red-700">
+          {error}
+        </p>
+      ) : null}
+      <div className="mt-5 space-y-4">
+        <label className="block">
+          <span className="text-sm font-bold text-gray-800">
+            ঢাকার ভেতরে ডেলিভারি চার্জ (৳)
+          </span>
+          <input
+            type="number"
+            required
+            min={0}
+            value={inside}
+            onChange={(e) => setInside(e.target.value)}
+            className={inputClass}
+          />
+        </label>
+        <label className="block">
+          <span className="text-sm font-bold text-gray-800">
+            ঢাকার বাইরে ডেলিভারি চার্জ (৳)
+          </span>
+          <input
+            type="number"
+            required
+            min={0}
+            value={outside}
+            onChange={(e) => setOutside(e.target.value)}
+            className={inputClass}
+          />
+        </label>
+        <label className="block">
+          <span className="text-sm font-bold text-gray-800">
+            ফ্রি ডেলিভারির সীমা (৳) — ০ মানে ফ্রি ডেলিভারি বন্ধ
+          </span>
+          <input
+            type="number"
+            required
+            min={0}
+            value={freeThreshold}
+            onChange={(e) => setFreeThreshold(e.target.value)}
+            className={inputClass}
+          />
+          <span className="mt-1.5 block text-sm text-gray-500">
+            অর্ডারের মোট এই টাকার সমান বা বেশি হলে ডেলিভারি চার্জ লাগবে না।
+          </span>
+        </label>
+        <button
+          type="submit"
+          disabled={busy}
+          className="w-full rounded-2xl bg-gradient-to-r from-brand-dark via-brand to-brand px-4 py-3.5 font-bold text-white shadow-lg shadow-brand/25 disabled:opacity-50"
+        >
+          {busy ? 'সেভ হচ্ছে…' : 'সেভ করুন'}
+        </button>
+      </div>
+    </form>
+  )
+}
+
+/**
+ * যেসব সেটিংস ক্যাটাগরির ব্যাকএন্ড এখনো নেই (Phase 5/6) —
+ * আসল তথ্য (শুধু পড়া যায়) + সত্য কথা, কোনো ভুয়া কন্ট্রোল নয়।
+ */
+function ReadOnlyPanel({
+  title,
+  rows,
+  note,
+  action,
+}: {
+  title: string
+  rows: { label: string; value: string }[]
+  note: string
+  action?: React.ReactNode
+}) {
+  return (
+    <div className="rounded-[28px] border border-gray-200 bg-white p-5 shadow-sm sm:p-6">
+      <h2 className="text-lg font-extrabold">{title}</h2>
+      <dl className="mt-4 space-y-3">
+        {rows.map((row) => (
+          <div
+            key={row.label}
+            className="flex items-center justify-between gap-3 rounded-2xl bg-cream px-4 py-3 text-sm"
+          >
+            <dt className="text-gray-500">{row.label}</dt>
+            <dd className="font-bold text-gray-900">{row.value}</dd>
+          </div>
+        ))}
+      </dl>
+      <p className="mt-4 text-sm leading-relaxed text-gray-500">{note}</p>
+      {action ? <div className="mt-4">{action}</div> : null}
+    </div>
+  )
+}
+
+export function SettingsPage() {
+  const { seller, user, signOut } = useAuth()
   const [shop, setShop] = useState<ShopRow | null>(null)
   const [shopLoaded, setShopLoaded] = useState(false)
   const [shopSaved, setShopSaved] = useState(false)
+  const [category, setCategory] = useState<SettingsCategory>('shop')
 
   useEffect(() => {
     if (!seller) return
@@ -303,32 +765,150 @@ export function SettingsPage() {
 
   return (
     <SellerShell active="settings">
-      <h1 className="text-2xl font-extrabold">সেটিংস</h1>
+      <h1 className="text-[28px] font-extrabold leading-tight text-gray-900 sm:text-3xl">
+        সেটিংস
+      </h1>
+      <p className="mt-1.5 text-[15px] leading-relaxed text-gray-500">
+        আপনার দোকান, ডেলিভারি, শিট কানেকশন আর অ্যাকাউন্ট — সব এক জায়গায়।
+      </p>
       {shopSaved ? (
-        <p className="mt-4 rounded bg-green-50 px-4 py-3 text-sm font-semibold text-green-800">
+        <p className="mt-4 rounded-2xl bg-brand-light px-4 py-3 text-sm font-bold text-green-800">
           দোকানের তথ্য সেভ হয়েছে ✓
         </p>
       ) : null}
-      <div className="mt-6 space-y-6">
-        {/* দোকানের তথ্য লোড হওয়ার পরেই উইজার্ড বসে — নইলে ভরা মান
-            (slug, চার্জ) খালি থেকে যেত। */}
-        {!shopLoaded ? (
-          <p className="text-sm text-gray-500">লোড হচ্ছে…</p>
-        ) : (
-          <SetupWizard
-            compact
-            initial={{
-              shopName: seller?.shop_name ?? '',
-              ownerName: seller?.owner_name ?? '',
-              whatsapp: (seller?.whatsapp ?? '').replace(/^880/, '0'),
-              slug: shop?.slug ?? '',
-              insideCharge: shop ? Number(shop.delivery_inside_charge) : 60,
-              outsideCharge: shop ? Number(shop.delivery_outside_charge) : 120,
-            }}
-            onDone={() => setShopSaved(true)}
-          />
-        )}
-        <GoogleSheetsSettings shopName={seller?.shop_name ?? null} />
+
+      <div className="mt-5 grid gap-5 lg:grid-cols-[340px_1fr] lg:items-start">
+        {/* ক্যাটাগরির তালিকা */}
+        <div className="overflow-hidden rounded-[28px] border border-gray-200 bg-white shadow-sm">
+          {SETTINGS_CATEGORIES.map((cat, i) => {
+            const isActive = category === cat.id
+            return (
+              <button
+                key={cat.id}
+                type="button"
+                onClick={() => setCategory(cat.id)}
+                className={`flex w-full items-center gap-3.5 px-4 py-4 text-left transition ${
+                  i > 0 ? 'border-t border-gray-100' : ''
+                } ${isActive ? 'bg-brand-mint/60' : 'hover:bg-gray-50'}`}
+              >
+                <span className="flex h-14 w-14 shrink-0 items-center justify-center rounded-2xl bg-brand-mint text-brand-dark">
+                  {cat.icon('h-6 w-6')}
+                </span>
+                <span className="min-w-0 flex-1">
+                  <span className="block text-[17px] font-extrabold leading-snug text-gray-900">
+                    {cat.title}
+                  </span>
+                  <span className="mt-0.5 block text-sm leading-snug text-gray-500">
+                    {cat.sub}
+                  </span>
+                </span>
+                <IconChevronRight className="h-5 w-5 shrink-0 text-gray-400" />
+              </button>
+            )
+          })}
+        </div>
+
+        {/* নির্বাচিত ক্যাটাগরির বিবরণ */}
+        <div>
+          {category === 'shop' ? (
+            !shopLoaded ? (
+              <p className="text-sm text-gray-500">লোড হচ্ছে…</p>
+            ) : (
+              <SetupWizard
+                compact
+                initial={{
+                  shopName: seller?.shop_name ?? '',
+                  ownerName: seller?.owner_name ?? '',
+                  whatsapp: (seller?.whatsapp ?? '').replace(/^880/, '0'),
+                  slug: shop?.slug ?? '',
+                  insideCharge: shop
+                    ? Number(shop.delivery_inside_charge)
+                    : 60,
+                  outsideCharge: shop
+                    ? Number(shop.delivery_outside_charge)
+                    : 120,
+                }}
+                onDone={() => setShopSaved(true)}
+              />
+            )
+          ) : null}
+
+          {category === 'delivery' ? <DeliverySettings shop={shop} /> : null}
+
+          {category === 'sheets' ? (
+            <GoogleSheetsSettings shopName={seller?.shop_name ?? null} />
+          ) : null}
+
+          {category === 'account' ? (
+            <ReadOnlyPanel
+              title="অ্যাকাউন্ট সেটিংস"
+              rows={[
+                { label: 'আপনার নাম', value: seller?.owner_name ?? '—' },
+                { label: 'দোকানের নাম', value: seller?.shop_name ?? '—' },
+                { label: 'ইমেইল', value: user?.email ?? seller?.email ?? '—' },
+                {
+                  label: 'হোয়াটসঅ্যাপ',
+                  value: seller?.whatsapp
+                    ? `+${seller.whatsapp}`
+                    : '—',
+                },
+              ]}
+              note="প্রোফাইল ছবি যোগ করা ও এখান থেকে তথ্য বদলানো পরের ধাপে আসছে — এখন দোকানের নাম, লিংক আর যোগাযোগ বদলাতে দোকানের সেটিংস ব্যবহার করুন।"
+            />
+          ) : null}
+
+          {category === 'subscription' ? (
+            <ReadOnlyPanel
+              title="সাবস্ক্রিপশন"
+              rows={[
+                { label: 'বর্তমান প্যাকেজ', value: 'ফ্রি প্ল্যান' },
+                { label: 'সক্রিয় পেজের সীমা', value: '১টি' },
+              ]}
+              note="প্যাকেজ কেনা, পেমেন্ট আর মেয়াদ বাড়ানো পরের ধাপে (মনিটাইজেশন) আসছে। এখন সবাই ফ্রি প্ল্যানে ১টি পেজ ব্যবহার করতে পারে।"
+            />
+          ) : null}
+
+          {category === 'security' ? (
+            <ReadOnlyPanel
+              title="নিরাপত্তা ও গোপনীয়তা"
+              rows={[{ label: 'সাইন-ইন করা অ্যাকাউন্ট', value: user?.email ?? '—' }]}
+              note="পাসওয়ার্ড বদলাতে লগআউট করে লগইন পেজের 'পাসওয়ার্ড ভুলে গেছেন?' ব্যবহার করুন — কোড যাবে আপনার ইমেইলে। সেশন দেখা, ডেটা এক্সপোর্ট আর অ্যাকাউন্ট মোছা পরের ধাপে আসছে।"
+              action={
+                <button
+                  type="button"
+                  onClick={() => void signOut()}
+                  className="rounded-2xl border border-gray-300 bg-white px-4 py-2.5 text-sm font-bold"
+                >
+                  লগআউট করুন
+                </button>
+              }
+            />
+          ) : null}
+
+          {category === 'notifications' ? (
+            <ReadOnlyPanel
+              title="নোটিফিকেশন সেটিংস"
+              rows={[
+                {
+                  label: 'নতুন অর্ডারের নোটিফিকেশন',
+                  value: 'ড্যাশবোর্ডের বেল আইকনে',
+                },
+              ]}
+              note="নতুন অর্ডার এলে ড্যাশবোর্ডের বেল আইকনে সংখ্যা দেখাবে। কোন ঘটনায় কীভাবে জানানো হবে — সেই টগলগুলো পরের ধাপে আসছে।"
+            />
+          ) : null}
+
+          {category === 'appearance' ? (
+            <ReadOnlyPanel
+              title="অ্যাপিয়ারেন্স"
+              rows={[
+                { label: 'ভাষা', value: 'বাংলা' },
+                { label: 'প্যানেলের থিম', value: 'হালকা (সবসময়)' },
+              ]}
+              note="সেলার প্যানেল সবসময় হালকা থিমে থাকে — ডিভাইসের ডার্ক মোড অনুসরণ করে না। ভাষা বদলানোর অপশন পরের ধাপে আসছে।"
+            />
+          ) : null}
+        </div>
       </div>
     </SellerShell>
   )

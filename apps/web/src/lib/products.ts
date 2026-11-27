@@ -429,6 +429,18 @@ export interface DashboardStats {
   activePages: number
   salesLast7Days: number
   salesLast30Days: number
+  /** সব অর্ডার (বাতিলসহ) */
+  totalOrders: number
+  /** চলতি মাসের বিক্রি (বাতিল বাদে) */
+  monthSales: number
+  /** সব ল্যান্ডিং পেজ (প্রকাশিত + খসড়া) */
+  totalPages: number
+  /** খসড়া পেজ */
+  draftPages: number
+  /** শেষ ৭ দিনের দৈনিক বিক্রি — চার্টের জন্য (label: শনি/রবি/…/আজ) */
+  dailySales7: { label: string; total: number }[]
+  /** শেষ ৩০ দিনের দৈনিক বিক্রি */
+  dailySales30: { date: string; total: number }[]
   recentOrders: OrderRow[]
   newOrderList: OrderRow[]
 }
@@ -446,27 +458,57 @@ export async function fetchDashboardStats(
   const orders = (ordersData ?? []).map(asOrder)
   const { data: pagesData } = await client
     .from('pages')
-    .select('id')
+    .select('id, is_published')
     .eq('seller_id', sellerId)
-    .eq('is_published', true)
   const today = todayDhaka()
   const weekAgo = daysAgoDhaka(7)
   const monthAgo = daysAgoDhaka(30)
   const orderDate = (o: OrderRow) => o.created_at.slice(0, 10)
   const nonCancelled = (o: OrderRow) => o.status !== 'cancelled'
+  const pages = (pagesData ?? []) as { id: string; is_published: boolean }[]
+  const totalByDate = new Map<string, number>()
+  for (const o of orders) {
+    if (!nonCancelled(o)) continue
+    const d = orderDate(o)
+    totalByDate.set(d, (totalByDate.get(d) ?? 0) + Number(o.total))
+  }
+  const weekdayBn = ['রবি', 'সোম', 'মঙ্গল', 'বুধ', 'বৃহস্পতি', 'শুক্র', 'শনি']
+  const dailySales7 = Array.from({ length: 7 }, (_, i) => {
+    const offset = 6 - i
+    const date = daysAgoDhaka(offset)
+    const label =
+      offset === 0
+        ? 'আজ'
+        : (weekdayBn[new Date(`${date}T12:00:00+06:00`).getDay()] ?? date)
+    return { label, total: totalByDate.get(date) ?? 0 }
+  })
+  const dailySales30 = Array.from({ length: 30 }, (_, i) => {
+    const date = daysAgoDhaka(29 - i)
+    return { date, total: totalByDate.get(date) ?? 0 }
+  })
   return {
     todayOrders: orders.filter((o) => orderDate(o) === today).length,
     newOrders: orders.filter((o) => o.status === 'new').length,
     todaySales: orders
       .filter((o) => orderDate(o) === today && nonCancelled(o))
       .reduce((sum, o) => sum + Number(o.total), 0),
-    activePages: (pagesData ?? []).length,
+    activePages: pages.filter((p) => p.is_published).length,
     salesLast7Days: orders
       .filter((o) => orderDate(o) >= weekAgo && nonCancelled(o))
       .reduce((sum, o) => sum + Number(o.total), 0),
     salesLast30Days: orders
       .filter((o) => orderDate(o) >= monthAgo && nonCancelled(o))
       .reduce((sum, o) => sum + Number(o.total), 0),
+    totalOrders: orders.length,
+    monthSales: orders
+      .filter(
+        (o) => orderDate(o).slice(0, 7) === today.slice(0, 7) && nonCancelled(o),
+      )
+      .reduce((sum, o) => sum + Number(o.total), 0),
+    totalPages: pages.length,
+    draftPages: pages.filter((p) => !p.is_published).length,
+    dailySales7,
+    dailySales30,
     recentOrders: orders.slice(0, 5),
     newOrderList: orders.filter((o) => o.status === 'new').slice(0, 8),
   }

@@ -1,10 +1,13 @@
 // প্রথমবারের সেটআপ উইজার্ড — দোকানের তথ্য, দোকানের লিংক (slug),
 // ডেলিভারি চার্জ। সাইনআপের পর প্রথম লগইনে দেখায়।
 // WhatsApp 8801XXXXXXXXX আকারে জমা হয় (01… / 8801… / +8801… সব চলে)।
+// সাইনআপের সময় দেওয়া নাম/দোকান/হোয়াটসঅ্যাপ প্রিফিল হয়
+// (localStorage 'ol-signup-prefill' — সেটআপ শেষ হলে মুছে যায়)।
 import { useState } from 'react'
 import type { FormEvent } from 'react'
 import { useAuth } from '../lib/auth.tsx'
 import { requireSupabase } from '../lib/supabase.ts'
+import { LogoWordmark } from '../components/Logo.tsx'
 
 function slugifyShopName(name: string): string {
   return name
@@ -20,6 +23,30 @@ function normalizeWhatsapp(input: string): string {
   if (digits.startsWith('01')) return `880${digits.slice(1)}`.slice(0, 13)
   if (digits.startsWith('1')) return `880${digits}`.slice(0, 13)
   return digits
+}
+
+/** সাইনআপের সময় Auth পেজে লেখা নাম/দোকান/হোয়াটসঅ্যাপ — উইজার্ডে প্রিফিলের জন্য। */
+function readSignupPrefill(): {
+  name: string
+  shopName: string
+  whatsapp: string
+} | null {
+  try {
+    const raw = localStorage.getItem('ol-signup-prefill')
+    if (!raw) return null
+    const parsed = JSON.parse(raw) as {
+      name?: string
+      shopName?: string
+      whatsapp?: string
+    }
+    return {
+      name: parsed.name ?? '',
+      shopName: parsed.shopName ?? '',
+      whatsapp: parsed.whatsapp ?? '',
+    }
+  } catch {
+    return null
+  }
 }
 
 export interface WizardInitial {
@@ -43,11 +70,20 @@ export default function SetupWizard({
   initial?: WizardInitial
 }) {
   const { user, refreshSeller, signOut } = useAuth()
+  const signupPrefill = initial ? null : readSignupPrefill()
   const [step, setStep] = useState(1)
-  const [shopName, setShopName] = useState(initial?.shopName ?? '')
-  const [ownerName, setOwnerName] = useState(initial?.ownerName ?? '')
-  const [whatsapp, setWhatsapp] = useState(initial?.whatsapp ?? '')
-  const [slug, setSlug] = useState(initial?.slug ?? '')
+  const [shopName, setShopName] = useState(
+    initial?.shopName ?? signupPrefill?.shopName ?? '',
+  )
+  const [ownerName, setOwnerName] = useState(
+    initial?.ownerName ?? signupPrefill?.name ?? '',
+  )
+  const [whatsapp, setWhatsapp] = useState(
+    initial?.whatsapp ?? signupPrefill?.whatsapp ?? '',
+  )
+  const [slug, setSlug] = useState(
+    initial?.slug ?? slugifyShopName(signupPrefill?.shopName ?? ''),
+  )
   const [slugTouched, setSlugTouched] = useState(Boolean(initial?.slug))
   const [insideCharge, setInsideCharge] = useState(
     String(initial?.insideCharge ?? 60),
@@ -151,6 +187,11 @@ export default function SetupWizard({
         }
       }
       await refreshSeller()
+      try {
+        localStorage.removeItem('ol-signup-prefill')
+      } catch {
+        // প্রিফিল মুছতে না পারলেও সেটআপ শেষ।
+      }
       if (onDone) onDone()
     } catch (err) {
       setError(
@@ -163,27 +204,32 @@ export default function SetupWizard({
     }
   }
 
-  const inputClass = 'mt-1 w-full rounded border border-gray-300 px-3 py-2'
+  const inputClass =
+    'mt-1.5 w-full rounded-2xl border border-gray-300 bg-white px-4 py-3 text-[15px] placeholder:text-gray-400 outline-none transition focus:border-brand focus:ring-2 focus:ring-brand/20'
+  const labelClass = 'text-sm font-bold text-gray-800'
+  const primaryButtonClass =
+    'w-full rounded-2xl bg-gradient-to-r from-brand-dark via-brand to-brand px-4 py-3.5 font-bold text-white shadow-lg shadow-brand/30 disabled:opacity-50'
+  const ghostButtonClass =
+    'rounded-2xl border border-gray-300 bg-white px-4 py-3 font-bold text-gray-700'
 
   const content = (
     <>
       {!compact ? (
         <>
-          <h1 className="text-3xl font-bold">
-            <span className="text-brand">Order</span>
-            <span className="text-accent">link</span>
-          </h1>
-          <h2 className="mt-6 text-xl font-semibold">
+          <div className="inline-flex rounded-2xl border border-gray-200 bg-white px-4 py-3 shadow-sm">
+            <LogoWordmark size={30} />
+          </div>
+          <h2 className="mt-6 text-2xl font-extrabold text-gray-900">
             আপনার দোকান সেটআপ করুন
           </h2>
         </>
       ) : (
-        <h2 className="text-lg font-bold">দোকানের তথ্য</h2>
+        <h2 className="text-lg font-extrabold text-gray-900">দোকানের তথ্য</h2>
       )}
-      <p className="mt-2 text-sm text-gray-600">ধাপ {step} / ৩</p>
+      <p className="mt-2 text-sm font-medium text-gray-500">ধাপ {step} / ৩</p>
 
       {error ? (
-        <p className="mt-4 w-full max-w-sm rounded bg-red-50 px-4 py-3 text-sm text-red-700">
+        <p className="mt-4 w-full max-w-sm rounded-2xl bg-red-50 px-4 py-3 text-sm font-medium text-red-700">
           {error}
         </p>
       ) : null}
@@ -194,7 +240,7 @@ export default function SetupWizard({
           className="mt-6 w-full max-w-sm space-y-4"
         >
           <label className="block">
-            <span className="text-sm text-gray-700">দোকানের নাম</span>
+            <span className={labelClass}>দোকানের নাম</span>
             <input
               type="text"
               required
@@ -205,7 +251,7 @@ export default function SetupWizard({
             />
           </label>
           <label className="block">
-            <span className="text-sm text-gray-700">আপনার নাম</span>
+            <span className={labelClass}>আপনার নাম</span>
             <input
               type="text"
               required
@@ -216,7 +262,7 @@ export default function SetupWizard({
             />
           </label>
           <label className="block">
-            <span className="text-sm text-gray-700">WhatsApp নম্বর</span>
+            <span className={labelClass}>WhatsApp নম্বর</span>
             <input
               type="tel"
               required
@@ -226,10 +272,7 @@ export default function SetupWizard({
               placeholder="01XXXXXXXXX"
             />
           </label>
-          <button
-            type="submit"
-            className="w-full rounded bg-brand px-4 py-2 font-semibold text-white"
-          >
+          <button type="submit" className={primaryButtonClass}>
             পরের ধাপ →
           </button>
         </form>
@@ -241,7 +284,7 @@ export default function SetupWizard({
           className="mt-6 w-full max-w-sm space-y-4"
         >
           <label className="block">
-            <span className="text-sm text-gray-700">
+            <span className={labelClass}>
               দোকানের লিংকের নাম (shop slug)
             </span>
             <input
@@ -263,14 +306,11 @@ export default function SetupWizard({
             <button
               type="button"
               onClick={() => setStep(1)}
-              className="rounded border border-gray-300 px-4 py-2 font-semibold"
+              className={ghostButtonClass}
             >
               ← আগের ধাপ
             </button>
-            <button
-              type="submit"
-              className="flex-1 rounded bg-brand px-4 py-2 font-semibold text-white"
-            >
+            <button type="submit" className={`${primaryButtonClass} flex-1`}>
               পরের ধাপ →
             </button>
           </div>
@@ -283,7 +323,7 @@ export default function SetupWizard({
           className="mt-6 w-full max-w-sm space-y-4"
         >
           <label className="block">
-            <span className="text-sm text-gray-700">
+            <span className={labelClass}>
               ঢাকার ভেতরে ডেলিভারি চার্জ (৳)
             </span>
             <input
@@ -296,7 +336,7 @@ export default function SetupWizard({
             />
           </label>
           <label className="block">
-            <span className="text-sm text-gray-700">
+            <span className={labelClass}>
               ঢাকার বাইরে ডেলিভারি চার্জ (৳)
             </span>
             <input
@@ -316,14 +356,14 @@ export default function SetupWizard({
             <button
               type="button"
               onClick={() => setStep(2)}
-              className="rounded border border-gray-300 px-4 py-2 font-semibold"
+              className={ghostButtonClass}
             >
               ← আগের ধাপ
             </button>
             <button
               type="submit"
               disabled={busy}
-              className="flex-1 rounded bg-brand px-4 py-2 font-semibold text-white disabled:opacity-50"
+              className={`${primaryButtonClass} flex-1`}
             >
               {busy ? 'সেভ হচ্ছে…' : 'সেটআপ শেষ করুন'}
             </button>
@@ -335,7 +375,7 @@ export default function SetupWizard({
         <button
           type="button"
           onClick={() => void signOut()}
-          className="mt-6 text-sm text-gray-500 underline"
+          className="mt-6 text-sm font-medium text-gray-500 underline"
         >
           লগআউট
         </button>
@@ -345,14 +385,16 @@ export default function SetupWizard({
 
   if (compact) {
     return (
-      <div className="rounded-2xl border border-gray-200 bg-white p-5">
+      <div className="rounded-[28px] border border-gray-200 bg-white p-5 shadow-[0_10px_40px_rgba(0,0,0,0.06)] sm:p-6">
         {content}
       </div>
     )
   }
   return (
-    <main className="flex min-h-screen flex-col items-center justify-center bg-white px-6">
-      {content}
+    <main className="flex min-h-screen items-center justify-center bg-cream px-5 py-8">
+      <div className="w-full max-w-md rounded-[28px] border border-gray-200 bg-white p-6 shadow-[0_10px_40px_rgba(0,0,0,0.06)] sm:p-8">
+        {content}
+      </div>
     </main>
   )
 }

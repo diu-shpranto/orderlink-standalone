@@ -258,8 +258,12 @@ export function filterOrders(
 export interface OrderStats {
   total: number
   newCount: number
+  confirmed: number
+  processing: number
   todayOrders: number
   todaySales: number
+  /** সব অর্ডারের মোট বিক্রি (বাতিল বাদে) */
+  totalSales: number
   delivered: number
   cancelled: number
 }
@@ -270,10 +274,15 @@ export function computeOrderStats(orders: OrderRow[]): OrderStats {
   return {
     total: orders.length,
     newCount: orders.filter((o) => o.status === 'new').length,
+    confirmed: orders.filter((o) => o.status === 'confirmed').length,
+    processing: orders.filter((o) => o.status === 'processing').length,
     todayOrders: orders.filter((o) => o.created_at.slice(0, 10) === today)
       .length,
     todaySales: orders
       .filter((o) => o.created_at.slice(0, 10) === today && nonCancelled(o))
+      .reduce((sum, o) => sum + Number(o.total), 0),
+    totalSales: orders
+      .filter(nonCancelled)
       .reduce((sum, o) => sum + Number(o.total), 0),
     delivered: orders.filter((o) => o.status === 'delivered').length,
     cancelled: orders.filter((o) => o.status === 'cancelled').length,
