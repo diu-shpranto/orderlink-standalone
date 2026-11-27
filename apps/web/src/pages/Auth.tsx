@@ -1,6 +1,7 @@
-// লগইন / সাইনআপ / পাসওয়ার্ড রিসেট — লাইভ অ্যাপের ডিজাইন অনুযায়ী:
-// ক্রিম পটভূমি, বড় বোল্ড হেডলাইন, পিল টগল, গোলাকার সাদা কার্ড,
-// Google বাটন, বোল্ড লেবেল, গোলাকার ইনপুট, সবুজ গ্রেডিয়েন্ট সাবমিট।
+// লগইন / সাইনআপ / পাসওয়ার্ড রিসেট — প্রিমিয়াম সবুজ+সাদা SaaS ডিজাইন:
+// নরম অফ-হোয়াইট পটভূমি, সাদা কার্ড (হালকা সবুজ-ছোঁয়া ছায়া), গভীর সবুজ #006B50,
+// পিল টগল, গোলাকার ইনপুট, সবুজ গ্রেডিয়েন্ট সাবমিট। মোবাইল-ফার্স্ট:
+// লগইন ও সাইনআপ দুটোই 390x844 ও 360x740-এ স্ক্রল ছাড়া আঁটে।
 // রিসেট: ইমেইল → ৬-সংখ্যার কোড (Brevo) → কোড + নতুন পাসওয়ার্ড।
 // নিয়ম (লাইভ অ্যাপের মতো): ২০ মিনিট মেয়াদ, একবার ব্যবহারযোগ্য,
 // ৫ বার ভুলে ১৫ মিনিট লক, ৬০ সেকেন্ড resend কুলডাউন, পাসওয়ার্ড কমপক্ষে ৮ অক্ষর।
@@ -168,10 +169,51 @@ function normalizeWhatsApp(raw: string): string | null {
 }
 
 const inputClass =
-  'w-full rounded-2xl border border-gray-300 bg-white px-3.5 py-2 text-sm placeholder:text-gray-400 outline-none transition focus:border-brand focus:ring-2 focus:ring-brand/20 sm:px-4 sm:py-3 sm:text-[15px]'
-const labelClass = 'mb-1 block text-[13px] font-bold text-gray-800 sm:mb-1.5 sm:text-sm'
+  'w-full rounded-xl border border-[#dfe5e3] bg-white px-3.5 py-2 text-sm text-gray-900 placeholder:text-gray-400 outline-none transition hover:border-[#c8d2ce] focus:border-[#006B50] focus:ring-4 focus:ring-[#006B50]/10 sm:px-4 sm:py-3 sm:text-[15px]'
+const labelClass = 'mb-1 block text-[13px] font-semibold text-gray-700 sm:mb-1.5 sm:text-sm'
 const submitClass =
-  'w-full max-w-[280px] rounded-2xl bg-gradient-to-r from-brand-dark via-brand to-brand px-4 py-3 text-base font-bold text-white shadow-lg shadow-brand/30 transition hover:opacity-95 disabled:opacity-50 sm:py-3.5 lg:max-w-none'
+  'w-full max-w-[280px] rounded-2xl bg-gradient-to-r from-[#006B50] to-[#00836b] px-4 py-3 text-base font-bold text-white shadow-lg shadow-[#006B50]/25 transition hover:opacity-95 active:scale-[0.99] disabled:opacity-50 sm:py-3.5 lg:max-w-none'
+
+/** EN | বাংলা ছোট পিল টগল — লগইন ও সাইনআপ দুটোতেই একই। */
+function LangToggle({
+  lang,
+  setLang,
+}: {
+  lang: AuthLang
+  setLang: (next: AuthLang) => void
+}) {
+  return (
+    <div
+      className="inline-flex items-center rounded-full border border-[#e3e8e6] bg-white p-0.5 text-sm font-semibold shadow-sm"
+      role="group"
+      aria-label="ভাষা"
+    >
+      <button
+        type="button"
+        onClick={() => setLang('en')}
+        className={`rounded-full px-3 py-1 transition ${
+          lang === 'en'
+            ? 'bg-[#006B50] text-white shadow-sm'
+            : 'text-gray-600 hover:text-[#006B50]'
+        }`}
+      >
+        EN
+      </button>
+      <span className="text-gray-300">|</span>
+      <button
+        type="button"
+        onClick={() => setLang('bn')}
+        className={`rounded-full px-3 py-1 transition ${
+          lang === 'bn'
+            ? 'bg-[#006B50] text-white shadow-sm'
+            : 'text-gray-600 hover:text-[#006B50]'
+        }`}
+      >
+        বাংলা
+      </button>
+    </div>
+  )
+}
 
 export default function Auth({
   initialMode = 'signin',
@@ -405,7 +447,7 @@ export default function Auth({
 
   if (!supabaseConfigured) {
     return (
-      <main className="flex min-h-screen items-center justify-center bg-cream px-6">
+      <main className="flex min-h-screen items-center justify-center bg-[#f6f8f7] px-6">
         <p className="max-w-md text-center text-gray-600">
           Supabase এখনো যুক্ত হয়নি — apps/web/.env-এ VITE_SUPABASE_URL ও
           VITE_SUPABASE_ANON_KEY বসান (দেখুন docs/setup.md)।
@@ -423,11 +465,15 @@ export default function Auth({
         : t.headline
 
   return (
-    <main className="min-h-screen bg-cream">
+    <main className="min-h-screen bg-[#f6f8f7]">
       <div className="mx-auto flex min-h-screen w-full max-w-6xl lg:items-stretch lg:gap-10 lg:px-6 lg:py-10">
         {/* ব্র্যান্ড প্যানেল — শুধু ডেস্কটপে */}
-        <aside className="hidden w-[400px] shrink-0 flex-col justify-between rounded-[32px] bg-gradient-to-br from-brand-deep via-brand-dark to-brand p-8 text-white shadow-xl lg:flex">
-          <div>
+        <aside className="relative hidden w-[400px] shrink-0 flex-col justify-between overflow-hidden rounded-[28px] bg-gradient-to-br from-[#004d39] via-[#006B50] to-[#007a5e] p-8 text-white shadow-xl lg:flex">
+          <div
+            aria-hidden
+            className="pointer-events-none absolute -right-16 -top-16 h-64 w-64 rounded-full bg-white/10 blur-3xl"
+          />
+          <div className="relative">
             <div className="inline-flex rounded-2xl bg-white px-4 py-3 shadow-md">
               <LogoWordmark size={30} />
             </div>
@@ -449,7 +495,7 @@ export default function Auth({
               ))}
             </ul>
           </div>
-          <p className="text-sm text-white/60">© 2026 Orderlink</p>
+          <p className="relative text-sm text-white/60">© 2026 Orderlink</p>
         </aside>
 
         {/* ফর্ম কলাম */}
@@ -461,54 +507,38 @@ export default function Auth({
                 <button
                   type="button"
                   onClick={() => navigate('/')}
-                  className="text-sm font-bold text-brand-dark"
+                  className="text-sm font-bold text-[#006B50] hover:underline"
                 >
                   ← {t.backHome}
                 </button>
-                <div
-                  className="inline-flex items-center rounded-full border border-gray-300 bg-white p-0.5 text-sm font-bold"
-                  role="group"
-                  aria-label="ভাষা"
-                >
-                  <button
-                    type="button"
-                    onClick={() => setLang('en')}
-                    className={`rounded-full px-3 py-1.5 ${
-                      lang === 'en' ? 'bg-brand text-white shadow' : 'text-gray-600'
-                    }`}
-                  >
-                    EN
-                  </button>
-                  <span className="text-gray-300">|</span>
-                  <button
-                    type="button"
-                    onClick={() => setLang('bn')}
-                    className={`rounded-full px-3 py-1.5 ${
-                      lang === 'bn' ? 'bg-brand text-white shadow' : 'text-gray-600'
-                    }`}
-                  >
-                    বাংলা
-                  </button>
-                </div>
+                <LangToggle lang={lang} setLang={setLang} />
+              </div>
+            ) : null}
+
+            {/* সাইনআপ (মোবাইল/ট্যাবলেট): লোগো + ভাষা টগল — ডেস্কটপে ব্র্যান্ড প্যানেলেই লোগো আছে */}
+            {mode === 'signup' ? (
+              <div className="flex items-center justify-between lg:hidden">
+                <LogoWordmark size={28} />
+                <LangToggle lang={lang} setLang={setLang} />
               </div>
             ) : null}
 
             {/* লগইন: লোগো টাইল + নিরাপদ লগইন ব্যাজ */}
             {mode === 'signin' ? (
               <div className="mt-4 flex flex-wrap items-center gap-3 sm:mt-6 lg:mt-8">
-                <div className="inline-flex rounded-2xl border border-gray-200 bg-white px-3 py-2 shadow-sm sm:px-4 sm:py-3">
+                <div className="inline-flex rounded-2xl border border-[#e3e8e6] bg-white px-3 py-2 shadow-sm sm:px-4 sm:py-3">
                   <LogoWordmark size={30} />
                 </div>
-                <span className="inline-flex items-center gap-1.5 rounded-full border border-gray-200 bg-white px-3 py-1.5 text-sm font-bold text-gray-700 shadow-sm">
-                  <IconShield className="h-4 w-4 text-brand" />
+                <span className="inline-flex items-center gap-1.5 rounded-full border border-[#cde7da] bg-[#e9f5ef] px-3 py-1.5 text-sm font-semibold text-[#006B50] shadow-sm">
+                  <IconShield className="h-4 w-4 text-[#006B50]" />
                   {t.secureLogin}
                 </span>
               </div>
             ) : null}
 
             <h1
-              className={`text-[22px] font-extrabold leading-tight text-gray-900 sm:text-3xl ${
-                mode === 'signin' ? 'mt-4 sm:mt-6' : 'mt-2'
+              className={`text-[22px] font-extrabold leading-tight tracking-tight text-gray-900 sm:text-3xl ${
+                mode === 'signin' ? 'mt-4 sm:mt-6' : 'mt-3'
               }`}
             >
               {headline}
@@ -516,14 +546,14 @@ export default function Auth({
 
             {/* সাইনআপ / লগইন পিল টগল */}
             {isAuthMode ? (
-              <div className="mt-3 flex w-fit mx-auto rounded-full border border-gray-200 bg-white p-1 shadow-sm sm:mt-5 lg:mx-0">
+              <div className="mt-3 flex w-fit mx-auto rounded-full border border-[#e3e8e6] bg-white p-1 shadow-sm sm:mt-5 lg:mx-0">
                 <button
                   type="button"
                   onClick={() => switchMode('signup')}
                   className={`rounded-full px-4 py-1.5 text-sm font-bold transition sm:px-5 sm:py-2.5 ${
                     mode === 'signup'
-                      ? 'bg-gradient-to-r from-brand-dark to-brand text-white shadow'
-                      : 'text-gray-600'
+                      ? 'bg-[#006B50] text-white shadow-sm'
+                      : 'text-gray-500 hover:text-[#006B50]'
                   }`}
                 >
                   {t.tabSignup}
@@ -533,8 +563,8 @@ export default function Auth({
                   onClick={() => switchMode('signin')}
                   className={`rounded-full px-4 py-1.5 text-sm font-bold transition sm:px-5 sm:py-2.5 ${
                     mode === 'signin'
-                      ? 'bg-gradient-to-r from-brand-dark to-brand text-white shadow'
-                      : 'text-gray-600'
+                      ? 'bg-[#006B50] text-white shadow-sm'
+                      : 'text-gray-500 hover:text-[#006B50]'
                   }`}
                 >
                   {t.tabLogin}
@@ -543,25 +573,25 @@ export default function Auth({
             ) : null}
 
             {notice ? (
-              <p className="mt-3 rounded-2xl bg-brand-light px-4 py-3 text-sm font-medium text-brand-dark sm:mt-5">
+              <p className="mt-3 rounded-xl border border-[#bfe3d4] bg-[#e9f5ef] px-4 py-3 text-sm font-medium text-[#005a44] sm:mt-5">
                 {notice}
               </p>
             ) : null}
             {error ? (
-              <p className="mt-3 rounded-2xl bg-red-50 px-4 py-3 text-sm font-medium text-red-700 sm:mt-5">
+              <p className="mt-3 rounded-xl border border-red-200 bg-red-50 px-4 py-3 text-sm font-medium text-red-700 sm:mt-5">
                 {error}
               </p>
             ) : null}
 
             {/* সাদা কার্ড */}
-            <div className="mt-3 rounded-[28px] border border-gray-200 bg-white px-4 py-3 shadow-[0_10px_40px_rgba(0,0,0,0.06)] sm:mt-5 sm:p-6">
+            <div className="mt-3 rounded-[24px] border border-[#e3e8e6] bg-white px-4 py-3 shadow-[0_8px_32px_rgba(0,107,80,0.07)] sm:mt-5 sm:p-6 lg:py-5">
               {isAuthMode ? (
                 <>
                   <button
                     type="button"
                     onClick={() => void handleGoogle()}
                     disabled={busy}
-                    className="flex w-full items-center justify-center gap-3 rounded-2xl border border-gray-300 bg-white px-4 py-2.5 text-sm font-bold text-gray-800 transition hover:bg-gray-50 disabled:opacity-50 sm:py-3.5 sm:text-[15px]"
+                    className="flex w-full items-center justify-center gap-3 rounded-xl border border-[#e0e6e3] bg-white px-4 py-2.5 text-sm font-semibold text-gray-800 shadow-sm transition hover:border-[#cbd5d1] hover:bg-[#f8faf9] active:scale-[0.99] disabled:opacity-50 sm:py-3.5 sm:text-[15px]"
                   >
                     <GoogleG className="h-5 w-5" />
                     {t.google}
@@ -571,18 +601,18 @@ export default function Auth({
                     type="button"
                     onClick={() => void handleDemoLogin()}
                     disabled={busy}
-                    className="mt-2 flex w-full items-center justify-center gap-2 rounded-2xl bg-brand-light px-4 py-2.5 text-sm font-bold text-brand-dark transition hover:bg-brand-light/70 disabled:opacity-50 sm:mt-3 sm:py-3.5 sm:text-[15px]"
+                    className="mt-2 flex w-full items-center justify-center gap-2 rounded-xl border border-[#cde7da] bg-[#e9f5ef] px-4 py-2.5 text-sm font-semibold text-[#006B50] transition hover:bg-[#ddefe7] active:scale-[0.99] disabled:opacity-50 sm:mt-3 sm:py-3.5 sm:text-[15px]"
                   >
                     {t.demo}
                   </button>
 
-                  <div className="my-3 flex items-center gap-3 text-sm text-gray-400 sm:my-5">
-                    <span className="h-px flex-1 bg-gray-200" />
+                  <div className="my-3 flex items-center gap-3 text-xs font-medium text-[#9aa5a1] sm:my-5 lg:my-4">
+                    <span className="h-px flex-1 bg-[#e5eae8]" />
                     {t.or}
-                    <span className="h-px flex-1 bg-gray-200" />
+                    <span className="h-px flex-1 bg-[#e5eae8]" />
                   </div>
 
-                  <form onSubmit={handleAuthSubmit} className="space-y-2 sm:space-y-4">
+                  <form onSubmit={handleAuthSubmit} className="space-y-2 sm:space-y-4 lg:space-y-3">
                     {mode === 'signup' ? (
                       <>
                         <label className="block">
@@ -658,7 +688,7 @@ export default function Auth({
                         <button
                           type="button"
                           onClick={() => setShowPassword((v) => !v)}
-                          className="absolute right-3 top-1/2 -translate-y-1/2 text-gray-400"
+                          className="absolute right-3 top-1/2 -translate-y-1/2 text-gray-400 transition hover:text-gray-600"
                           aria-label={
                             showPassword ? 'পাসওয়ার্ড লুকান' : 'পাসওয়ার্ড দেখান'
                           }
@@ -676,7 +706,7 @@ export default function Auth({
                         <button
                           type="button"
                           onClick={() => switchMode('reset-request')}
-                          className="text-sm font-bold text-brand-dark underline decoration-dotted underline-offset-4"
+                          className="text-sm font-semibold text-[#006B50] underline decoration-dotted underline-offset-4 hover:text-[#005a44]"
                         >
                           {t.forgot}
                         </button>
@@ -700,7 +730,7 @@ export default function Auth({
               ) : null}
 
               {mode === 'reset-request' ? (
-                <form onSubmit={handleResetRequest} className="space-y-2 sm:space-y-4">
+                <form onSubmit={handleResetRequest} className="space-y-2 sm:space-y-4 lg:space-y-3">
                   <label className="block">
                     <span className={labelClass}>{t.accountEmail}</span>
                     <input
@@ -720,7 +750,7 @@ export default function Auth({
                   <button
                     type="button"
                     onClick={() => switchMode('signin')}
-                    className="w-full text-sm font-bold text-brand-dark"
+                    className="w-full text-sm font-semibold text-[#006B50] hover:text-[#005a44]"
                   >
                     {t.backToLogin}
                   </button>
@@ -728,7 +758,7 @@ export default function Auth({
               ) : null}
 
               {mode === 'reset-code' ? (
-                <form onSubmit={handleResetVerify} className="space-y-2 sm:space-y-4">
+                <form onSubmit={handleResetVerify} className="space-y-2 sm:space-y-4 lg:space-y-3">
                   <p className="text-sm text-gray-600">
                     {email} ঠিকানায় ৬ সংখ্যার কোড পাঠানো হয়েছে।
                   </p>
@@ -762,7 +792,7 @@ export default function Auth({
                       <button
                         type="button"
                         onClick={() => setShowNewPassword((v) => !v)}
-                        className="absolute right-3 top-1/2 -translate-y-1/2 text-gray-400"
+                        className="absolute right-3 top-1/2 -translate-y-1/2 text-gray-400 transition hover:text-gray-600"
                         aria-label={
                           showNewPassword
                             ? 'পাসওয়ার্ড লুকান'
@@ -786,7 +816,7 @@ export default function Auth({
                     type="button"
                     disabled={busy || cooldown > 0}
                     onClick={() => void requestCode()}
-                    className="w-full text-sm font-bold text-brand-dark disabled:opacity-50"
+                    className="w-full text-sm font-semibold text-[#006B50] hover:text-[#005a44] disabled:opacity-50"
                   >
                     {cooldown > 0
                       ? `আবার পাঠানো যাবে ${cooldown} সেকেন্ড পরে`
