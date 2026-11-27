@@ -3,14 +3,132 @@
 // Sheet সংযোগের অবস্থা। কোনো বানানো সংখ্যা নেই — ডাটা না থাকলে ০।
 import { useEffect, useState } from 'react'
 import SellerShell, { STATUS_BN } from '../components/SellerShell.tsx'
+import GoogleSheetsSettings from '../components/GoogleSheetsSettings.tsx'
 import { useAuth } from '../lib/auth.tsx'
 import {
   fetchDashboardStats,
+  fetchSellerShop,
   type DashboardStats,
 } from '../lib/products.ts'
 import { formatBDT, formatCountBn } from '../lib/pricing.ts'
 import { navigate } from '../lib/router.ts'
+import {
+  fetchSheetConnection,
+  fetchSheetSyncSummary,
+  type SheetConnection,
+  type SheetSyncSummary,
+} from '../lib/sheets.ts'
+import type { ShopRow } from '../lib/types.ts'
 import SetupWizard from './SetupWizard.tsx'
+
+function formatDateTimeShort(iso: string): string {
+  return new Date(iso).toLocaleString('bn-BD', {
+    timeZone: 'Asia/Dhaka',
+    day: 'numeric',
+    month: 'short',
+    hour: 'numeric',
+    minute: '2-digit',
+  })
+}
+
+// ড্যাশবোর্ডের Google Sheet কার্ড — আসল সংযোগ ও সিঙ্কের অবস্থা।
+function SheetStatusCard() {
+  const { seller } = useAuth()
+  const [connection, setConnection] = useState<SheetConnection | null>(null)
+  const [summary, setSummary] = useState<SheetSyncSummary | null>(null)
+  const [loading, setLoading] = useState(true)
+
+  useEffect(() => {
+    if (!seller) return
+    Promise.all([
+      fetchSheetConnection(seller.id),
+      fetchSheetSyncSummary(seller.id),
+    ])
+      .then(([conn, sum]) => {
+        setConnection(conn)
+        setSummary(sum)
+      })
+      .catch(() => {
+        // অবস্থা না জানা গেলে কার্ডটা চুপচাপ সত্য কথাই বলবে।
+      })
+      .finally(() => setLoading(false))
+  }, [seller])
+
+  return (
+    <div className="rounded-2xl border border-gray-200 bg-white p-5">
+      <h2 className="font-bold">Google Sheet সংযোগ</h2>
+      {loading ? (
+        <p className="mt-2 text-sm text-gray-500">লোড হচ্ছে…</p>
+      ) : !connection ? (
+        <>
+          <p className="mt-2 text-sm leading-relaxed text-gray-600">
+            Google Sheet এখনো যুক্ত করা হয়নি — অর্ডার আপাতত শুধু এখানেই
+            দেখা যাবে।
+          </p>
+          <button
+            type="button"
+            onClick={() => navigate('/dashboard/settings')}
+            className="mt-3 text-sm font-semibold text-brand-dark underline"
+          >
+            Google Sheet যুক্ত করুন →
+          </button>
+        </>
+      ) : !connection.sheet_id ? (
+        <>
+          <p className="mt-2 text-sm leading-relaxed text-gray-600">
+            Google যুক্ত হয়েছে ({connection.google_email ?? '—'}) — Sheet
+            এখনো বাছা হয়নি।
+          </p>
+          <button
+            type="button"
+            onClick={() => navigate('/dashboard/settings')}
+            className="mt-3 text-sm font-semibold text-brand-dark underline"
+          >
+            Sheet বাছুন →
+          </button>
+        </>
+      ) : (
+        <>
+          <p className="mt-2 text-sm text-gray-600">
+            সংযুক্ত: {connection.google_email ?? '—'}
+          </p>
+          <p className="mt-1 text-sm text-gray-600">
+            সিঙ্ক হয়েছে {formatCountBn(summary?.synced ?? 0)}টি
+            {summary && summary.pending > 0
+              ? ` · অপেক্ষায় ${formatCountBn(summary.pending)}টি`
+              : ''}
+            {summary && summary.failed > 0
+              ? ` · ব্যর্থ ${formatCountBn(summary.failed)}টি`
+              : ''}
+          </p>
+          <p className="mt-1 text-sm text-gray-600">
+            শেষ সিঙ্ক:{' '}
+            {summary?.lastSyncedAt
+              ? formatDateTimeShort(summary.lastSyncedAt)
+              : 'এখনো হয়নি'}
+          </p>
+          <div className="mt-3 flex flex-wrap gap-3">
+            <a
+              href={connection.sheet_url ?? '#'}
+              target="_blank"
+              rel="noreferrer"
+              className="text-sm font-semibold text-brand-dark underline"
+            >
+              শিট খুলুন ↗
+            </a>
+            <button
+              type="button"
+              onClick={() => navigate('/dashboard/settings')}
+              className="text-sm font-semibold text-brand-dark underline"
+            >
+              সিঙ্কের অবস্থা দেখুন →
+            </button>
+          </div>
+        </>
+      )}
+    </div>
+  )
+}
 
 type SalesRange = 'today' | '7d' | '30d'
 
@@ -139,13 +257,7 @@ export function DashboardOverview() {
               </button>
             </div>
             <div className="space-y-6">
-              <div className="rounded-2xl border border-gray-200 bg-white p-5">
-                <h2 className="font-bold">Google Sheet সংযোগ</h2>
-                <p className="mt-2 text-sm leading-relaxed text-gray-600">
-                  Google Sheet সংযোগ শীঘ্রই আসছে — অর্ডার আপাতত এখানেই দেখা
-                  যাবে।
-                </p>
-              </div>
+              <SheetStatusCard />
               <div className="rounded-2xl border border-gray-200 bg-white p-5">
                 <h2 className="font-bold">দ্রুত কাজ</h2>
                 <div className="mt-3 flex flex-wrap gap-2">
@@ -174,5 +286,50 @@ export function DashboardOverview() {
 }
 
 export function SettingsPage() {
-  return <SetupWizard onDone={() => navigate('/dashboard')} />
+  const { seller } = useAuth()
+  const [shop, setShop] = useState<ShopRow | null>(null)
+  const [shopLoaded, setShopLoaded] = useState(false)
+  const [shopSaved, setShopSaved] = useState(false)
+
+  useEffect(() => {
+    if (!seller) return
+    fetchSellerShop(seller.id)
+      .then((s) => setShop(s))
+      .catch(() => {
+        // দোকান না পাওয়া গেলে উইজার্ড খালি ফর্ম দেখাবে।
+      })
+      .finally(() => setShopLoaded(true))
+  }, [seller])
+
+  return (
+    <SellerShell active="settings">
+      <h1 className="text-2xl font-extrabold">সেটিংস</h1>
+      {shopSaved ? (
+        <p className="mt-4 rounded bg-green-50 px-4 py-3 text-sm font-semibold text-green-800">
+          দোকানের তথ্য সেভ হয়েছে ✓
+        </p>
+      ) : null}
+      <div className="mt-6 space-y-6">
+        {/* দোকানের তথ্য লোড হওয়ার পরেই উইজার্ড বসে — নইলে ভরা মান
+            (slug, চার্জ) খালি থেকে যেত। */}
+        {!shopLoaded ? (
+          <p className="text-sm text-gray-500">লোড হচ্ছে…</p>
+        ) : (
+          <SetupWizard
+            compact
+            initial={{
+              shopName: seller?.shop_name ?? '',
+              ownerName: seller?.owner_name ?? '',
+              whatsapp: (seller?.whatsapp ?? '').replace(/^880/, '0'),
+              slug: shop?.slug ?? '',
+              insideCharge: shop ? Number(shop.delivery_inside_charge) : 60,
+              outsideCharge: shop ? Number(shop.delivery_outside_charge) : 120,
+            }}
+            onDone={() => setShopSaved(true)}
+          />
+        )}
+        <GoogleSheetsSettings shopName={seller?.shop_name ?? null} />
+      </div>
+    </SellerShell>
+  )
 }

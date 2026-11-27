@@ -155,3 +155,78 @@ supabase functions deploy verify-reset-code --no-verify-jwt
 - লাইভে আবার যাচাই: নতুন টেস্ট সেলার সাইনআপ করলে সরাসরি উইজার্ডে
   যেতে হবে; আগের টেস্ট অ্যাকাউন্ট (hello.orderlink@yahoo.com) দিয়ে
   লগইন করলে সরাসরি ড্যাশবোর্ডে যেতে হবে।
+
+## Phase 4 — Google Sheet অটো-সিঙ্ক (27 Nov 2026)
+
+- **মাইগ্রেশন চালান:** Supabase Dashboard → SQL Editor-এ
+  `supabase/migrations/0004_sheet_sync.sql`-এর পুরো কনটেন্ট পেস্ট করে
+  Run করুন। এতে `seller_google_tokens` (এনক্রিপ্ট করা Google টোকেন +
+  Sheet লিংক), `sheet_sync_queue` (সিঙ্কের সারি — ব্যর্থ হলে এখান
+  থেকেই রিট্রাই), `sheet_sync_events` (সিঙ্কের ইতিহাস) টেবিল বসবে;
+  অর্ডার জমলেই trigger কিউতে সারি বসাবে; আর orders-এর
+  `sheet_status`-এ 'not_connected' মান যোগ হবে (Google যুক্ত না
+  থাকলে অর্ডার এই অবস্থায় থাকে)। 0001–0003 আবার চালাতে হবে না।
+- **Secrets বসান** (Supabase Dashboard → Edge Functions → Secrets,
+  বা CLI: `supabase secrets set ...`):
+  - `SHEET_TOKEN_KEY` — AES-256 চাবি (base64-এ ৩২ বাইট)। মানটা
+    প্রজেক্টের রেকর্ডে আছে — কখনো গিটে বা চ্যাটে লিখবেন না।
+  - `GOOGLE_CLIENT_ID` — GCP OAuth ক্লায়েন্ট "Orderlink"-এর ID:
+    `432178373760-gut73pk7fintfv62gfrb78esfa7rhl1e.apps.googleusercontent.com`
+  - `GOOGLE_CLIENT_SECRET` — ওই ক্লায়েন্টের সিক্রেট। পুরনো মান জানা
+    নেই, তাই GCP Console → APIs & Services → Credentials → ক্লায়েন্ট
+    "Orderlink" → "Add secret" দিয়ে নতুন সিক্রেট বানিয়ে এখানে বসান
+    (Phase 1-এ একবার এভাবেই করা হয়েছিল; পুরনো সিক্রেট চালু থাকবে,
+    তাই লাইভ Orderlink অ্যাপের Google লগইনে কিছু বদলাবে না)।
+  - কেন সিক্রেট লাগে: Supabase Auth provider টোকেন রিফ্রেশ করে না
+    (supabase-js issue #707) — Google-এর refresh token থেকে নতুন
+    access token বানাতে Google-এর token endpoint-এ client_id +
+    client_secret লাগবেই। সিক্রেট না থাকলে সিঙ্ক শুধু সংযোগের সময়ের
+    access token (১ ঘণ্টা) দিয়ে চলে, আর সেলার Settings খুললে তাজা
+    token ধরা হয় — কিন্তু দীর্ঘমেয়াদে অটো-সিঙ্কের জন্য সিক্রেট
+    বসানোই সঠিক পথ।
+- **Edge Functions ডেপ্লয় করুন:**
+  ```bash
+  supabase functions deploy store-google-token
+  supabase functions deploy sync-order --no-verify-jwt
+  supabase functions deploy sheets-retry --no-verify-jwt
+  supabase functions deploy sheets-setup
+  supabase functions deploy sheets-disconnect
+  ```
+  `sync-order` ও `sheets-retry`-এ `--no-verify-jwt` লাগবেই — প্রথমটা
+  কাস্টমার লগইন ছাড়া (অর্ডার জমার সময়) ডাকে, দ্বিতীয়টা pg_cron
+  থেকে ডাকা হয়। বাকি তিনটায় JWT যাচাই চালু থাকে (শুধু লগইন করা
+  সেলার নিজের সংযোগ ছুঁতে পারে)।
+- **৩০ মিনিটের অটো-রিট্রাই (pg_cron):** Supabase Dashboard →
+  Database → Extensions-এ `pg_cron` ও `pg_net` চালু করুন, তারপর SQL
+  Editor-এ চালান (ANON_KEY-এর জায়গায়
+  `VITE_SUPABASE_ANON_KEY`-এর মান বসান):
+  ```sql
+  select cron.schedule(
+    'orderlink-sheet-sync-retry',
+    '*/30 * * * *',
+    $$
+    select net.http_post(
+      url := 'https://xrkdoijcdokuvsahmepw.supabase.co/functions/v1/sheets-retry',
+      headers := '{"Content-Type": "application/json", "Authorization": "Bearer <ANON_KEY>"}'::jsonb,
+      body := '{}'::jsonb
+    ) as request_id;
+    $$
+  );
+  ```
+  কাজ করছে কি না দেখতে: `select * from cron.job;` আর
+  `select * from cron.job_run_details order by start_time desc limit 5;`
+- **যেভাবে কাজ করে:** সেলার Settings → Google Sheets থেকে Google
+  যুক্ত করে (scopes: drive.file + spreadsheets; access_type=offline,
+  prompt=consent — refresh token পেতে), তারপর নতুন Sheet বানায় বা
+  আগের Sheet-এর লিংক যাচাই করে যুক্ত করে। অর্ডার জমলেই sync-order
+  ফায়ার-অ্যান্ড-ফরগেট ডাকা হয় — সেদিনের (Asia/Dhaka তারিখ) ট্যাবে
+  Order ID দিয়ে ডুপ্লিকেট আটকে সারি যোগ হয়। ব্যর্থ হলে কিউতে failed
+  হয়ে ৩০ মিনিট পর আবার চেষ্টা হয় (সর্বোচ্চ ১০ বার); Settings-এর
+  "ব্যর্থ সিঙ্ক আবার চেষ্টা করুন" বোতামে এখনই চেষ্টা হয়। Google যুক্ত
+  না করা সেলারের অর্ডার Sheet-এ যায় না — UI-তে সত্য কথাই লেখা থাকে।
+- **গ্রহণের পরীক্ষা:** টেস্ট সেলার দিয়ে Google যুক্ত করে নতুন Sheet
+  বানান → কাস্টমার পেজে টেস্ট অর্ডার দিন → সেই Sheet-এর আজকের
+  ট্যাবে (যেমন 2026-11-27) সারিটা নিজে থেকে আসবে, মোট সঠিক থাকবে।
+  ইচ্ছে করে ব্যর্থ করালে (যেমন Sheet মুছে) রিট্রাইয়ে ঠিক হয়,
+  ডুপ্লিকেট সারি হয় না। দ্বিতীয় সেলারের Sheet-এ প্রথমজনের অর্ডার
+  যাবে না (RLS + প্রতি সেলারের নিজের টোকেন)।

@@ -17,6 +17,7 @@
 | `BREVO_API_KEY` | Brevo Transactional API key (মেইল পাঠানো) | Phase 1 থেকে |
 | `GOOGLE_CLIENT_ID` | Google OAuth Client ID (Google লগইন + Sheet সংযোগ) | Phase 1 / Phase 4 থেকে |
 | `GOOGLE_CLIENT_SECRET` | Google OAuth Client Secret | Phase 1 / Phase 4 থেকে |
+| `SHEET_TOKEN_KEY` | Google টোকেন এনক্রিপশনের AES-256 চাবি (base64, ৩২ বাইট) — শুধু Edge Functions-এ | Phase 4 থেকে |
 
 ## নোট
 

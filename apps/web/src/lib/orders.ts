@@ -1,6 +1,7 @@
 // অর্ডার — ফর্মের হিসাব, জমা দেওয়া, সেলারের অর্ডার ব্যবস্থাপনা।
-// অর্ডারই সত্যের উৎস (Supabase orders টেবিল); Sheet সিঙ্ক Phase 4-এর,
-// এখানে কোথাও সিঙ্কের প্রতিশ্রুতি নেই।
+// অর্ডারই সত্যের উৎস (Supabase orders টেবিল); Sheet সিঙ্ক Phase 4-এ
+// বানানো — অর্ডার জমলেই triggerOrderSync (lib/sheets.ts) ফায়ার-
+// অ্যান্ড-ফরগেট ডাকা হয়, সিঙ্ক ব্যর্থ হলেও অর্ডার আটকায় না।
 
 import { requireSupabase } from './supabase.ts'
 import { todayDhaka } from './pricing.ts'

@@ -22,20 +22,39 @@ function normalizeWhatsapp(input: string): string {
   return digits
 }
 
+export interface WizardInitial {
+  shopName?: string
+  ownerName?: string
+  whatsapp?: string
+  slug?: string
+  insideCharge?: number
+  outsideCharge?: number
+}
+
 export default function SetupWizard({
   onDone,
+  compact,
+  initial,
 }: {
   onDone?: () => void
+  // Settings পেজে বসালে compact — পুরো পাতার লেআউট নয়, আগের তথ্য
+  // ভরা থাকে; প্রথমবারের সেটআপে compact ছাড়াই চলে।
+  compact?: boolean
+  initial?: WizardInitial
 }) {
   const { user, refreshSeller, signOut } = useAuth()
   const [step, setStep] = useState(1)
-  const [shopName, setShopName] = useState('')
-  const [ownerName, setOwnerName] = useState('')
-  const [whatsapp, setWhatsapp] = useState('')
-  const [slug, setSlug] = useState('')
-  const [slugTouched, setSlugTouched] = useState(false)
-  const [insideCharge, setInsideCharge] = useState('60')
-  const [outsideCharge, setOutsideCharge] = useState('120')
+  const [shopName, setShopName] = useState(initial?.shopName ?? '')
+  const [ownerName, setOwnerName] = useState(initial?.ownerName ?? '')
+  const [whatsapp, setWhatsapp] = useState(initial?.whatsapp ?? '')
+  const [slug, setSlug] = useState(initial?.slug ?? '')
+  const [slugTouched, setSlugTouched] = useState(Boolean(initial?.slug))
+  const [insideCharge, setInsideCharge] = useState(
+    String(initial?.insideCharge ?? 60),
+  )
+  const [outsideCharge, setOutsideCharge] = useState(
+    String(initial?.outsideCharge ?? 120),
+  )
   const [busy, setBusy] = useState(false)
   const [error, setError] = useState('')
 
@@ -146,13 +165,21 @@ export default function SetupWizard({
 
   const inputClass = 'mt-1 w-full rounded border border-gray-300 px-3 py-2'
 
-  return (
-    <main className="flex min-h-screen flex-col items-center justify-center bg-white px-6">
-      <h1 className="text-3xl font-bold">
-        <span className="text-brand">Order</span>
-        <span className="text-accent">link</span>
-      </h1>
-      <h2 className="mt-6 text-xl font-semibold">আপনার দোকান সেটআপ করুন</h2>
+  const content = (
+    <>
+      {!compact ? (
+        <>
+          <h1 className="text-3xl font-bold">
+            <span className="text-brand">Order</span>
+            <span className="text-accent">link</span>
+          </h1>
+          <h2 className="mt-6 text-xl font-semibold">
+            আপনার দোকান সেটআপ করুন
+          </h2>
+        </>
+      ) : (
+        <h2 className="text-lg font-bold">দোকানের তথ্য</h2>
+      )}
       <p className="mt-2 text-sm text-gray-600">ধাপ {step} / ৩</p>
 
       {error ? (
@@ -304,13 +331,28 @@ export default function SetupWizard({
         </form>
       )}
 
-      <button
-        type="button"
-        onClick={() => void signOut()}
-        className="mt-6 text-sm text-gray-500 underline"
-      >
-        লগআউট
-      </button>
+      {!compact ? (
+        <button
+          type="button"
+          onClick={() => void signOut()}
+          className="mt-6 text-sm text-gray-500 underline"
+        >
+          লগআউট
+        </button>
+      ) : null}
+    </>
+  )
+
+  if (compact) {
+    return (
+      <div className="rounded-2xl border border-gray-200 bg-white p-5">
+        {content}
+      </div>
+    )
+  }
+  return (
+    <main className="flex min-h-screen flex-col items-center justify-center bg-white px-6">
+      {content}
     </main>
   )
 }

@@ -16,6 +16,7 @@ import {
   orderTotal,
   placeOrder,
 } from '../lib/orders.ts'
+import { triggerOrderSync } from '../lib/sheets.ts'
 import type { CustomerPageData } from '../lib/types.ts'
 import type { CustomerStrings as StringsType } from '../lib/i18n.ts'
 
@@ -125,6 +126,9 @@ export default function OrderForm({
         deliveryArea: area,
         quantity,
       })
+      // Sheet সিঙ্ক ফায়ার-অ্যান্ড-ফরগেট — সিঙ্ক ব্যর্থ হলেও অর্ডার
+      // আটকায় না; কিউ থেকে রিট্রাই হবে।
+      triggerOrderSync(placed.id)
       onPlaced({
         orderCode: placed.orderCode,
         total,

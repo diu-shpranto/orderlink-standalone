@@ -19,6 +19,7 @@ import {
 } from '../lib/orders.ts'
 import { fetchSellerProducts } from '../lib/products.ts'
 import { formatBDT, formatCountBn, toBnDigits } from '../lib/pricing.ts'
+import { SHEET_STATUS_BN } from '../lib/sheets.ts'
 import type { OrderEventRow, OrderRow, ProductRow } from '../lib/types.ts'
 
 const STATUS_OPTIONS: { value: string; label: string }[] = [
@@ -239,6 +240,12 @@ function OrderDetail({
           <p className="flex justify-between border-t border-gray-200 pt-2 text-base font-extrabold">
             <span>মোট</span>
             <span>{formatBDT(Number(order.total))}</span>
+          </p>
+          <p className="flex justify-between">
+            <span className="text-gray-500">Google Sheet সিঙ্ক</span>
+            <span className="font-medium">
+              {SHEET_STATUS_BN[order.sheet_status] ?? order.sheet_status}
+            </span>
           </p>
         </div>
 
