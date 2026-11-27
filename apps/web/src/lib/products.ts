@@ -14,7 +14,7 @@ import type {
   TemplateId,
 } from './types.ts'
 import type { PageLang } from './types.ts'
-import { daysAgoDhaka, todayDhaka } from './pricing.ts'
+import { daysAgoDhaka, slugify, todayDhaka } from './pricing.ts'
 import { canPublishPage } from './subscription.ts'
 
 export const PRODUCT_IMAGES_BUCKET = 'product-images'
@@ -431,6 +431,85 @@ export async function deleteProduct(productId: string): Promise<void> {
   }
   const { error } = await client.from('products').delete().eq('id', productId)
   if (error) throw error
+}
+
+/**
+ * প্রোডাক্ট + পেজের হুবহু কপি — নতুন নাম "(কপি)", নতুন স্লাগ, সবসময়
+ * খসড়া (প্রকাশের সীমায় হাত পড়ে না)। ছবিগুলোও স্টোরেজে নতুন পথে
+ * কপি করা হয়, যাতে আসল বা কপি যেকোনো একটা মুছলেও অন্যটার ছবি
+ * ভাঙে না। ছবির কপি ব্যর্থ হলে শুধু সেই ছবিটা বাদ যায়।
+ */
+export async function duplicateProduct(
+  productId: string,
+  sellerId: string,
+  shopId: string,
+): Promise<string> {
+  const client = requireSupabase()
+  const existing = await fetchProductForEdit(productId, sellerId)
+  if (!existing) throw new Error('প্রোডাক্ট পাওয়া যায়নি।')
+  const { product, page, images } = existing
+  const { data: siblingPages } = await client
+    .from('pages')
+    .select('slug')
+    .eq('seller_id', sellerId)
+  const taken = new Set(
+    ((siblingPages ?? []) as { slug: string }[]).map((r) => r.slug),
+  )
+  const base = slugify(page ? page.slug : product.name) || 'copy'
+  let slug = `${base}-copy`
+  let n = 2
+  while (taken.has(slug)) {
+    slug = `${base}-copy-${n}`
+    n += 1
+  }
+  const { productId: newProductId } = await saveProductAndPage({
+    sellerId,
+    shopId,
+    product: {
+      name: `${product.name} (কপি)`,
+      price: product.price,
+      oldPrice: product.old_price,
+      description: product.description ?? '',
+      benefits: product.benefits,
+      specs: product.specs,
+    },
+    page: {
+      slug,
+      template: page?.template ?? 'minimal-white',
+      sections: page?.sections ?? {},
+      sectionOrder: page?.section_order ?? [],
+      videoUrl: page?.video_url ?? '',
+      reviews: page?.reviews ?? [],
+      faqs: page?.faqs ?? [],
+      pageLang: page?.page_lang ?? 'bn',
+      isPublished: false,
+    },
+  })
+  for (const img of images) {
+    try {
+      const dot = img.storage_path.lastIndexOf('.')
+      const ext = dot >= 0 ? img.storage_path.slice(dot) : ''
+      const newPath = `${sellerId}/${crypto.randomUUID()}${ext}`
+      const { error: copyError } = await client.storage
+        .from(PRODUCT_IMAGES_BUCKET)
+        .copy(img.storage_path, newPath)
+      if (copyError) continue
+      const { data } = client.storage
+        .from(PRODUCT_IMAGES_BUCKET)
+        .getPublicUrl(newPath)
+      await client.from('product_images').insert({
+        product_id: newProductId,
+        seller_id: sellerId,
+        storage_path: newPath,
+        url: data.publicUrl,
+        is_main: img.is_main,
+        sort_order: img.sort_order,
+      })
+    } catch {
+      // ছবির কপি ব্যর্থ হলে কপি পেজটা ছবি ছাড়াই থাকবে।
+    }
+  }
+  return newProductId
 }
 
 export async function setPagePublished(

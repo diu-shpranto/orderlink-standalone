@@ -493,8 +493,8 @@ export default function Orders() {
     dateFrom: '',
     dateTo: '',
   })
-  // ড্যাশবোর্ডের স্ট্যাট কার্ড / ওপরের খোঁজা থেকে আসা ছাঁকনি —
-  // ?status=new, ?date=today, ?q=... — ঠিকানাতেই থাকে, তাই
+  // ড্যাশবোর্ডের স্ট্যাট কার্ড / ওপরের খোঁজা / পণ্যের পেজ থেকে আসা ছাঁকনি —
+  // ?status=new, ?date=today, ?q=..., ?product=<id> — ঠিকানাতেই থাকে, তাই
   // রিফ্রেশ করলেও ছাঁকনি হারায় না। প্যারামিটার না থাকলে
   // ব্যবহারকারীর হাতে বদলানো ছাঁকনিতে হাত দেওয়া হয় না।
   const search = useSearch()
@@ -503,7 +503,9 @@ export default function Orders() {
     const status = params.get('status')
     const date = params.get('date')
     const q = params.get('q')
-    if (status === null && date === null && q === null) return
+    const product = params.get('product')
+    if (status === null && date === null && q === null && product === null)
+      return
     setFilters((f) => {
       const next = { ...f }
       if (
@@ -517,6 +519,7 @@ export default function Orders() {
         next.dateTo = todayDhaka()
       }
       if (q !== null) next.search = q
+      if (product !== null && product !== '') next.productId = product
       return next
     })
   }, [search])

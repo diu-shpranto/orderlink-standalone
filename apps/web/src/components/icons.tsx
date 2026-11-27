@@ -250,6 +250,16 @@ export function IconLogout({ className }: { className?: string }) {
   )
 }
 
+/** ডুপ্লিকেট (কপি) — Lucide "copy": দুটো ওভারল্যাপ করা আয়তক্ষেত্র। */
+export function IconCopy({ className }: { className?: string }) {
+  return (
+    <Svg className={className}>
+      <rect width="14" height="14" x="8" y="8" rx="2" ry="2" />
+      <path d="M4 16c-1.1 0-2-.9-2-2V4c0-1.1.9-2 2-2h10c1.1 0 2 .9 2 2" />
+    </Svg>
+  )
+}
+
 /** Google "G" — বহুরঙা, Google বাটনের জন্য। */
 export function GoogleG({ className }: { className?: string }) {
   return (
