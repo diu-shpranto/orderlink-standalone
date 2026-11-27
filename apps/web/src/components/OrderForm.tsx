@@ -35,6 +35,8 @@ export default function OrderForm({
   accent = '#D6B36A',
   accentText = '#0B0B0D',
   lightAccent,
+  quantity: controlledQuantity,
+  onQuantityChange,
 }: {
   data: CustomerPageData
   t: StringsType
@@ -46,6 +48,10 @@ export default function OrderForm({
   accentText?: string
   /** হালকা থিমে CTA ও বাছাই করা ডেলিভারি এলাকার রং (শুধু Beauty টেমপ্লেট দেয়)। */
   lightAccent?: string
+  /** হিরোর পরিমাণ সিলেক্টরের সাথে সিঙ্ক করা পরিমাণ (না দিলে ফর্ম নিজে রাখে)। */
+  quantity?: number
+  /** নিয়ন্ত্রিত পরিমাণ বদলালে কল হয়। */
+  onQuantityChange?: (quantity: number) => void
 }) {
   const { shop, product } = data
   // গাঢ় থিমের ইনপুট/লেবেল — হালকা থিমের ক্লাস একদম আগের মতো।
@@ -62,7 +68,9 @@ export default function OrderForm({
   const [upazila, setUpazila] = useState('')
   const [addressLine, setAddressLine] = useState('')
   const [area, setArea] = useState<'inside' | 'outside'>('inside')
-  const [quantity, setQuantity] = useState(1)
+  // পরিমাণ — হিরো থেকে নিয়ন্ত্রিত হলে বাইরের মানটাই চলে, না হলে ফর্মের নিজের।
+  const [internalQuantity, setInternalQuantity] = useState(1)
+  const quantity = controlledQuantity ?? internalQuantity
   const [error, setError] = useState('')
   const [busy, setBusy] = useState(false)
   const [duplicate, setDuplicate] = useState<{
@@ -87,7 +95,9 @@ export default function OrderForm({
   }
 
   function changeQuantity(delta: number) {
-    setQuantity((q) => Math.min(99, Math.max(1, q + delta)))
+    const next = Math.min(99, Math.max(1, quantity + delta))
+    if (onQuantityChange) onQuantityChange(next)
+    else setInternalQuantity(next)
   }
 
   async function submit(confirmDuplicate: boolean) {
@@ -385,6 +395,18 @@ export default function OrderForm({
             {deliveryCharge > 0 ? formatBDT(deliveryCharge) : t.freeDelivery}
           </span>
         </p>
+        {product.old_price && product.old_price > product.price ? (
+          <p className="flex justify-between">
+            <span className={dark ? 'text-[#B8B8B8]' : 'text-gray-600'}>
+              {t.off} (× {toBnDigits(quantity)})
+            </span>
+            <span
+              className={`font-semibold ${dark ? 'text-[#4ADE80]' : 'text-brand'}`}
+            >
+              −{formatBDT((product.old_price - product.price) * quantity)}
+            </span>
+          </p>
+        ) : null}
         {freeThreshold !== null && deliveryCharge === 0 ? (
           <p
             className="text-xs font-semibold text-brand"
