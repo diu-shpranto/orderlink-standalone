@@ -3,10 +3,16 @@
 // ছাড়ের % অটো-হিসাব (পুরনো দাম থেকে)। ছবি সর্বোচ্চ ৮টি, Storage-এ
 // আপলোড হয় সেভের সময়। পেজের ভাষা বানানোর সময় বাছাই হয়।
 // লাইভ প্রিভিউ আসল কাস্টমার পেজের কম্পোনেন্ট দিয়েই দেখায়।
-import { useEffect, useState } from 'react'
+import { useEffect, useRef, useState } from 'react'
 import CustomerPage, { youtubeEmbedId } from '../components/CustomerPage.tsx'
 import SellerShell from '../components/SellerShell.tsx'
 import { useAuth } from '../lib/auth.tsx'
+import {
+  clearDraft,
+  loadDraft,
+  saveDraft,
+} from '../lib/draft.ts'
+import type { BuilderDraft } from '../lib/draft.ts'
 import {
   discountPercent,
   formatBDT,
@@ -120,8 +126,25 @@ function StepCard({
   )
 }
 
-/** টেমপ্লেট কার্ডের ছোট বিমূর্ত প্রিভিউ — টেমপ্লেটের নিজের রঙে। */
+/**
+ * টেমপ্লেট কার্ডের থাম্বনেইল — আসল পেজের ছোট ছবি
+ * (/template-thumbs/<id>.png)। ছবি না পেলে (এখনো আপলোড হয়নি
+ * বা লোড ব্যর্থ) টেমপ্লেটের নিজের রঙের বিমূর্ত প্রিভিউ দেখায়।
+ */
 function TemplateThumb({ t }: { t: TemplateMeta }) {
+  const [imgFailed, setImgFailed] = useState(false)
+  if (!imgFailed) {
+    return (
+      <div className="overflow-hidden rounded-xl border border-gray-200 bg-gray-50">
+        <img
+          src={`/template-thumbs/${t.id}.png`}
+          alt=""
+          className="aspect-[4/3] w-full object-cover"
+          onError={() => setImgFailed(true)}
+        />
+      </div>
+    )
+  }
   return (
     <div
       className={`overflow-hidden rounded-xl border ${
@@ -317,6 +340,100 @@ export default function ProductBuilder({
   const [pageLang, setPageLang] = useState<PageLang>('bn')
   const [isPublished, setIsPublished] = useState(false)
 
+  // ধাপ ৭ — প্রিভিউয়ের ডিভাইস (ডেস্কটপ / ট্যাবলেট / মোবাইল)
+  const [previewDevice, setPreviewDevice] = useState<
+    'desktop' | 'tablet' | 'mobile'
+  >('desktop')
+
+  // খসড়া অটোসেভ — লোড শেষে বর্তমান অবস্থাই বেসলাইন; এরপর
+  // বদলালেই dirty, আর বন্ধ করার আগে সতর্কবার্তা আসে।
+  const loadedRef = useRef(false)
+  const snapshotRef = useRef<string | null>(null)
+  const [isDirty, setIsDirty] = useState(false)
+
+  /**
+   * খসড়ার তুলনাযোগ্য বিষয়বস্তু — সেভের সময় (savedAt) ছাড়া, যাতে
+   * বেসলাইনের সঙ্গে তুলনা করা যায়। আপলোড হয়নি এমন ছবি/রিভিউর
+   * ফাইল localStorage-এ যায় না — শুধু আগেই আপলোড হওয়া URL-ই
+   * খসড়ায় থাকে।
+   */
+  function draftContent() {
+    return {
+      name,
+      shortDescription,
+      category,
+      priceStr,
+      oldPriceStr,
+      description,
+      benefits,
+      specs,
+      slug,
+      slugTouched,
+      images: images
+        .filter((img) => !img.file && img.storagePath && img.url)
+        .map((img) => ({
+          id: img.id,
+          storagePath: img.storagePath ?? '',
+          url: img.url ?? '',
+          isMain: img.isMain,
+          sortOrder: img.sortOrder,
+        })),
+      videos,
+      reviews: reviews.map((r) => ({
+        name: r.name,
+        text: r.text,
+        ...(typeof r.rating === 'number' ? { rating: r.rating } : {}),
+        ...(r.photo_url ? { photo_url: r.photo_url } : {}),
+        ...(r.screenshot_url ? { screenshot_url: r.screenshot_url } : {}),
+      })),
+      faqs,
+      deliveryInfo,
+      template,
+      sections,
+      sectionOrder,
+      pageLang,
+      isPublished,
+    }
+  }
+
+  /** সেভ করা খসড়া ফর্মে বসানো — শুধু মিলে যাওয়া পণ্যের খসড়াই
+      এখানে আসে (চাবি পণ্যের id অনুযায়ী)। */
+  function applyDraft(d: BuilderDraft) {
+    setName(d.name ?? '')
+    setShortDescription(d.shortDescription ?? '')
+    setCategory(d.category ?? '')
+    setPriceStr(d.priceStr ?? '')
+    setOldPriceStr(d.oldPriceStr ?? '')
+    setDescription(d.description ?? '')
+    setBenefits(Array.isArray(d.benefits) ? d.benefits : [])
+    setSpecs(Array.isArray(d.specs) ? d.specs : [])
+    setSlug(d.slug ?? '')
+    setSlugTouched(!!d.slugTouched)
+    setImages(
+      (d.images ?? []).map((img, i) => ({
+        id: img.id,
+        previewUrl: img.url,
+        storagePath: img.storagePath,
+        url: img.url,
+        isMain: img.isMain,
+        sortOrder: img.sortOrder ?? i,
+      })),
+    )
+    setVideos(Array.isArray(d.videos) ? d.videos : [])
+    setReviews((d.reviews ?? []).map((r) => ({ ...r })))
+    setFaqs(Array.isArray(d.faqs) ? d.faqs : [])
+    setDeliveryInfo(d.deliveryInfo ?? '')
+    setTemplate(d.template ?? 'minimal-white')
+    setSections({ ...DEFAULT_SECTIONS, ...(d.sections ?? {}) })
+    setSectionOrder(
+      Array.isArray(d.sectionOrder) && d.sectionOrder.length > 0
+        ? d.sectionOrder
+        : DEFAULT_SECTION_ORDER,
+    )
+    setPageLang(d.pageLang ?? 'bn')
+    setIsPublished(!!d.isPublished)
+  }
+
   useEffect(() => {
     if (!seller) return
     let mounted = true
@@ -326,10 +443,12 @@ export default function ProductBuilder({
         const shopRow = await fetchSellerShop(seller.id)
         if (!mounted) return
         setShop(shopRow)
+        let serverUpdatedAtMs = NaN
         if (productId) {
           const existing = await fetchProductForEdit(productId, seller.id)
           if (!mounted || !existing) return
           const p = existing.product
+          serverUpdatedAtMs = Date.parse(p.updated_at) || NaN
           setName(p.name)
           setShortDescription(p.short_description ?? '')
           setCategory(p.category ?? '')
@@ -385,6 +504,22 @@ export default function ProductBuilder({
             setIsPublished(existing.page.is_published)
           }
         }
+        // খসড়া ফেরানো — চাবি পণ্য অনুযায়ী, তাই অন্য পণ্যের ডাটা
+        // চাপা পড়ে না। এডিটের ক্ষেত্রে খসড়া সার্ভারের আপডেটের
+        // চেয়ে নতুন হলেই বসে — অন্য কোথাও সেভ হয়ে গেলে পুরনো
+        // খসড়া বাদ যায়। নতুন পণ্যে খসড়া থাকলেই বসে।
+        const draft = loadDraft(productId)
+        if (draft) {
+          if (
+            !productId ||
+            Number.isNaN(serverUpdatedAtMs) ||
+            draft.savedAt >= serverUpdatedAtMs
+          ) {
+            applyDraft(draft)
+          } else {
+            clearDraft(productId)
+          }
+        }
       } catch (err) {
         if (mounted) {
           setError(err instanceof Error ? err.message : 'লোড করা যায়নি।')
@@ -397,6 +532,74 @@ export default function ProductBuilder({
       mounted = false
     }
   }, [seller, productId])
+
+  // লোড শেষে বর্তমান অবস্থাই বেসলাইন — এরপর বদলালেই dirty।
+  useEffect(() => {
+    if (loading) return
+    if (snapshotRef.current === null) {
+      snapshotRef.current = JSON.stringify(draftContent())
+    }
+    loadedRef.current = true
+    // eslint-disable-next-line react-hooks/exhaustive-deps
+  }, [loading])
+
+  // খসড়া অটোসেভ — বদলালে ৫০০ মি.সে. পরে localStorage-এ লেখে।
+  // এখনো আপলোড হয়নি এমন ছবি/রিভিউর ফাইল থাকলেও dirty ধরা হয়
+  // (ফাইলটা খসড়ায় না গেলেও, বন্ধ করার আগে সতর্কবার্তা আসবে)।
+  const hasUnsavedFiles =
+    images.some((img) => !!img.file) ||
+    reviews.some((r) => !!r.photoFile || !!r.screenshotFile)
+  useEffect(() => {
+    if (!loadedRef.current || snapshotRef.current === null) return
+    const contentJson = JSON.stringify(draftContent())
+    const dirty =
+      contentJson !== snapshotRef.current || hasUnsavedFiles
+    setIsDirty(dirty)
+    if (!dirty || contentJson === snapshotRef.current) return
+    const t = window.setTimeout(() => {
+      saveDraft(savedProductId ?? productId, {
+        ...JSON.parse(contentJson),
+        savedAt: Date.now(),
+      })
+    }, 500)
+    return () => window.clearTimeout(t)
+    // eslint-disable-next-line react-hooks/exhaustive-deps
+  }, [
+    name,
+    shortDescription,
+    category,
+    priceStr,
+    oldPriceStr,
+    description,
+    benefits,
+    specs,
+    slug,
+    slugTouched,
+    images,
+    videos,
+    reviews,
+    faqs,
+    deliveryInfo,
+    template,
+    sections,
+    sectionOrder,
+    pageLang,
+    isPublished,
+    savedProductId,
+    productId,
+    hasUnsavedFiles,
+  ])
+
+  // সেভ না-করা খসড়া থাকলে ট্যাব বন্ধ/রিলোডের আগে সতর্কবার্তা।
+  useEffect(() => {
+    if (!isDirty) return
+    const onBeforeUnload = (e: BeforeUnloadEvent) => {
+      e.preventDefault()
+      e.returnValue = ''
+    }
+    window.addEventListener('beforeunload', onBeforeUnload)
+    return () => window.removeEventListener('beforeunload', onBeforeUnload)
+  }, [isDirty])
 
   const priceNum = Number(priceStr)
   const oldPriceNum = oldPriceStr.trim() === '' ? null : Number(oldPriceStr)
@@ -716,6 +919,11 @@ export default function ProductBuilder({
       setSavedProductId(savedId)
       setPageId(savedPageId)
       setIsPublished(publish)
+      // সেভ হয়ে গেছে — খসড়া মুছে ফেলা, বেসলাইন তাজা করা।
+      clearDraft(savedProductId ?? productId)
+      clearDraft(savedId)
+      snapshotRef.current = JSON.stringify(draftContent())
+      setIsDirty(false)
       setNotice(
         (publish
           ? 'পেজটি প্রকাশ করা হয়েছে।'
@@ -1994,14 +2202,62 @@ export default function ProductBuilder({
             </div>
             <div className="min-w-0 xl:sticky xl:top-6">
               <div>
-                <h2 className="font-bold text-gray-900">লাইভ প্রিভিউ</h2>
-                <p className="mt-1 text-sm text-gray-500">
-                  কাস্টমার ঠিক এভাবেই পেজটা দেখবে।
-                </p>
-                <div className="mt-3 overflow-hidden rounded-2xl border-2 border-gray-300 xl:max-h-[calc(100vh-160px)] xl:overflow-y-auto">
-                  {previewData ? (
-                    <CustomerPage data={previewData} preview />
+                <div className="flex flex-wrap items-center justify-between gap-2">
+                  <div>
+                    <h2 className="font-bold text-gray-900">লাইভ প্রিভিউ</h2>
+                    <p className="mt-1 text-sm text-gray-500">
+                      কাস্টমার ঠিক এভাবেই পেজটা দেখবে।
+                    </p>
+                  </div>
+                  <div
+                    className="flex overflow-hidden rounded-xl border border-gray-300 text-sm font-semibold"
+                    role="group"
+                    aria-label="প্রিভিউয়ের ডিভাইস"
+                  >
+                    {(
+                      [
+                        { id: 'desktop', label: 'ডেস্কটপ' },
+                        { id: 'tablet', label: 'ট্যাবলেট' },
+                        { id: 'mobile', label: 'মোবাইল' },
+                      ] as const
+                    ).map((d) => (
+                      <button
+                        key={d.id}
+                        type="button"
+                        onClick={() => setPreviewDevice(d.id)}
+                        className={`px-3 py-2 ${
+                          previewDevice === d.id
+                            ? 'bg-brand text-white'
+                            : 'bg-white text-gray-700'
+                        }`}
+                      >
+                        {d.label}
+                      </button>
+                    ))}
+                  </div>
+                </div>
+                <div
+                  className={
+                    previewDevice === 'desktop'
+                      ? ''
+                      : 'mx-auto w-full ' +
+                        (previewDevice === 'tablet'
+                          ? 'max-w-[768px]'
+                          : 'max-w-[390px]')
+                  }
+                >
+                  {previewDevice !== 'desktop' ? (
+                    <p className="mt-2 text-center text-xs font-semibold text-gray-500">
+                      {previewDevice === 'tablet'
+                        ? '৭৬৮px — ট্যাবলেট'
+                        : '৩৯০px — মোবাইল'}
+                    </p>
                   ) : null}
+                  <div className="mt-2 overflow-hidden rounded-2xl border-2 border-gray-300 xl:max-h-[calc(100vh-160px)] xl:overflow-y-auto">
+                    {previewData ? (
+                      <CustomerPage data={previewData} preview />
+                    ) : null}
+                  </div>
                 </div>
               </div>
             </div>

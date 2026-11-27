@@ -9,7 +9,7 @@
 // ছবিতে ক্লিক করলে লাইটবক্সে আসল সাইজের (ক্রপ না-করা) ছবি দেখায়।
 // ছাড়ের % অটো-হিসাব।
 // অর্ডার ফর্ম আসল — জমা হলে ধন্যবাদ পেজ দেখায় (অর্ডার নম্বরসহ)।
-import { useEffect, useState } from 'react'
+import { useEffect, useRef, useState } from 'react'
 import FramedPhoto from './FramedPhoto.tsx'
 import OrderForm from './OrderForm.tsx'
 import type { PlacedOrder } from './OrderForm.tsx'
@@ -27,6 +27,56 @@ import type {
   VideoItem,
 } from '../lib/types.ts'
 import type { CustomerStrings as StringsType } from '../lib/i18n.ts'
+
+/**
+ * সোয়াইপ হ্যান্ডলার — বামে সোয়াইপে পরের ছবি, ডানে সোয়াইপে আগের ছবি।
+ * ট্যাপ (ছোট নড়াচড়া) সোয়াইপ নয় — ট্যাপের ক্লিক ঠিকঠাক কাজ করে।
+ * সোয়াইপের পর ব্রাউজার ক্লিকও পাঠায় — সেটা চাপা দেওয়া হয়, নইলে
+ * সোয়াইপ করলেই লাইটবক্স খুলে/বন্ধ হয়ে যেত (onClick-এ
+ * suppressClickIfSwiped ডাকতে হয়)। ফ্ল্যাগ ৩৫০ মি.সে. পরে নিজে
+ * থেকে মুছে যায়, যাতে আটকে না থাকে।
+ */
+function useSwipe(onLeft: () => void, onRight: () => void) {
+  const start = useRef<{ x: number; y: number } | null>(null)
+  const swiped = useRef(false)
+  return {
+    onTouchStart: (e: React.TouchEvent) => {
+      const t = e.touches[0]
+      start.current = { x: t.clientX, y: t.clientY }
+      swiped.current = false
+    },
+    onTouchMove: (e: React.TouchEvent) => {
+      if (!start.current) return
+      const t = e.touches[0]
+      if (Math.abs(t.clientX - start.current.x) > 30) {
+        swiped.current = true
+      }
+    },
+    onTouchEnd: (e: React.TouchEvent) => {
+      if (!start.current) return
+      const t = e.changedTouches[0]
+      const dx = t.clientX - start.current.x
+      const dy = t.clientY - start.current.y
+      start.current = null
+      if (Math.abs(dx) > 50 && Math.abs(dx) > Math.abs(dy)) {
+        if (dx < 0) onLeft()
+        else onRight()
+      }
+      if (swiped.current) {
+        window.setTimeout(() => {
+          swiped.current = false
+        }, 350)
+      }
+    },
+    suppressClickIfSwiped: () => {
+      if (swiped.current) {
+        swiped.current = false
+        return true
+      }
+      return false
+    },
+  }
+}
 
 export function youtubeEmbedId(url: string): string | null {
   const m = url.match(
@@ -224,6 +274,10 @@ function Lightbox({
   onNavigate: (i: number) => void
 }) {
   const current = images[index]
+  const { suppressClickIfSwiped, ...lightboxTouch } = useSwipe(
+    () => onNavigate((index + 1) % images.length),
+    () => onNavigate((index - 1 + images.length) % images.length),
+  )
   useEffect(() => {
     const onKey = (e: KeyboardEvent) => {
       if (e.key === 'Escape') onClose()
@@ -250,7 +304,11 @@ function Lightbox({
       role="dialog"
       aria-modal="true"
       aria-label={productName}
-      onClick={onClose}
+      onClick={() => {
+        if (suppressClickIfSwiped()) return
+        onClose()
+      }}
+      {...lightboxTouch}
     >
       <button
         type="button"
@@ -311,6 +369,10 @@ function Gallery({
 }) {
   const [active, setActive] = useState(0)
   const [lightbox, setLightbox] = useState<number | null>(null)
+  const { suppressClickIfSwiped, ...galleryTouch } = useSwipe(
+    () => setActive((a) => (a + 1) % images.length),
+    () => setActive((a) => (a - 1 + images.length) % images.length),
+  )
   if (images.length === 0) {
     return (
       <div className="flex aspect-[4/3] w-full items-center justify-center bg-gray-100 text-gray-400">
@@ -325,14 +387,18 @@ function Gallery({
         role="button"
         tabIndex={0}
         aria-label="ছবি বড় করে দেখুন"
-        onClick={() => setLightbox(active)}
+        onClick={() => {
+          if (suppressClickIfSwiped()) return
+          setLightbox(active)
+        }}
+        {...galleryTouch}
         onKeyDown={(e) => {
           if (e.key === 'Enter' || e.key === ' ') {
             e.preventDefault()
             setLightbox(active)
           }
         }}
-        className="relative cursor-zoom-in"
+        className="relative cursor-zoom-in touch-pan-y"
       >
         <FramedPhoto src={current.url} alt={productName} />
         <span className="pointer-events-none absolute bottom-2 right-2 flex items-center gap-1 rounded-full bg-black/60 px-2.5 py-1 text-xs font-semibold text-white">
@@ -356,13 +422,13 @@ function Gallery({
         </span>
       </div>
       {images.length > 1 ? (
-        <div className="mt-2 flex gap-2 overflow-x-auto">
+        <div className="mt-2 flex snap-x gap-2 overflow-x-auto">
           {images.map((img, i) => (
             <button
               key={img.id}
               type="button"
               onClick={() => setActive(i)}
-              className={`aspect-[4/3] h-16 shrink-0 overflow-hidden rounded border-2 ${
+              className={`aspect-[4/3] h-16 shrink-0 snap-start overflow-hidden rounded border-2 ${
                 i === active ? thumbActiveClass : 'border-transparent'
               }`}
               aria-label={`ছবি ${toBnDigits(i + 1)}`}
@@ -4372,6 +4438,140 @@ const footer = (
           <a
             href="#order"
             className="shrink-0 rounded-xl bg-[#14532D] px-5 py-2.5 text-sm font-extrabold text-white"
+          >
+            {t.orderNow}
+          </a>
+        </div>
+      </div>
+    )
+  }
+
+  if (page.template === 'classic-green') {
+    const L = (bn: string, en: string) =>
+      page.page_lang === 'en' ? en : bn
+    const savings =
+      product.old_price && product.old_price > product.price
+        ? product.old_price - product.price
+        : 0
+    return (
+      <div className="min-h-screen bg-[#F4FAF6] text-gray-900">
+        {discount > 0 ? (
+          <div className="bg-[#006a4e] px-4 py-2 text-center text-sm font-semibold text-white">
+            {t.discountRunning(discount)}
+          </div>
+        ) : null}
+        <header className="bg-[#006a4e]">
+          <div className="mx-auto flex max-w-6xl items-center justify-between px-4 py-3">
+            <span className="flex items-center gap-2.5">
+              {shop.logo_url ? (
+                <img
+                  src={shop.logo_url}
+                  alt=""
+                  className="h-9 w-9 rounded-full bg-white object-cover"
+                />
+              ) : (
+                <span className="flex h-9 w-9 items-center justify-center rounded-full bg-white text-base font-extrabold text-[#006a4e]">
+                  {shop.name.charAt(0)}
+                </span>
+              )}
+              <span className="text-base font-extrabold tracking-wide text-white">
+                {shop.name}
+              </span>
+            </span>
+            <div className="flex items-center gap-3">
+              <span className="hidden text-xs text-white/80 sm:block">
+                {t.shopPage}
+              </span>
+              <a
+                href="#order"
+                className="hidden rounded-full bg-white px-4 py-2 text-sm font-bold text-[#006a4e] sm:block"
+              >
+                {t.orderNow}
+              </a>
+            </div>
+          </div>
+        </header>
+        <main className="mx-auto max-w-6xl px-4 py-6 pb-24 lg:py-10 lg:pb-12">
+          <div className="rounded-2xl border border-[#CDE9DA] bg-white p-5 shadow-sm lg:p-8">
+            <div className="grid gap-8 lg:grid-cols-2 lg:items-start">
+              <div>
+                {showGallery ? (
+                  <Gallery
+                    images={images}
+                    productName={product.name}
+                    thumbActiveClass="border-[#006a4e]"
+                  />
+                ) : null}
+              </div>
+              <div>
+                {product.category ? (
+                  <p className="inline-block rounded-full bg-[#E6F4EE] px-3 py-1 text-xs font-bold tracking-wide text-[#006a4e]">
+                    {product.category}
+                  </p>
+                ) : null}
+                <h1 className="mt-3 text-2xl font-extrabold leading-snug tracking-tight text-gray-900 lg:text-4xl lg:leading-tight">
+                  {product.name}
+                </h1>
+                <div className="mt-2">
+                  <RatingSummary data={data} t={t} />
+                </div>
+                <div className="mt-4">
+                  <PriceRow data={data} dark={false} />
+                </div>
+                {savings > 0 ? (
+                  <p className="mt-3 inline-block rounded-full bg-[#E6F4EE] px-3 py-1 text-xs font-bold text-[#006a4e]">
+                    {L('সাশ্রয়', 'You save')}: {formatBDT(savings)}
+                  </p>
+                ) : null}
+                {heroCopy ? (
+                  <p className="mt-4 text-sm leading-relaxed text-gray-600 lg:text-base lg:leading-relaxed">
+                    {heroCopy}
+                  </p>
+                ) : null}
+                <a
+                  href="#order"
+                  className="mt-6 block rounded-xl bg-[#006a4e] px-4 py-3.5 text-center font-bold text-white shadow-sm hover:bg-[#00563f]"
+                >
+                  {t.orderNow}
+                </a>
+                <div className="mt-4 flex flex-wrap gap-x-4 gap-y-1 text-xs font-semibold text-gray-700">
+                  <span>✓ {L('ক্যাশ অন ডেলিভারি', 'Cash on Delivery')}</span>
+                  <span>
+                    ✓ {L('সারা দেশে হোম ডেলিভারি', 'Home delivery across the country')}
+                  </span>
+                  <span>
+                    ✓ {L('অর্ডার কনফার্ম করে পাঠানো হয়', 'Order confirmed before dispatch')}
+                  </span>
+                </div>
+              </div>
+            </div>
+          </div>
+          <div className="mt-10">{sections}</div>
+          <div className="mt-10">
+            <OrderSection
+              data={data}
+              t={t}
+              placed={placed}
+              preview={preview}
+              onPlaced={setPlaced}
+              onOrderAgain={() => setPlaced(null)}
+              accent="#006a4e"
+              accentText="#FFFFFF"
+              lightAccent="#006a4e"
+            />
+          </div>
+        </main>
+        {footer}
+        <div className="fixed inset-x-0 bottom-0 z-40 flex items-center justify-between gap-3 bg-[#006a4e] px-4 py-3 shadow-lg lg:hidden">
+          <div className="min-w-0">
+            <p className="truncate text-xs text-white/80">{product.name}</p>
+            <p className="text-lg font-extrabold text-white">
+              {formatBDT(product.price)}
+            </p>
+          </div>
+          <a
+            href="#order"
+            className="shrink-0 rounded-xl bg-white px-5 py-2.5 text-sm font-extrabold text-[#006a4e]"
           >
             {t.orderNow}
           </a>

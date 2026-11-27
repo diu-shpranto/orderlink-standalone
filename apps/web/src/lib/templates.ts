@@ -1,11 +1,11 @@
-// ১৮টি ল্যান্ডিং পেজ টেমপ্লেট — বিল্ডারে সবগুলোই বাছাই করা যায়।
+// ১৯টি ল্যান্ডিং পেজ টেমপ্লেট — বিল্ডারে সবগুলোই বাছাই করা যায়।
 // হোম পেজের গ্যালারিতে শুধু ৪টি দেখানো হয় (নিচে INTRO_TEMPLATES)।
 // নিয়ম: ভুয়া রিভিউ/রেটিং/ছাড়/কাউন্টডাউন নেই — শুধু আসল সেভ করা ডাটা।
 // স্টিকি মোবাইল অর্ডার বার: aura/nova/social-proof-এ শেয়ার করা বার;
 // luxury-premium-এ নিজের সোনালি বার, fashion-store-এ নিজের সবুজ বার,
 // tech-gadget-এ নিজের সায়ান বার, bd-single-product-এ নিজের সবুজ COD বার,
 // lavender-premium/emerald-trust/midnight-premium/sunset-offer/
-// signature-pro-এ নিজের বার (রেজিস্ট্রিতে stickyBar: false — শেয়ার করা
+// signature-pro/classic-green-এ নিজের বার (রেজিস্ট্রিতে stickyBar: false — শেয়ার করা
 // লাল বার যাতে না বসে)।
 
 import type { TemplateId } from './types.ts'
@@ -163,6 +163,14 @@ export const TEMPLATES: TemplateMeta[] = [
     dark: false,
     stickyBar: false,
     accentClass: 'bg-[#F1EEE5] text-[#14532D]',
+  },
+  {
+    id: 'classic-green',
+    nameBn: 'Classic Green',
+    taglineBn: 'ক্লাসিক সবুজ — সহজ, পরিষ্কার, সবার চেনা লুক',
+    dark: false,
+    stickyBar: false,
+    accentClass: 'bg-[#006a4e] text-white',
   },
 ]
 

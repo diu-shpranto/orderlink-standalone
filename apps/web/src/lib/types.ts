@@ -82,6 +82,7 @@ export type TemplateId =
   | 'midnight-premium'
   | 'sunset-offer'
   | 'signature-pro'
+  | 'classic-green'
 
 export interface PageRow {
   id: string
