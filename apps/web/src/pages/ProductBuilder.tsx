@@ -15,6 +15,7 @@ import {
   toBnDigits,
 } from '../lib/pricing.ts'
 import {
+  cropImageTo43,
   fetchProductForEdit,
   fetchSellerShop,
   MAX_IMAGES_PER_PRODUCT,
@@ -377,7 +378,7 @@ export default function ProductBuilder({
     return ''
   }
 
-  function addFiles(files: FileList | null) {
+  async function addFiles(files: FileList | null) {
     if (!files) return
     const picked = Array.from(files).filter((f) =>
       f.type.startsWith('image/'),
@@ -390,9 +391,12 @@ export default function ProductBuilder({
       return
     }
     setError('')
+    // বাছার সাথে সাথেই ৪:৩-এ অটো ক্রপ — প্রিভিউতে কাটা ছবিটাই
+    // দেখাবে, সেভ করলে ঠিক এই ছবিটাই পাবলিশ হবে।
+    const cropped = await Promise.all(picked.map((f) => cropImageTo43(f)))
     setImages((prev) => [
       ...prev,
-      ...picked.map((file, i) => ({
+      ...cropped.map((file, i) => ({
         file,
         previewUrl: URL.createObjectURL(file),
         isMain: prev.length === 0 && i === 0,
@@ -1090,7 +1094,7 @@ export default function ProductBuilder({
             <StepCard
               n={3}
               title="ছবি"
-              subtitle={`পণ্যের ছবি যোগ করুন — সর্বোচ্চ ${toBnDigits(MAX_IMAGES_PER_PRODUCT)}টি`}
+              subtitle={`পণ্যের ছবি যোগ করুন — সর্বোচ্চ ${toBnDigits(MAX_IMAGES_PER_PRODUCT)}টি · ছবি নিজে থেকে ৪:৩ আকারে কেটে নেওয়া হবে`}
             >
               <label className="block cursor-pointer rounded-2xl border-2 border-dashed border-gray-300 px-4 py-6 text-center text-sm text-gray-600">
                 ছবি বাছুন (একসাথে একাধিক)

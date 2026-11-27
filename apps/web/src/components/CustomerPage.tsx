@@ -5,7 +5,9 @@
 // ভেরিয়েন্ট নেই। স্টিকি মোবাইল অর্ডার বার শুধু Aura/Nova/Social Proof-এ
 // (শেয়ার করা বার); Luxury/Fashion/Tech/Beauty/BD/Lavender/Emerald/
 // Midnight/Sunset-এর নিজের বার।
-// ছবি আসল অনুপাতে, ঝাপসা কপি নেই, কখনো ক্রপ হয় না। ছাড়ের % অটো-হিসাব।
+// ছবি সব টেমপ্লেটে একই ৪:৩ ফরম্যাটে ফ্রেম ভরে দেখায় (object-cover);
+// ছবিতে ক্লিক করলে লাইটবক্সে আসল সাইজের (ক্রপ না-করা) ছবি দেখায়।
+// ছাড়ের % অটো-হিসাব।
 // অর্ডার ফর্ম আসল — জমা হলে ধন্যবাদ পেজ দেখায় (অর্ডার নম্বরসহ)।
 import { useEffect, useState } from 'react'
 import FramedPhoto from './FramedPhoto.tsx'
@@ -31,6 +33,101 @@ function youtubeEmbedId(url: string): string | null {
   return m ? m[1] : null
 }
 
+/**
+ * ছবির লাইটবক্স — আসল সাইজের (ক্রপ না-করা) ছবি পর্দা জুড়ে দেখায়।
+ * হিরোতে ছবি ৪:৩-এ কেটে দেখালেও এখানে পুরো আসল ছবি দেখা যায়।
+ * বন্ধ: ✕ বোতাম, পেছনে ক্লিক, বা Esc। একাধিক ছবি থাকলে
+ * তীর/সোয়াইপ-কি দিয়ে আগের-পরের ছবি দেখা যায়।
+ */
+function Lightbox({
+  images,
+  index,
+  productName,
+  onClose,
+  onNavigate,
+}: {
+  images: ProductImageRow[]
+  index: number
+  productName: string
+  onClose: () => void
+  onNavigate: (i: number) => void
+}) {
+  const current = images[index]
+  useEffect(() => {
+    const onKey = (e: KeyboardEvent) => {
+      if (e.key === 'Escape') onClose()
+      if (images.length > 1) {
+        if (e.key === 'ArrowLeft')
+          onNavigate((index - 1 + images.length) % images.length)
+        if (e.key === 'ArrowRight') onNavigate((index + 1) % images.length)
+      }
+    }
+    window.addEventListener('keydown', onKey)
+    const prevOverflow = document.body.style.overflow
+    document.body.style.overflow = 'hidden'
+    return () => {
+      window.removeEventListener('keydown', onKey)
+      document.body.style.overflow = prevOverflow
+    }
+  }, [index, images.length, onClose, onNavigate])
+  if (!current) return null
+  const prev = () => onNavigate((index - 1 + images.length) % images.length)
+  const next = () => onNavigate((index + 1) % images.length)
+  return (
+    <div
+      className="fixed inset-0 z-[100] flex items-center justify-center bg-black/90 p-4"
+      role="dialog"
+      aria-modal="true"
+      aria-label={productName}
+      onClick={onClose}
+    >
+      <button
+        type="button"
+        onClick={onClose}
+        aria-label="বন্ধ করুন"
+        className="absolute right-4 top-4 flex h-10 w-10 items-center justify-center rounded-full bg-white/15 text-2xl font-bold leading-none text-white hover:bg-white/30"
+      >
+        ×
+      </button>
+      {images.length > 1 ? (
+        <>
+          <button
+            type="button"
+            onClick={(e) => {
+              e.stopPropagation()
+              prev()
+            }}
+            aria-label="আগের ছবি"
+            className="absolute left-2 top-1/2 flex h-10 w-10 -translate-y-1/2 items-center justify-center rounded-full bg-white/15 text-2xl font-bold leading-none text-white hover:bg-white/30 sm:left-4"
+          >
+            ‹
+          </button>
+          <button
+            type="button"
+            onClick={(e) => {
+              e.stopPropagation()
+              next()
+            }}
+            aria-label="পরের ছবি"
+            className="absolute right-2 top-1/2 flex h-10 w-10 -translate-y-1/2 items-center justify-center rounded-full bg-white/15 text-2xl font-bold leading-none text-white hover:bg-white/30 sm:right-4"
+          >
+            ›
+          </button>
+          <p className="absolute bottom-4 left-1/2 -translate-x-1/2 rounded-full bg-white/15 px-3 py-1 text-sm font-semibold text-white">
+            {toBnDigits(index + 1)} / {toBnDigits(images.length)}
+          </p>
+        </>
+      ) : null}
+      <img
+        src={current.url}
+        alt={productName}
+        className="max-h-[90vh] max-w-full object-contain"
+        onClick={(e) => e.stopPropagation()}
+      />
+    </div>
+  )
+}
+
 function Gallery({
   images,
   productName,
@@ -42,6 +139,7 @@ function Gallery({
   thumbActiveClass?: string
 }) {
   const [active, setActive] = useState(0)
+  const [lightbox, setLightbox] = useState<number | null>(null)
   if (images.length === 0) {
     return (
       <div className="flex aspect-[4/3] w-full items-center justify-center bg-gray-100 text-gray-400">
@@ -52,7 +150,40 @@ function Gallery({
   const current = images[Math.min(active, images.length - 1)]
   return (
     <div>
-      <FramedPhoto src={current.url} alt={productName} />
+      <div
+        role="button"
+        tabIndex={0}
+        aria-label="ছবি বড় করে দেখুন"
+        onClick={() => setLightbox(active)}
+        onKeyDown={(e) => {
+          if (e.key === 'Enter' || e.key === ' ') {
+            e.preventDefault()
+            setLightbox(active)
+          }
+        }}
+        className="relative cursor-zoom-in"
+      >
+        <FramedPhoto src={current.url} alt={productName} />
+        <span className="pointer-events-none absolute bottom-2 right-2 flex items-center gap-1 rounded-full bg-black/60 px-2.5 py-1 text-xs font-semibold text-white">
+          <svg
+            width="13"
+            height="13"
+            viewBox="0 0 24 24"
+            fill="none"
+            stroke="currentColor"
+            strokeWidth="2.5"
+            strokeLinecap="round"
+            strokeLinejoin="round"
+            aria-hidden="true"
+          >
+            <path d="M15 3h6v6" />
+            <path d="M9 21H3v-6" />
+            <path d="M21 3l-7 7" />
+            <path d="M3 21l7-7" />
+          </svg>
+          বড় করুন
+        </span>
+      </div>
       {images.length > 1 ? (
         <div className="mt-2 flex gap-2 overflow-x-auto">
           {images.map((img, i) => (
@@ -60,7 +191,7 @@ function Gallery({
               key={img.id}
               type="button"
               onClick={() => setActive(i)}
-              className={`h-16 w-20 shrink-0 overflow-hidden rounded border-2 ${
+              className={`aspect-[4/3] h-16 shrink-0 overflow-hidden rounded border-2 ${
                 i === active ? thumbActiveClass : 'border-transparent'
               }`}
               aria-label={`ছবি ${toBnDigits(i + 1)}`}
@@ -73,6 +204,15 @@ function Gallery({
             </button>
           ))}
         </div>
+      ) : null}
+      {lightbox !== null ? (
+        <Lightbox
+          images={images}
+          index={lightbox}
+          productName={productName}
+          onClose={() => setLightbox(null)}
+          onNavigate={setLightbox}
+        />
       ) : null}
     </div>
   )

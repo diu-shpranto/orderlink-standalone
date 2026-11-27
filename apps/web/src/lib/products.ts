@@ -507,16 +507,69 @@ export async function syncProductImages(
   }
 }
 
+/**
+ * ছবিকে ৪:৩ অনুপাতে মাঝখান থেকে কেটে (center-crop) নতুন File বানায় —
+ * সব টেমপ্লেটে হিরো ছবির ফরম্যাট একই (৪:৩) রাখতে। ফাইলের নাম ও
+ * টাইপ একই থাকে। ছবি আগেই ৪:৩ হলে, বা ছবি পড়া না গেলে, আসল
+ * ফাইলটাই ফেরত যায় (আপলোড কখনো এই ক্রপের জন্য ভাঙবে না)।
+ */
+export async function cropImageTo43(file: File): Promise<File> {
+  try {
+    const bmp = await createImageBitmap(file)
+    const w = bmp.width
+    const h = bmp.height
+    const target = 4 / 3
+    if (Math.abs(w / h - target) < 0.01) {
+      bmp.close()
+      return file
+    }
+    let sw = w
+    let sh = h
+    let sx = 0
+    let sy = 0
+    if (w / h > target) {
+      sw = Math.round(h * target)
+      sx = Math.round((w - sw) / 2)
+    } else {
+      sh = Math.round(w / target)
+      sy = Math.round((h - sh) / 2)
+    }
+    const canvas = document.createElement('canvas')
+    canvas.width = sw
+    canvas.height = sh
+    const ctx = canvas.getContext('2d')
+    if (!ctx) {
+      bmp.close()
+      return file
+    }
+    ctx.drawImage(bmp, sx, sy, sw, sh, 0, 0, sw, sh)
+    bmp.close()
+    const blob = await new Promise<Blob | null>((resolve) =>
+      canvas.toBlob(resolve, file.type || 'image/jpeg', 0.92),
+    )
+    if (!blob) return file
+    return new File([blob], file.name, {
+      type: blob.type || file.type,
+      lastModified: Date.now(),
+    })
+  } catch {
+    return file
+  }
+}
+
 export async function uploadProductImage(
   file: File,
   sellerId: string,
 ): Promise<{ storagePath: string; url: string }> {
   const client = requireSupabase()
-  const safeName = file.name.replace(/[^a-zA-Z0-9._-]/g, '_').slice(0, 60)
+  // আপলোডের আগেই ৪:৩-এ অটো ক্রপ — স্টোরেজে সবসময় সঠিক
+  // ফরম্যাটের ছবিই যায়, যে রুটেই আপলোড হোক না কেন।
+  const cropped = await cropImageTo43(file)
+  const safeName = cropped.name.replace(/[^a-zA-Z0-9._-]/g, '_').slice(0, 60)
   const storagePath = `${sellerId}/${crypto.randomUUID()}-${safeName}`
   const { error } = await client.storage
     .from(PRODUCT_IMAGES_BUCKET)
-    .upload(storagePath, file, { cacheControl: '31536000', upsert: false })
+    .upload(storagePath, cropped, { cacheControl: '31536000', upsert: false })
   if (error) throw error
   const { data } = client.storage
     .from(PRODUCT_IMAGES_BUCKET)
