@@ -134,21 +134,6 @@ export default function Products() {
     { id: 'draft', label: 'ড্রাফট', count: draftCount },
   ]
 
-  const statCards = [
-    {
-      label: 'মোট পেজ',
-      value: items.length,
-    },
-    {
-      label: 'পাবলিশড পেজ',
-      value: publishedCount,
-    },
-    {
-      label: 'ড্রাফট পেজ',
-      value: draftCount,
-    },
-  ]
-
   async function togglePublish(item: ProductListItem) {
     if (!item.page || !seller) return
     // সাসপেন্ডেড পেজ: "চালু রাখুন" মানে এই পেজটাই ফ্রি সার্ভিসে
@@ -296,22 +281,6 @@ export default function Products() {
         </div>
       ) : (
         <>
-          {/* ৩টি কমপ্যাক্ট স্ট্যাট কার্ড — আসল সংখ্যা (রেফারেন্সের মতো: সংখ্যা ওপরে, লেবেল নিচে) */}
-          <div className="mt-4 grid grid-cols-3 gap-2.5">
-            {statCards.map((c) => (
-              <div
-                key={c.label}
-                className="rounded-[16px] border border-gray-200 bg-white p-3.5 shadow-sm"
-              >
-                <p className="text-xl font-extrabold text-gray-900 sm:text-2xl">
-                  {formatCountBn(c.value)}
-                </p>
-                <p className="mt-1 whitespace-nowrap text-[11px] font-medium text-gray-500 sm:text-[13px]">
-                  {c.label}
-                </p>
-              </div>
-            ))}
-          </div>
           {suspendedCount > 0 ? (
             <p className="mt-3 rounded-2xl border border-amber-200 bg-amber-50 px-3.5 py-2.5 text-[13px] font-medium leading-relaxed text-amber-800">
               সাসপেন্ডেড: {formatCountBn(suspendedCount)}টি পেজ ফ্রি সার্ভিসে
