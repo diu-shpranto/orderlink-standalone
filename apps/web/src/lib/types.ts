@@ -19,6 +19,10 @@ export interface ProductRow {
   price: number
   old_price: number | null
   description: string | null
+  /** ছোট বিবরণ — নামের নিচে এক লাইনে দেখানো হয় (ঐচ্ছিক)। */
+  short_description: string | null
+  /** ক্যাটাগরি — পেজে ছোট লেবেল হিসেবে দেখায় (ঐচ্ছিক)। */
+  category: string | null
   benefits: string[]
   specs: Record<string, string>
   created_at: string
@@ -75,6 +79,8 @@ export interface PageRow {
   video_url: string | null
   reviews: ReviewItem[]
   faqs: FaqItem[]
+  /** ডেলিভারি তথ্য — ডেলিভারি/অর্ডার সেকশনে দেখানো হয় (ঐচ্ছিক)। */
+  delivery_info: string | null
   page_lang: PageLang
   is_published: boolean
   /** ফ্রি সার্ভিসে বন্ধ পেজ (Phase 5) — প্রকাশিতই থাকে, শুধু লুকানো। */

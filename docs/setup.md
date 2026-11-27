@@ -310,3 +310,25 @@ Basic ৳১৯৯/৫/২৫০ MB, Growth ৳৩৯৯/১০/৫০০ MB, Bu
   দেখাবে। ফ্রি প্ল্যানে ২য় পেজ প্রকাশ করলে সীমার ভুল দেখাবে।
   `select public.reject_subscription_payment('<payment id>', 'কারণ');`
   চালালে বাতিলের কারণ সেলারকে হুবহু দেখাবে।
+
+## বিল্ডার ৭ ধাপ + নতুন ফিল্ড (28 Nov 2026)
+
+লাইভ অ্যাপের বিল্ডারের মতো করে বিল্ডারটা ৭ ধাপে সাজানো হয়েছে
+(টেমপ্লেট → পণ্যের তথ্য → ছবি → ভিডিও → কাস্টমার রিভিউ → জিজ্ঞাসা →
+প্রিভিউ ও পাবলিশ) — একটাই "সেভ করুন" বোতাম (ধাপ ৭-এ), পাবলিশ চেকবক্স
+দিয়ে খসড়া/প্রকাশ ঠিক হয়। নতুন ৩টি ঐচ্ছিক ফিল্ড: ছোট বিবরণ
+(`products.short_description` — নামের নিচে এক লাইনে), ক্যাটাগরি
+(`products.category` — পেজে ছোট লেবেল), ডেলিভারি তথ্য
+(`pages.delivery_info` — অর্ডার সেকশনে দেখায়)।
+
+- **মাইগ্রেশন চালান:** Supabase Dashboard → SQL Editor-এ
+  `supabase/migrations/0006_builder_fields.sql`-এর পুরো কনটেন্ট চালান।
+  প্রত্যাশা: "Success. No rows returned"। যাচাই:
+  ```sql
+  select column_name from information_schema.columns
+  where table_name in ('products', 'pages')
+  and column_name in ('short_description', 'category', 'delivery_info');
+  ```
+  প্রত্যাশা: ৩টি সারি। মাইগ্রেশন না চলা পর্যন্ত বিল্ডার নতুন ফিল্ড
+  ছাড়াই সেভ করবে (কোডে ফলব্যাক আছে) — সেভ ভাঙবে না, শুধু নতুন
+  ৩টি ফিল্ড সেভ হবে না আর নোটিশে জানাবে।

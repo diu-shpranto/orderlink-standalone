@@ -273,6 +273,9 @@ function OrderSection({
             ? formatBDT(shop.delivery_outside_charge)
             : t.freeDelivery}
         </p>
+        {data.page.delivery_info ? (
+          <p className="pt-1 leading-relaxed">{data.page.delivery_info}</p>
+        ) : null}
       </div>
       {preview ? (
         <p
@@ -352,6 +355,13 @@ export default function CustomerPage({
   preview?: boolean
 }) {
   const { page, product, shop, images, sellerWhatsapp } = data
+  // ছোট বিবরণ থাকলে হিরোতে সেটাই এক লাইনে দেখায় (লাইভ অ্যাপের মতো);
+  // না থাকলে আগের মতো বিস্তারিত বিবরণই হিরোর কপি। বিস্তারিত বিবরণ
+  // গল্প/বিবরণ সেকশনে আগের মতোই থাকে।
+  const shortDesc = product.short_description?.trim()
+    ? product.short_description.trim()
+    : null
+  const heroCopy = shortDesc ?? product.description
   const [placed, setPlaced] = useState<PlacedOrder | null>(null)
   // Fashion Store ও Tech & Gadget-এর মেনু ও FAQ অ্যাকর্ডিয়নের অবস্থা —
   // সবার ওপরে ঘোষিত, তাই হুকের নিয়ম ভাঙে না (শুধু নিজ নিজ ব্রাঞ্চে
@@ -526,15 +536,20 @@ export default function CustomerPage({
       >
         {product.name}
       </h1>
+      {product.category ? (
+        <p className={`mt-1 text-xs font-bold ${bodyClass}`}>
+          {product.category}
+        </p>
+      ) : null}
       <div className="mt-2">
         <RatingSummary data={data} t={t} />
       </div>
       <div className="mt-3">
         <PriceRow data={data} dark={dark} />
       </div>
-      {product.description ? (
+      {heroCopy ? (
         <p className={`mt-3 text-sm leading-relaxed ${bodyClass}`}>
-          {product.description}
+          {heroCopy}
         </p>
       ) : null}
       <a
@@ -784,6 +799,11 @@ const footer = (
               <h1 className="mt-2 font-serif text-3xl font-bold leading-tight text-white md:text-4xl">
                 {product.name}
               </h1>
+              {product.category ? (
+                <p className="mt-1 text-xs font-bold text-[#B8B8B8]">
+                  {product.category}
+                </p>
+              ) : null}
               {luxRated.length > 0 ? (
                 <p className="mt-2 text-sm text-[#B8B8B8]">
                   <span className="font-bold text-[#D6B36A]">
@@ -808,9 +828,9 @@ const footer = (
                   </>
                 ) : null}
               </div>
-              {product.description ? (
+              {heroCopy ? (
                 <p className="mt-4 text-sm leading-relaxed text-[#B8B8B8]">
-                  {product.description}
+                  {heroCopy}
                 </p>
               ) : null}
               <a
@@ -1120,15 +1140,20 @@ const footer = (
               <h1 className="text-2xl font-extrabold text-gray-900 md:text-3xl">
                 {product.name}
               </h1>
+              {product.category ? (
+                <p className="mt-1 text-xs font-bold text-gray-500">
+                  {product.category}
+                </p>
+              ) : null}
               <div className="mt-2">
                 <RatingSummary data={data} t={t} />
               </div>
               <div className="mt-3">
                 <PriceRow data={data} dark={false} />
               </div>
-              {product.description ? (
+              {heroCopy ? (
                 <p className="mt-3 text-sm leading-relaxed text-gray-700">
-                  {product.description}
+                  {heroCopy}
                 </p>
               ) : null}
               <a
@@ -1200,15 +1225,20 @@ const footer = (
           <h1 className="mt-8 font-serif text-4xl font-bold leading-tight text-gray-900 md:text-5xl">
             {product.name}
           </h1>
+          {product.category ? (
+            <p className="mt-1 text-xs font-bold text-gray-500">
+              {product.category}
+            </p>
+          ) : null}
           <div className="mt-3">
             <RatingSummary data={data} t={t} />
           </div>
           <div className="mt-4">
             <PriceRow data={data} dark={false} />
           </div>
-          {product.description ? (
+          {heroCopy ? (
             <p className="mt-6 text-lg leading-relaxed text-gray-700">
-              {product.description}
+              {heroCopy}
             </p>
           ) : null}
           <a
@@ -1381,6 +1411,11 @@ const footer = (
               <h1 className="mt-2 font-serif text-3xl font-bold leading-tight md:text-4xl">
                 {product.name}
               </h1>
+              {product.category ? (
+                <p className="mt-1 text-xs font-bold text-[#777777]">
+                  {product.category}
+                </p>
+              ) : null}
               <div className="mt-3">
                 <RatingSummary data={data} t={t} />
               </div>
@@ -1399,9 +1434,9 @@ const footer = (
                   </>
                 ) : null}
               </div>
-              {product.description ? (
+              {heroCopy ? (
                 <p className="mt-4 text-[15px] leading-relaxed text-[#555555]">
-                  {product.description}
+                  {heroCopy}
                 </p>
               ) : null}
               <a
@@ -1781,6 +1816,11 @@ const footer = (
               <h1 className="mt-2 font-serif text-3xl font-bold leading-tight md:text-4xl">
                 {product.name}
               </h1>
+              {product.category ? (
+                <p className="mt-1 text-xs font-bold text-[#887A80]">
+                  {product.category}
+                </p>
+              ) : null}
               <div className="mt-3">
                 <RatingSummary data={data} t={t} />
               </div>
@@ -1799,9 +1839,9 @@ const footer = (
                   </>
                 ) : null}
               </div>
-              {product.description ? (
+              {heroCopy ? (
                 <p className="mt-4 text-[15px] leading-relaxed text-[#5c4a52]">
-                  {product.description}
+                  {heroCopy}
                 </p>
               ) : null}
               <a
@@ -2287,6 +2327,11 @@ const footer = (
               <h1 className="mt-2 text-3xl font-extrabold leading-tight text-white md:text-4xl">
                 {product.name}
               </h1>
+              {product.category ? (
+                <p className="mt-1 text-xs font-bold text-[#A8B5C8]">
+                  {product.category}
+                </p>
+              ) : null}
               {techRated.length > 0 ? (
                 <p className="mt-2 text-sm text-[#A8B5C8]">
                   <span className="font-bold text-amber-400">
@@ -2311,9 +2356,9 @@ const footer = (
                   </>
                 ) : null}
               </div>
-              {product.description ? (
+              {heroCopy ? (
                 <p className="mt-4 text-sm leading-relaxed text-[#A8B5C8]">
-                  {product.description}
+                  {heroCopy}
                 </p>
               ) : null}
               <a
@@ -2820,6 +2865,11 @@ const footer = (
               <h1 className="text-3xl font-extrabold leading-tight text-gray-900 md:text-4xl">
                 {product.name}
               </h1>
+              {product.category ? (
+                <p className="mt-1 text-xs font-bold text-gray-500">
+                  {product.category}
+                </p>
+              ) : null}
               {bdRated.length > 0 ? (
                 <p className="mt-2 text-sm text-gray-600">
                   <span className="font-bold text-amber-500">
@@ -2844,9 +2894,9 @@ const footer = (
                   </>
                 ) : null}
               </div>
-              {product.description ? (
+              {heroCopy ? (
                 <p className="mt-4 text-[15px] leading-relaxed text-gray-700">
-                  {product.description}
+                  {heroCopy}
                 </p>
               ) : null}
               <a

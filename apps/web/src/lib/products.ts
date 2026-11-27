@@ -237,6 +237,10 @@ export interface ProductInput {
   price: number
   oldPrice: number | null
   description: string
+  /** ছোট বিবরণ — undefined মানে এই ফিল্ডটা ছোঁয়া হবে না (যেমন ডুপ্লিকেটে)। */
+  shortDescription?: string
+  /** ক্যাটাগরি — undefined মানে এই ফিল্ডটা ছোঁয়া হবে না। */
+  category?: string
   benefits: string[]
   specs: Record<string, string>
 }
@@ -249,6 +253,8 @@ export interface PageInput {
   videoUrl: string
   reviews: ReviewItem[]
   faqs: FaqItem[]
+  /** ডেলিভারি তথ্য — undefined মানে এই ফিল্ডটা ছোঁয়া হবে না। */
+  deliveryInfo?: string
   pageLang: PageLang
   isPublished: boolean
 }
@@ -262,6 +268,23 @@ export async function saveProductAndPage(input: {
 }): Promise<{ productId: string; pageId: string }> {
   const client = requireSupabase()
   let productId = input.productId
+  // বিল্ডারের নতুন ফিল্ড — শুধু পাঠানো হলে সেভ হবে (ডুপ্লিকেটে পাঠানো
+  // হয় না, তাই পুরনো মান অপরিবর্তিত থাকে)।
+  const productExtra =
+    input.product.shortDescription !== undefined ||
+    input.product.category !== undefined
+      ? {
+          ...(input.product.shortDescription !== undefined
+            ? {
+                short_description:
+                  input.product.shortDescription.trim() || null,
+              }
+            : {}),
+          ...(input.product.category !== undefined
+            ? { category: input.product.category.trim() || null }
+            : {}),
+        }
+      : {}
   if (productId) {
     const { error } = await client
       .from('products')
@@ -270,6 +293,7 @@ export async function saveProductAndPage(input: {
         price: input.product.price,
         old_price: input.product.oldPrice,
         description: input.product.description || null,
+        ...productExtra,
         benefits: input.product.benefits,
         specs: input.product.specs,
       })
@@ -286,6 +310,7 @@ export async function saveProductAndPage(input: {
         price: input.product.price,
         old_price: input.product.oldPrice,
         description: input.product.description || null,
+        ...productExtra,
         benefits: input.product.benefits,
         specs: input.product.specs,
       })
@@ -305,6 +330,9 @@ export async function saveProductAndPage(input: {
     video_url: input.page.videoUrl || null,
     reviews: input.page.reviews,
     faqs: input.page.faqs,
+    ...(input.page.deliveryInfo !== undefined
+      ? { delivery_info: input.page.deliveryInfo.trim() || null }
+      : {}),
     page_lang: input.page.pageLang,
     is_published: input.page.isPublished,
   }
