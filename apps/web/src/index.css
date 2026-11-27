@@ -23,6 +23,9 @@ html {
 
 body {
   margin: 0;
+  /* কাস্টমার পেজের পুরো-চওড়া সেকশন ব্যান্ড (100vw ব্রেকআউট) যাতে
+     অনুভূমিক স্ক্রলবার না আনে — clip-এ sticky/fixed ঠিক থাকে। */
+  overflow-x: clip;
   font-family:
     'OrderLink Bengali Digits',
     'Hind Siliguri',

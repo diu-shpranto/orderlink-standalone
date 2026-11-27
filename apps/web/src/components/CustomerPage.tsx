@@ -623,63 +623,149 @@ function OrderSection({
       </section>
     )
   }
+  // ডেস্কটপে (lg+) অর্ডার সেকশন দুই কলাম — ফর্ম বামে, পণ্যের সারসংক্ষেপ
+  // + আস্থার লাইন ডানে। মোবাইলে আগের মতো এক কলাম (পাশের প্যানেল লুকানো)।
+  const orderSavings =
+    product.old_price && product.old_price > product.price
+      ? product.old_price - product.price
+      : 0
+  const orderDiscount = discountPercent(
+    Number(product.price),
+    product.old_price,
+  )
+  const orderFirstImage = data.images.length > 0 ? data.images[0] : null
   return (
     <section
       id="order"
-      className={`rounded-2xl border p-5 ${
+      className={`rounded-2xl border p-5 lg:p-8 ${
         dark ? 'border-[#34343A] bg-[#1D1D21]' : 'border-gray-200 bg-white'
       }`}
     >
-      <h2
-        className={`text-lg font-bold ${dark ? 'text-white' : 'text-gray-900'}`}
-      >
-        {t.orderNow}
-      </h2>
-      <div
-        className={`mt-3 space-y-1 text-sm ${
-          dark ? 'text-[#B8B8B8]' : 'text-gray-700'
-        }`}
-      >
-        <p>
-          {t.deliveryInside}:{' '}
-          {shop.delivery_inside_charge > 0
-            ? formatBDT(shop.delivery_inside_charge)
-            : t.freeDelivery}
-        </p>
-        <p>
-          {t.deliveryOutside}:{' '}
-          {shop.delivery_outside_charge > 0
-            ? formatBDT(shop.delivery_outside_charge)
-            : t.freeDelivery}
-        </p>
-        {data.page.delivery_info ? (
-          <p className="pt-1 leading-relaxed">{data.page.delivery_info}</p>
-        ) : null}
-      </div>
-      {preview ? (
-        <p
-          className={`mt-4 rounded-lg px-4 py-3 text-sm ${
-            dark
-              ? 'border border-[#34343A] bg-[#151518] text-[#B8B8B8]'
-              : 'bg-gray-50 text-gray-600'
-          }`}
-        >
-          এটা প্রিভিউ — এখান থেকে অর্ডার দেওয়া যাবে না। প্রকাশ করা পেজে
-          কাস্টমাররা এই ফর্মে অর্ডার দেবে।
-        </p>
-      ) : (
-        <div className="mt-4">
-          <OrderForm
-            data={data}
-            t={t}
-            onPlaced={onPlaced}
-            dark={dark}
-            accent={accent}
-            accentText={accentText}
-            lightAccent={lightAccent}
-          />
+      <div className="lg:grid lg:grid-cols-5 lg:gap-8">
+        <div className="lg:col-span-3">
+          <h2
+            className={`text-lg font-bold lg:text-xl ${dark ? 'text-white' : 'text-gray-900'}`}
+          >
+            {t.orderNow}
+          </h2>
+          <div
+            className={`mt-3 space-y-1 text-sm ${
+              dark ? 'text-[#B8B8B8]' : 'text-gray-700'
+            }`}
+          >
+            <p>
+              {t.deliveryInside}:{' '}
+              {shop.delivery_inside_charge > 0
+                ? formatBDT(shop.delivery_inside_charge)
+                : t.freeDelivery}
+            </p>
+            <p>
+              {t.deliveryOutside}:{' '}
+              {shop.delivery_outside_charge > 0
+                ? formatBDT(shop.delivery_outside_charge)
+                : t.freeDelivery}
+            </p>
+            {data.page.delivery_info ? (
+              <p className="pt-1 leading-relaxed">{data.page.delivery_info}</p>
+            ) : null}
+          </div>
+          {preview ? (
+            <p
+              className={`mt-4 rounded-lg px-4 py-3 text-sm ${
+                dark
+                  ? 'border border-[#34343A] bg-[#151518] text-[#B8B8B8]'
+                  : 'bg-gray-50 text-gray-600'
+              }`}
+            >
+              এটা প্রিভিউ — এখান থেকে অর্ডার দেওয়া যাবে না। প্রকাশ করা
+              পেজে কাস্টমাররা এই ফর্মে অর্ডার দেবে।
+            </p>
+          ) : (
+            <div className="mt-4">
+              <OrderForm
+                data={data}
+                t={t}
+                onPlaced={onPlaced}
+                dark={dark}
+                accent={accent}
+                accentText={accentText}
+                lightAccent={lightAccent}
+              />
+            </div>
+          )}
         </div>
-      )}
+        <aside className="hidden lg:col-span-2 lg:block">
+          <div
+            className={`rounded-2xl border p-5 ${
+              dark
+                ? 'border-[#34343A] bg-[#151518]'
+                : 'border-gray-200 bg-gray-50'
+            }`}
+          >
+            {orderFirstImage ? (
+              <img
+                src={orderFirstImage.url}
+                alt={product.name}
+                className="aspect-[4/3] w-full rounded-xl object-cover"
+              />
+            ) : null}
+            <p
+              className={`mt-3 font-extrabold ${
+                dark ? 'text-white' : 'text-gray-900'
+              }`}
+            >
+              {product.name}
+            </p>
+            <p className="mt-1 flex flex-wrap items-baseline gap-2">
+              <span
+                className={`text-2xl font-extrabold ${
+                  dark ? 'text-white' : 'text-gray-900'
+                }`}
+              >
+                {formatBDT(product.price)}
+              </span>
+              {product.old_price && product.old_price > product.price ? (
+                <>
+                  <span className="text-sm text-gray-400 line-through">
+                    {formatBDT(product.old_price)}
+                  </span>
+                  <span className="rounded-full bg-red-600 px-2 py-0.5 text-xs font-bold text-white">
+                    {toBnDigits(orderDiscount)}% {t.off}
+                  </span>
+                </>
+              ) : null}
+            </p>
+            {orderSavings > 0 ? (
+              <p className="mt-1 text-sm font-bold text-green-600">
+                সাশ্রয়: {formatBDT(orderSavings)}
+              </p>
+            ) : null}
+            <div
+              className={`mt-4 space-y-2 border-t pt-4 text-sm ${
+                dark
+                  ? 'border-[#34343A] text-[#B8B8B8]'
+                  : 'border-gray-200 text-gray-700'
+              }`}
+            >
+              <p>✓ ক্যাশ অন ডেলিভারি</p>
+              <p>✓ সারা দেশে হোম ডেলিভারি</p>
+              <p>✓ অর্ডার কনফার্ম করে পাঠানো হয়</p>
+              <p>
+                {t.deliveryInside}:{' '}
+                {shop.delivery_inside_charge > 0
+                  ? formatBDT(shop.delivery_inside_charge)
+                  : t.freeDelivery}
+              </p>
+              <p>
+                {t.deliveryOutside}:{' '}
+                {shop.delivery_outside_charge > 0
+                  ? formatBDT(shop.delivery_outside_charge)
+                  : t.freeDelivery}
+              </p>
+            </div>
+          </div>
+        </aside>
+      </div>
     </section>
   )
 }
@@ -853,7 +939,9 @@ export default function CustomerPage({
         return (
           <section key="benefits">
             <h2 className={headingClass}>{t.benefits}</h2>
-            <ul className={`mt-3 space-y-2 ${bodyClass}`}>
+            <ul
+              className={`mt-3 space-y-2 lg:grid lg:grid-cols-2 lg:gap-x-6 lg:gap-y-2 lg:space-y-0 ${bodyClass}`}
+            >
               {product.benefits.map((b, i) => (
                 <li key={i} className="flex gap-2">
                   <span className="font-bold text-brand">✓</span>
@@ -912,9 +1000,10 @@ export default function CustomerPage({
             {page.reviews.length === 0 ? (
               <p className={`mt-3 text-sm ${bodyClass}`}>{t.noReviews}</p>
             ) : (
-              <div className="mt-3 space-y-3">
+              <div className="mt-3">
                 <RatingSummary data={data} t={t} />
-                {page.reviews.map((r, i) => (
+                <div className="mt-3 space-y-3 lg:grid lg:grid-cols-2 lg:gap-4 lg:space-y-0">
+                  {page.reviews.map((r, i) => (
                   <article
                     key={i}
                     className={`rounded-xl border p-4 ${
@@ -947,6 +1036,7 @@ export default function CustomerPage({
                     ) : null}
                   </article>
                 ))}
+                </div>
               </div>
             )}
           </section>
@@ -956,7 +1046,7 @@ export default function CustomerPage({
         return (
           <section key="faq">
             <h2 className={headingClass}>{t.faq}</h2>
-            <div className="mt-3 space-y-3">
+            <div className="mt-3 space-y-3 lg:grid lg:grid-cols-2 lg:gap-4 lg:space-y-0">
               {page.faqs.map((f, i) => (
                 <div
                   key={i}
@@ -983,18 +1073,28 @@ export default function CustomerPage({
     ? 'rounded-2xl border border-gray-700 bg-gray-800 p-5'
     : 'rounded-2xl border border-gray-200 bg-white p-5'
 
-  // B — প্রোডাক্ট হিরো: ছবি পুরো চওড়ায় উপরে, তথ্য নিচে (লাইভ অ্যাপের
-  // মতো — সব টেমপ্লেটে একই 4:3 ফ্রেম)। পরিমাণ শুধু অর্ডার ফর্মে থাকে।
+  // B — প্রোডাক্ট হিরো: মোবাইলে ছবি উপরে, তথ্য নিচে (আগের মতো);
+  // ডেস্কটপে (lg+) দুই কলাম — ছবি বামে, তথ্য ডানে (নতুন টেমপ্লেটগুলোর
+  // মতো)। সব টেমপ্লেটে একই 4:3 ফ্রেম। পরিমাণ শুধু অর্ডার ফর্মে থাকে।
   const hero = (
-    <>
-      {showGallery ? (
-        <Gallery images={images} productName={product.name} />
-      ) : null}
-      <h1
-        className={`mt-5 text-2xl font-extrabold leading-snug md:text-3xl ${
-          dark ? 'text-white' : 'text-gray-900'
-        }`}
-      >
+    <div
+      className={
+        showGallery
+          ? 'lg:grid lg:grid-cols-2 lg:items-start lg:gap-10'
+          : undefined
+      }
+    >
+      <div>
+        {showGallery ? (
+          <Gallery images={images} productName={product.name} />
+        ) : null}
+      </div>
+      <div>
+        <h1
+          className={`mt-5 text-2xl font-extrabold leading-snug md:text-3xl lg:mt-0 ${
+            dark ? 'text-white' : 'text-gray-900'
+          }`}
+        >
         {product.name}
       </h1>
       {product.category ? (
@@ -1019,7 +1119,8 @@ export default function CustomerPage({
       >
         {t.orderNow}
       </a>
-    </>
+      </div>
+    </div>
   )
 
   // সেকশনের ক্রম — বিল্ডারের ক্রমেই দেখায় (গ্যালারি হিরোতে থাকে, তাই
@@ -1035,8 +1136,28 @@ export default function CustomerPage({
     ]
   }
 
-  const sections = (
+  // সেকশন ব্যান্ড — ডেস্কটপে (lg+) প্রতিটি সেকশন পুরো চওড়ায় একটি
+  // ব্যান্ডে বসে (পাল্টাপাল্টি হালকা টিন্ট), যাতে 1440–1920px-এ পেজ
+  // ফাঁকা না লাগে। মোবাইলে ও বিল্ডার প্রিভিউতে আগের মতোই সরল স্ট্যাক।
+  const sections = preview ? (
     <div className="space-y-8">{sectionOrder.map((id) => renderSection(id))}</div>
+  ) : (
+    <div className="space-y-8 lg:space-y-0">
+      {sectionOrder.map((id, i) => {
+        const node = renderSection(id)
+        if (!node) return null
+        return (
+          <div
+            key={id}
+            className={`lg:w-[100vw] lg:px-4 lg:py-12 lg:[margin-left:calc(50%-50vw)] ${
+              i % 2 === 0 ? (dark ? 'lg:bg-gray-800/60' : 'lg:bg-gray-50') : ''
+            }`}
+          >
+            <div className="mx-auto lg:max-w-6xl">{node}</div>
+          </div>
+        )
+      })}
+    </div>
   )
 
   const shopHeader = (
@@ -1262,7 +1383,7 @@ const footer = (
             <span className="text-xs text-[#B8B8B8]">{t.shopPage}</span>
           )}
         </header>
-        <main className="mx-auto max-w-2xl px-4 pb-28 pt-6 md:max-w-4xl md:pb-12">
+        <main className="mx-auto max-w-2xl px-4 pb-28 pt-6 md:max-w-4xl lg:max-w-6xl md:pb-12">
           {/* ০৩ হিরো + ০৪ গ্যালারি */}
           <div className="grid gap-6 md:grid-cols-2 md:items-start">
             <div>
@@ -1325,7 +1446,7 @@ const footer = (
           {/* ০৫ আস্থার নিশ্চয়তা */}
           <section className="mt-12">
             <p className={luxEyebrow}>{t.luxuryTrustTitle}</p>
-            <div className="mt-4 grid grid-cols-2 gap-3">
+            <div className="mt-4 grid grid-cols-2 gap-3 lg:grid-cols-4">
               {trustItems.map((item) => (
                 <div
                   key={item.title}
@@ -1349,7 +1470,7 @@ const footer = (
           <section className="mt-12">
             <h2 className={luxH2}>{t.luxuryWhyTitle}</h2>
             <span className="mt-3 block h-px w-12 bg-[#D6B36A]" />
-            <div className="mt-5 space-y-3">
+            <div className="mt-5 space-y-3 lg:grid lg:grid-cols-2 lg:gap-3 lg:space-y-0">
               {whyItems.map((item, i) => (
                 <div
                   key={item.title}
@@ -1450,7 +1571,7 @@ const footer = (
               {page.reviews.length === 0 ? (
                 <p className="mt-4 text-sm text-[#B8B8B8]">{t.noReviews}</p>
               ) : (
-                <div className="mt-5 space-y-3">
+                <div className="mt-5">
                   {luxRated.length > 0 ? (
                     <p className="text-sm text-[#B8B8B8]">
                       <span className="font-bold text-[#D6B36A]">
@@ -1460,6 +1581,7 @@ const footer = (
                       {t.basedOnReviews(luxRated.length)}
                     </p>
                   ) : null}
+                  <div className="mt-3 space-y-3 lg:grid lg:grid-cols-2 lg:gap-4 lg:space-y-0">
                   {page.reviews.map((r, i) => (
                     <article
                       key={i}
@@ -1487,6 +1609,7 @@ const footer = (
                       ) : null}
                     </article>
                   ))}
+                  </div>
                 </div>
               )}
             </section>
@@ -1571,7 +1694,7 @@ const footer = (
             <section className="mt-12">
               <h2 className={luxH2}>{t.faq}</h2>
               <span className="mt-3 block h-px w-12 bg-[#D6B36A]" />
-              <div className="mt-5 space-y-3">
+              <div className="mt-5 space-y-3 lg:grid lg:grid-cols-2 lg:gap-3 lg:space-y-0">
                 {page.faqs.map((f, i) => (
                   <details
                     key={i}
@@ -1622,7 +1745,7 @@ const footer = (
       <div className={`min-h-screen ${pageShell}`}>
         {announcement}
         {shopHeader}
-        <main className="mx-auto max-w-5xl px-4 py-6">
+        <main className="mx-auto max-w-5xl px-4 py-6 lg:max-w-6xl lg:py-10">
           <div className="grid gap-6 md:grid-cols-2">
             <div>{showGallery ? <Gallery images={images} productName={product.name} /> : null}</div>
             <div>
@@ -1673,7 +1796,7 @@ const footer = (
           </p>
         </div>
         {shopHeader}
-        <main className="mx-auto max-w-2xl px-4 py-6">
+        <main className="mx-auto max-w-2xl px-4 py-6 lg:max-w-6xl lg:py-10">
           {hero}
           <div className="mt-8">{sections}</div>
           {orderBox}
@@ -1689,7 +1812,7 @@ const footer = (
       <div className="min-h-screen bg-gradient-to-b from-brand-light via-white to-white text-gray-900">
         {announcement}
         {shopHeader}
-        <main className="mx-auto max-w-2xl px-4 py-6 pb-24 md:pb-6">
+        <main className="mx-auto max-w-2xl px-4 py-6 pb-24 md:pb-6 lg:max-w-6xl">
           <div className="rounded-3xl border border-gray-100 bg-white p-5 shadow-sm">
             {hero}
           </div>
@@ -1707,7 +1830,7 @@ const footer = (
       <div className={`min-h-screen ${pageShell}`}>
         {announcement}
         {shopHeader}
-        <main className="mx-auto max-w-3xl px-4 py-8 pb-24 md:pb-8">
+        <main className="mx-auto max-w-3xl px-4 py-8 pb-24 md:pb-8 lg:max-w-6xl">
           {showGallery ? (
             <Gallery images={images} productName={product.name} />
           ) : null}
@@ -1736,7 +1859,7 @@ const footer = (
           >
             {t.orderNow}
           </a>
-          <div className="mt-10 space-y-10">{sectionOrder.map((id) => renderSection(id))}</div>
+          <div className="mt-10">{sections}</div>
           {orderBox}
         </main>
         {footer}
@@ -1750,7 +1873,7 @@ const footer = (
       <div className={`min-h-screen ${pageShell}`}>
         {announcement}
         {shopHeader}
-        <main className="mx-auto max-w-2xl px-4 py-6">
+        <main className="mx-auto max-w-2xl px-4 py-6 lg:max-w-6xl lg:py-10">
           <div className={cardClass}>{hero}</div>
           <div className="mt-8">{sections}</div>
           {orderBox}
@@ -1766,7 +1889,7 @@ const footer = (
       <div className={`min-h-screen ${pageShell}`}>
         {announcement}
         {shopHeader}
-        <main className="mx-auto max-w-2xl px-4 py-6">
+        <main className="mx-auto max-w-2xl px-4 py-6 lg:max-w-6xl lg:py-10">
           {hero}
           <div className="mt-8">{sections}</div>
           {orderBox}
@@ -1782,7 +1905,7 @@ const footer = (
       <div className={`min-h-screen ${pageShell}`}>
         {announcement}
         {shopHeader}
-        <main className="mx-auto max-w-2xl px-4 py-6 pb-24 md:pb-6">
+        <main className="mx-auto max-w-2xl px-4 py-6 pb-24 md:pb-6 lg:max-w-6xl">
           {hero}
           <div className="mt-8">{sections}</div>
           {orderBox}
@@ -1887,7 +2010,7 @@ const footer = (
           ) : null}
         </header>
 
-        <main className="mx-auto max-w-5xl px-4 pb-28 pt-6 md:pb-10">
+        <main className="mx-auto max-w-5xl px-4 pb-28 pt-6 md:pb-10 lg:max-w-6xl">
           <div className="grid gap-8 md:grid-cols-2 md:gap-10">
             <div>
               {showGallery ? (
@@ -1983,7 +2106,7 @@ const footer = (
               <h2 className="mt-1 font-serif text-2xl font-bold">
                 {L('স্টাইলে দেখুন', 'Styled in Real Life')}
               </h2>
-              <div className="mt-5 space-y-4">
+              <div className="mt-5 space-y-4 lg:grid lg:grid-cols-2 lg:gap-4 lg:space-y-0">
                 {extraImages.map((img) => (
                   <FramedPhoto key={img.id} src={img.url} alt={product.name} />
                 ))}
@@ -2069,8 +2192,9 @@ const footer = (
               {page.reviews.length === 0 ? (
                 <p className="mt-4 text-sm text-[#777777]">{t.noReviews}</p>
               ) : (
-                <div className="mt-5 space-y-3">
+                <div className="mt-5">
                   <RatingSummary data={data} t={t} />
+                  <div className="mt-3 space-y-3 lg:grid lg:grid-cols-2 lg:gap-4 lg:space-y-0">
                   {page.reviews.map((r, i) => (
                     <article
                       key={i}
@@ -2098,6 +2222,7 @@ const footer = (
                       ) : null}
                     </article>
                   ))}
+                  </div>
                 </div>
               )}
             </section>
@@ -2301,7 +2426,7 @@ const footer = (
           ) : null}
         </header>
 
-        <main className="mx-auto max-w-5xl px-4 pb-28 pt-6 md:pb-10">
+        <main className="mx-auto max-w-5xl px-4 pb-28 pt-6 md:pb-10 lg:max-w-6xl">
           {/* ০৩ হিরো + ০৪ গ্যালারি */}
           <div className="grid gap-8 md:grid-cols-2 md:gap-10">
             <div>
@@ -2453,7 +2578,7 @@ const footer = (
               <h2 className="mt-1 font-serif text-2xl font-bold">
                 {L('ব্যবহারে দেখুন', 'See It In Use')}
               </h2>
-              <div className="mt-5 space-y-4">
+              <div className="mt-5 space-y-4 lg:grid lg:grid-cols-2 lg:gap-4 lg:space-y-0">
                 {extraImages.map((img) => (
                   <FramedPhoto key={img.id} src={img.url} alt={product.name} />
                 ))}
@@ -2519,8 +2644,9 @@ const footer = (
               {page.reviews.length === 0 ? (
                 <p className="mt-4 text-sm text-[#887A80]">{t.noReviews}</p>
               ) : (
-                <div className="mt-5 space-y-3">
+                <div className="mt-5">
                   <RatingSummary data={data} t={t} />
+                  <div className="mt-3 space-y-3 lg:grid lg:grid-cols-2 lg:gap-4 lg:space-y-0">
                   {page.reviews.map((r, i) => (
                     <article
                       key={i}
@@ -2548,6 +2674,7 @@ const footer = (
                       ) : null}
                     </article>
                   ))}
+                  </div>
                 </div>
               )}
             </section>
@@ -2815,7 +2942,7 @@ const footer = (
           ) : null}
         </header>
 
-        <main className="mx-auto max-w-5xl px-4 pb-28 pt-6 md:pb-10">
+        <main className="mx-auto max-w-5xl px-4 pb-28 pt-6 md:pb-10 lg:max-w-6xl">
           {/* ০৩ হিরো + ০৪ গ্যালারি */}
           <div className="grid gap-6 md:grid-cols-2 md:items-start">
             <div>
@@ -2966,7 +3093,7 @@ const footer = (
               </h2>
               <span className="mt-3 block h-px w-12 bg-[#19C8F0]" />
               {showBenefits ? (
-                <div className="mt-5 space-y-3">
+                <div className="mt-5 space-y-3 lg:grid lg:grid-cols-2 lg:gap-3 lg:space-y-0">
                   {product.benefits.map((b, i) => (
                     <div
                       key={i}
@@ -3047,7 +3174,7 @@ const footer = (
               {page.reviews.length === 0 ? (
                 <p className="mt-4 text-sm text-[#A8B5C8]">{t.noReviews}</p>
               ) : (
-                <div className="mt-5 space-y-3">
+                <div className="mt-5">
                   {techRated.length > 0 ? (
                     <p className="text-sm text-[#A8B5C8]">
                       <span className="font-bold text-amber-400">
@@ -3057,6 +3184,7 @@ const footer = (
                       {t.basedOnReviews(techRated.length)}
                     </p>
                   ) : null}
+                  <div className="mt-3 space-y-3 lg:grid lg:grid-cols-2 lg:gap-4 lg:space-y-0">
                   {page.reviews.map((r, i) => (
                     <article
                       key={i}
@@ -3084,6 +3212,7 @@ const footer = (
                       ) : null}
                     </article>
                   ))}
+                  </div>
                 </div>
               )}
             </section>
@@ -3363,7 +3492,7 @@ const footer = (
             <span className="text-xs text-gray-500">{t.shopPage}</span>
           )}
         </header>
-        <main className="mx-auto max-w-2xl px-4 pb-28 pt-6 md:max-w-4xl md:pb-12">
+        <main className="mx-auto max-w-2xl px-4 pb-28 pt-6 md:max-w-4xl lg:max-w-6xl md:pb-12">
           {/* ০৩ হিরো + ০৪ গ্যালারি */}
           <div className="grid gap-6 md:grid-cols-2 md:items-start">
             <div>
@@ -3446,7 +3575,7 @@ const footer = (
 
           {/* ০৫ আস্থার নিশ্চয়তা */}
           <section className="mt-10">
-            <div className="grid grid-cols-2 gap-3">
+            <div className="grid grid-cols-2 gap-3 lg:grid-cols-4">
               {trustItems.map((item) => (
                 <div
                   key={item.title}
@@ -3476,7 +3605,7 @@ const footer = (
                 {L('কেন এই পণ্যটি কিনবেন?', 'Why Buy This Product?')}
               </h2>
               <span className="mt-3 block h-1 w-12 rounded bg-[#E11D2E]" />
-              <div className="mt-5 space-y-3">
+              <div className="mt-5 space-y-3 lg:grid lg:grid-cols-2 lg:gap-3 lg:space-y-0">
                 {product.benefits.map((b, i) => (
                   <div
                     key={i}
@@ -3551,7 +3680,7 @@ const footer = (
               {page.reviews.length === 0 ? (
                 <p className="mt-4 text-sm text-gray-500">{t.noReviews}</p>
               ) : (
-                <div className="mt-5 space-y-3">
+                <div className="mt-5">
                   {bdRated.length > 0 ? (
                     <p className="text-sm text-gray-600">
                       <span className="font-bold text-amber-500">
@@ -3561,6 +3690,7 @@ const footer = (
                       {t.basedOnReviews(bdRated.length)}
                     </p>
                   ) : null}
+                  <div className="mt-3 space-y-3 lg:grid lg:grid-cols-2 lg:gap-4 lg:space-y-0">
                   {page.reviews.map((r, i) => (
                     <article
                       key={i}
@@ -3588,6 +3718,7 @@ const footer = (
                       ) : null}
                     </article>
                   ))}
+                  </div>
                 </div>
               )}
             </section>
@@ -3706,7 +3837,7 @@ const footer = (
               <p className={bdEyebrow}>{L('জিজ্ঞাসা', 'FAQ')}</p>
               <h2 className={`${bdH2} mt-1`}>{t.faq}</h2>
               <span className="mt-3 block h-1 w-12 rounded bg-[#E11D2E]" />
-              <div className="mt-5 space-y-3">
+              <div className="mt-5 space-y-3 lg:grid lg:grid-cols-2 lg:gap-3 lg:space-y-0">
                 {page.faqs.map((f, i) => (
                   <details
                     key={i}
@@ -4585,7 +4716,7 @@ const footer = (
     <div className={`min-h-screen ${pageShell}`}>
       {announcement}
       {shopHeader}
-      <main className="mx-auto max-w-2xl px-4 py-6">
+      <main className="mx-auto max-w-2xl px-4 py-6 lg:max-w-6xl lg:py-10">
         {hero}
         <div className="mt-8">{sections}</div>
         {orderBox}
