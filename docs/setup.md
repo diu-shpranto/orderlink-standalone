@@ -230,3 +230,83 @@ supabase functions deploy verify-reset-code --no-verify-jwt
   ইচ্ছে করে ব্যর্থ করালে (যেমন Sheet মুছে) রিট্রাইয়ে ঠিক হয়,
   ডুপ্লিকেট সারি হয় না। দ্বিতীয় সেলারের Sheet-এ প্রথমজনের অর্ডার
   যাবে না (RLS + প্রতি সেলারের নিজের টোকেন)।
+
+## Phase 5 — সাবস্ক্রিপশন + হাতে পেমেন্ট (মনিটাইজেশন)
+
+একটাই মাসিক সাবস্ক্রিপশন, ঠিক ৪টি প্যাকেজ (Starter ৳৯৯/৩ পেজ/১০০ MB,
+Basic ৳১৯৯/৫/২৫০ MB, Growth ৳৩৯৯/১০/৫০০ MB, Business ৳৬৯৯/২০/১ GB)।
+এক পেমেন্ট = অনুমোদনের দিন থেকে ৩০ দিন; মেয়াদ শেষে ৩ দিনের গ্রেস,
+তারপর ফ্রি সার্ভিস (শুধু ১টি পেজ চালু, বাকি সাসপেন্ডেড — কখনো মোছা
+হয় না)। নতুন অ্যাকাউন্ট ফ্রি প্ল্যানে শুরু করে (সর্বোচ্চ ১টি সক্রিয়
+পেজ)। পেমেন্ট শুধু হাতে — bKash/Nagad/Upay + TrxID + অ্যাডমিন অনুমোদন;
+অনুমোদনের আগে কিছুই চালু হয় না।
+
+- **মাইগ্রেশন চালান:** Supabase Dashboard → SQL Editor-এ
+  `supabase/migrations/0005_subscription.sql`-এর পুরো কনটেন্ট চালান।
+  প্রত্যাশা: "Success. No rows returned"। যাচাই:
+  ```sql
+  select id, price_bdt, max_pages, storage_mb from public.subscription_plans order by sort_order;
+  select key, value from public.platform_settings;
+  ```
+  প্রত্যাশা: ৪টি প্ল্যান (99/199/399/699); payment নম্বরগুলো খালি
+  (`''`), grace_days `3`।
+- **পেমেন্টের নম্বর বসান (আগে এটা না করলে কেনার পথ বন্ধ থাকবে):**
+  ```sql
+  update public.platform_settings set value = '<bKash নম্বর>' where key = 'payment_bkash_number';
+  update public.platform_settings set value = '<Nagad নম্বর>' where key = 'payment_nagad_number';
+  update public.platform_settings set value = '<Upay নম্বর>' where key = 'payment_upay_number';
+  ```
+  নম্বরগুলো শুধু এখানেই থাকে — রেপোতে (পাবলিক) কখনো লেখা যাবে না।
+- **Edge Functions ডেপ্লয় করুন:**
+  ```bash
+  supabase functions deploy submit-subscription-payment
+  supabase functions deploy review-subscription-payment --no-verify-jwt
+  supabase functions deploy process-subscription-expiry --no-verify-jwt
+  ```
+  `submit-subscription-payment`-এ JWT যাচাই চালু (শুধু লগইন করা
+  সেলার নিজের পেমেন্ট জমা দিতে পারে)। `review-subscription-payment`
+  শুধু service-role key দিয়ে ডাকা যায় (Phase 6 অ্যাডমিন প্যানেলের
+  জন্য)। `process-subscription-expiry` pg_cron থেকে ডাকা হয়।
+- **প্রতিদিনের মেয়াদ-প্রসেসর (pg_cron):** Database → Extensions-এ
+  `pg_cron` ও `pg_net` চালু আছে কি না দেখুন (Phase 4-এ চালু করা
+  হয়েছে), তারপর SQL Editor-এ চালান (ANON_KEY-এর জায়গায়
+  `VITE_SUPABASE_ANON_KEY`-এর মান বসান):
+  ```sql
+  select cron.schedule(
+    'orderlink-subscription-expiry',
+    '0 0 * * *',
+    $$
+    select net.http_post(
+      url := 'https://xrkdoijcdokuvsahmepw.supabase.co/functions/v1/process-subscription-expiry',
+      headers := '{"Content-Type": "application/json", "Authorization": "Bearer <ANON_KEY>"}'::jsonb,
+      body := '{}'::jsonb
+    ) as request_id;
+    $$
+  );
+  ```
+  প্রতিদিন রাত ১২টায় (UTC) চলে — মেয়াদ শেষ হলে গ্রেস শুরু, গ্রেস
+  শেষ হলে ফ্রি সার্ভিস। কাজ করছে কি না দেখতে:
+  `select * from cron.job;` আর
+  `select * from cron.job_run_details order by start_time desc limit 5;`
+  হাতে চালিয়ে দেখতে চাইলে: `select public.process_subscription_expiry();`
+- **ডেমো শপে Starter দিন (লাইভ অ্যাপের ডেমো শপের মতো):**
+  ```sql
+  insert into public.seller_subscriptions (seller_id, plan_id, starts_at, ends_at, status)
+  select id, 'starter', now(), now() + interval '30 days', 'active'
+  from public.sellers where email = 'demo@orderlink.demo'
+  on conflict (seller_id) do update set
+    plan_id = 'starter', starts_at = now(),
+    ends_at = now() + interval '30 days', status = 'active';
+  insert into public.subscription_history (seller_id, plan_id, action, note)
+  select id, 'starter', 'plan_assigned', 'ডেমো শপে Starter দেওয়া হয়েছে।'
+  from public.sellers where email = 'demo@orderlink.demo';
+  ```
+- **গ্রহণের পরীক্ষা:** TEST Shop দিয়ে Settings → সাবস্ক্রিপশন খুলুন —
+  "ফ্রি প্ল্যান" দেখাবে। প্যাকেজ বাছুন → পেমেন্টের নম্বর দেখা যাবে →
+  ভুল TrxID দিয়ে জমা দিলে পেমেন্ট pending হবে; একই TrxID আবার দিলে
+  আটকাবে। SQL Editor-এ
+  `select public.approve_subscription_payment('<payment id>');`
+  চালালে রসিদ (OL-RCP-1001…) ফিরবে আর ড্যাশবোর্ডে প্যাকেজের নাম
+  দেখাবে। ফ্রি প্ল্যানে ২য় পেজ প্রকাশ করলে সীমার ভুল দেখাবে।
+  `select public.reject_subscription_payment('<payment id>', 'কারণ');`
+  চালালে বাতিলের কারণ সেলারকে হুবহু দেখাবে।

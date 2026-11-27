@@ -13,6 +13,7 @@ import {
   setPagePublished,
   type ProductListItem,
 } from '../lib/products.ts'
+import { chooseKeptPage } from '../lib/subscription.ts'
 import { formatBDT, formatCountBn } from '../lib/pricing.ts'
 import { navigate } from '../lib/router.ts'
 import { IconPlus, IconSearch } from '../components/icons.tsx'
@@ -53,8 +54,11 @@ export default function Products() {
     // eslint-disable-next-line react-hooks/exhaustive-deps
   }, [seller])
 
-  const publishedCount = items.filter((i) => i.page?.is_published).length
-  const draftCount = items.length - publishedCount
+  const publishedCount = items.filter(
+    (i) => i.page?.is_published && !i.page?.is_suspended,
+  ).length
+  const suspendedCount = items.filter((i) => i.page?.is_suspended).length
+  const draftCount = items.length - publishedCount - suspendedCount
   const filtered = items.filter((i) => {
     const matchesQuery = i.product.name
       .toLowerCase()
@@ -72,10 +76,29 @@ export default function Products() {
   ]
 
   async function togglePublish(item: ProductListItem) {
-    if (!item.page) return
+    if (!item.page || !seller) return
+    // সাসপেন্ডেড পেজ: "চালু রাখুন" মানে এই পেজটাই ফ্রি সার্ভিসে
+    // চালু থাকবে, বাকি প্রকাশিত পেজ সাসপেন্ড হবে।
+    if (item.page.is_suspended) {
+      setBusyId(item.product.id)
+      try {
+        await chooseKeptPage(item.page.id)
+        setNotice(`"${item.product.name}" পেজটি চালু রাখা হয়েছে।`)
+        await load()
+      } catch (err) {
+        setError(err instanceof Error ? err.message : 'বদলানো যায়নি।')
+      } finally {
+        setBusyId('')
+      }
+      return
+    }
     setBusyId(item.product.id)
     try {
-      await setPagePublished(item.page.id, !item.page.is_published)
+      await setPagePublished(
+        item.page.id,
+        !item.page.is_published,
+        seller.id,
+      )
       setNotice(
         item.page.is_published
           ? 'পেজটি খসড়া করা হয়েছে।'
@@ -135,11 +158,12 @@ export default function Products() {
         নতুন ল্যান্ডিং পেজ তৈরি করুন
       </button>
 
-      <div className="mt-5 grid grid-cols-3 gap-3">
+      <div className="mt-5 grid grid-cols-2 gap-3 sm:grid-cols-4">
         {[
           { label: 'মোট পেজ', value: items.length },
           { label: 'পাবলিশড পেজ', value: publishedCount },
           { label: 'ড্রাফট পেজ', value: draftCount },
+          { label: 'সাসপেন্ডেড পেজ', value: suspendedCount },
         ].map((c) => (
           <div
             key={c.label}
@@ -237,12 +261,18 @@ export default function Products() {
                     </h2>
                     <span
                       className={`shrink-0 rounded-full px-2.5 py-1 text-xs font-bold ${
-                        item.page?.is_published
-                          ? 'bg-brand-light text-brand-dark'
-                          : 'bg-gray-100 text-gray-600'
+                        item.page?.is_suspended
+                          ? 'bg-amber-100 text-amber-800'
+                          : item.page?.is_published
+                            ? 'bg-brand-light text-brand-dark'
+                            : 'bg-gray-100 text-gray-600'
                       }`}
                     >
-                      {item.page?.is_published ? '● প্রকাশিত' : 'খসড়া'}
+                      {item.page?.is_suspended
+                        ? '● সাসপেন্ডেড'
+                        : item.page?.is_published
+                          ? '● প্রকাশিত'
+                          : 'খসড়া'}
                     </span>
                   </div>
                   <p className="mt-2 flex items-baseline gap-2">
@@ -299,7 +329,11 @@ export default function Products() {
                         onClick={() => void togglePublish(item)}
                         className="rounded-xl border border-gray-300 px-3 py-1.5 font-bold disabled:opacity-50"
                       >
-                        {item.page.is_published ? 'খসড়া করুন' : 'প্রকাশ করুন'}
+                        {item.page.is_suspended
+                          ? 'চালু রাখুন'
+                          : item.page.is_published
+                            ? 'খসড়া করুন'
+                            : 'প্রকাশ করুন'}
                       </button>
                     ) : null}
                     <button

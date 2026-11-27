@@ -19,7 +19,8 @@ import {
   IconStore,
   IconX,
 } from '../components/icons.tsx'
-import { PACKAGES, storageLabel } from '../lib/catalog.ts'
+import { storageLabel } from '../lib/catalog.ts'
+import { fetchPlans, type PlanRow } from '../lib/subscription.ts'
 import { discountPercent, formatBDT, toBnDigits } from '../lib/pricing.ts'
 import { navigate } from '../lib/router.ts'
 import { INTRO_TEMPLATES, templateById } from '../lib/templates.ts'
@@ -387,6 +388,22 @@ export default function Home() {
   const [menuOpen, setMenuOpen] = useState(false)
   const [activeStep, setActiveStep] = useState(0)
   const [openFaq, setOpenFaq] = useState<number | null>(null)
+  // প্রাইসিং — সার্ভারের লাইভ ক্যাটালগ থেকে (দাম কখনো কোডে নেই)।
+  const [plans, setPlans] = useState<PlanRow[] | null>(null)
+  const [plansError, setPlansError] = useState(false)
+
+  useEffect(() => {
+    fetchPlans()
+      .then((p) => setPlans(p))
+      .catch(() => setPlansError(true))
+  }, [])
+
+  function loadPlans() {
+    setPlansError(false)
+    fetchPlans()
+      .then((p) => setPlans(p))
+      .catch(() => setPlansError(true))
+  }
 
   useEffect(() => {
     if (!menuOpen) return
@@ -715,54 +732,73 @@ export default function Home() {
             এক পেমেন্টে ৩০ দিনের পুরো অ্যাক্সেস — কোনো পেজ ক্রেডিট, আলাদা
             হোস্টিং ফি, অর্ডারপ্রতি চার্জ বা কমিশন নেই।
           </p>
-          <div className="mt-8 grid gap-4 sm:grid-cols-2 lg:grid-cols-4">
-            {PACKAGES.map((pkg) => (
-              <article
-                key={pkg.id}
-                className={`relative rounded-2xl border p-5 ${
-                  pkg.recommended
-                    ? 'border-brand bg-brand-light shadow-md'
-                    : 'border-gray-200 bg-white'
-                }`}
+          {plans === null && !plansError ? (
+            <p className="mt-8 text-center text-sm text-gray-600">
+              প্রাইসিং লোড হচ্ছে…
+            </p>
+          ) : plansError || !plans ? (
+            <div className="mx-auto mt-8 max-w-md rounded-2xl border border-gray-200 bg-white p-5 text-center shadow-sm">
+              <p className="text-sm font-bold text-gray-700">
+                প্রাইসিং এখন লোড করা যায়নি।
+              </p>
+              <button
+                type="button"
+                onClick={loadPlans}
+                className="mt-3 rounded-xl bg-gradient-to-r from-brand-dark to-brand px-4 py-2.5 text-sm font-bold text-white shadow"
               >
-                {pkg.recommended ? (
-                  <span className="absolute -top-3 left-1/2 -translate-x-1/2 whitespace-nowrap rounded-full bg-brand px-3 py-0.5 text-xs font-bold text-white">
-                    সবচেয়ে জনপ্রিয়
-                  </span>
-                ) : null}
-                <h3 className="font-extrabold">{pkg.nameBn}</h3>
-                <p className="mt-2">
-                  <span className="text-3xl font-extrabold">
-                    {formatBDT(pkg.price)}
-                  </span>
-                  <span className="text-sm text-gray-500"> / মাস</span>
-                </p>
-                <ul className="mt-4 space-y-2 text-sm text-gray-700">
-                  <li className="flex items-start gap-1.5">
-                    <IconCheck className="mt-0.5 h-4 w-4 shrink-0 text-brand" />
-                    {toBnDigits(pkg.pages)}টি ল্যান্ডিং পেজ
-                  </li>
-                  <li className="flex items-start gap-1.5">
-                    <IconCheck className="mt-0.5 h-4 w-4 shrink-0 text-brand" />
-                    {storageLabel(pkg.storageMb)} ছবির স্টোরেজ
-                  </li>
-                  {pkg.featuresBn.slice(2).map((f) => (
-                    <li key={f} className="flex items-start gap-1.5">
-                      <IconCheck className="mt-0.5 h-4 w-4 shrink-0 text-brand" />
-                      {f}
-                    </li>
-                  ))}
-                </ul>
-                <button
-                  type="button"
-                  onClick={() => navigate('/signup')}
-                  className="mt-5 w-full rounded-xl bg-accent px-4 py-2.5 font-bold text-white shadow"
+                আবার চেষ্টা করুন
+              </button>
+            </div>
+          ) : (
+            <div className="mt-8 grid gap-4 sm:grid-cols-2 lg:grid-cols-4">
+              {plans.map((pkg) => (
+                <article
+                  key={pkg.id}
+                  className={`relative rounded-2xl border p-5 ${
+                    pkg.is_recommended
+                      ? 'border-brand bg-brand-light shadow-md'
+                      : 'border-gray-200 bg-white'
+                  }`}
                 >
-                  শুরু করুন
-                </button>
-              </article>
-            ))}
-          </div>
+                  {pkg.is_recommended ? (
+                    <span className="absolute -top-3 left-1/2 -translate-x-1/2 whitespace-nowrap rounded-full bg-brand px-3 py-0.5 text-xs font-bold text-white">
+                      সবচেয়ে জনপ্রিয়
+                    </span>
+                  ) : null}
+                  <h3 className="font-extrabold">{pkg.name}</h3>
+                  <p className="mt-2">
+                    <span className="text-3xl font-extrabold">
+                      {formatBDT(pkg.price_bdt)}
+                    </span>
+                    <span className="text-sm text-gray-500"> / মাস</span>
+                  </p>
+                  <ul className="mt-4 space-y-2 text-sm text-gray-700">
+                    <li className="flex items-start gap-1.5">
+                      <IconCheck className="mt-0.5 h-4 w-4 shrink-0 text-brand" />
+                      {toBnDigits(pkg.max_pages)}টি ল্যান্ডিং পেজ
+                    </li>
+                    <li className="flex items-start gap-1.5">
+                      <IconCheck className="mt-0.5 h-4 w-4 shrink-0 text-brand" />
+                      {storageLabel(pkg.storage_mb)} ছবির স্টোরেজ
+                    </li>
+                    {pkg.features_bn.slice(2).map((f) => (
+                      <li key={f} className="flex items-start gap-1.5">
+                        <IconCheck className="mt-0.5 h-4 w-4 shrink-0 text-brand" />
+                        {f}
+                      </li>
+                    ))}
+                  </ul>
+                  <button
+                    type="button"
+                    onClick={() => navigate('/signup')}
+                    className="mt-5 w-full rounded-xl bg-accent px-4 py-2.5 font-bold text-white shadow"
+                  >
+                    শুরু করুন
+                  </button>
+                </article>
+              ))}
+            </div>
+          )}
         </div>
       </section>
 

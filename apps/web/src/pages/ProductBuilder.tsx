@@ -23,6 +23,10 @@ import {
 } from '../lib/products.ts'
 import { navigate } from '../lib/router.ts'
 import {
+  checkStorageBeforeUpload,
+  fetchUsage,
+} from '../lib/subscription.ts'
+import {
   DEFAULT_SECTION_ORDER,
   DEFAULT_SECTIONS,
   SECTION_DEFS,
@@ -261,6 +265,15 @@ export default function ProductBuilder({
     }
     setBusy(true)
     try {
+      // নতুন ছবির মোট সাইজ স্টোরেজের সীমার মধ্যে আছে কি — সীমা
+      // ছাড়ালে আপলোডের আগেই বাংলায় ভুল দেখাবে।
+      const newBytes = images.reduce(
+        (sum, img) => sum + (img.file ? img.file.size : 0),
+        0,
+      )
+      if (newBytes > 0) {
+        await checkStorageBeforeUpload(seller.id, newBytes)
+      }
       // নতুন ছবি Storage-এ আপলোড (আগে থেকে থাকা ছবি আবার আপলোড হয় না)।
       const resolved: {
         id?: string
@@ -319,6 +332,9 @@ export default function ProductBuilder({
           },
         })
       await syncProductImages(savedId, seller.id, resolved)
+      // ব্যবহারের হিসাব তাজা করা (স্টোরেজের পরিমাণ) — ব্যর্থ হলেও
+      // সেভ আটকাবে না।
+      void fetchUsage(seller.id).catch(() => undefined)
       setSavedProductId(savedId)
       setPageId(savedPageId)
       setIsPublished(publish)
@@ -378,6 +394,7 @@ export default function ProductBuilder({
             faqs,
             page_lang: pageLang,
             is_published: isPublished,
+            is_suspended: false,
           },
           sellerWhatsapp: seller.whatsapp,
         }

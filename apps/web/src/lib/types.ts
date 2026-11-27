@@ -72,6 +72,8 @@ export interface PageRow {
   faqs: FaqItem[]
   page_lang: PageLang
   is_published: boolean
+  /** ফ্রি সার্ভিসে বন্ধ পেজ (Phase 5) — প্রকাশিতই থাকে, শুধু লুকানো। */
+  is_suspended: boolean
 }
 
 export interface OrderRow {

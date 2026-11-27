@@ -60,6 +60,7 @@ function CustomerPageRoute({
   const [loading, setLoading] = useState(true)
   const [data, setData] = useState<CustomerPageData | null>(null)
   const [unpublished, setUnpublished] = useState(false)
+  const [suspended, setSuspended] = useState(false)
   const [error, setError] = useState('')
 
   useEffect(() => {
@@ -67,6 +68,7 @@ function CustomerPageRoute({
     setLoading(true)
     setError('')
     setUnpublished(false)
+    setSuspended(false)
     fetchCustomerPage(shopSlug, productSlug)
       .then((result) => {
         if (!mounted) return
@@ -74,6 +76,9 @@ function CustomerPageRoute({
           setData(null)
         } else if (!result.page.is_published) {
           setUnpublished(true)
+          setData(null)
+        } else if (result.page.is_suspended) {
+          setSuspended(true)
           setData(null)
         } else {
           setData(result)
@@ -101,6 +106,11 @@ function CustomerPageRoute({
   }
   if (unpublished) {
     return <NotFound message="এই পেজটি এখনো প্রকাশ করা হয়নি।" />
+  }
+  if (suspended) {
+    return (
+      <NotFound message="এই পেজটি সাময়িকভাবে বন্ধ আছে — দোকানদার প্যাকেজ নবায়ন করলে আবার খুলবে।" />
+    )
   }
   if (error) {
     return <NotFound message={error} />

@@ -14,7 +14,11 @@ import {
   type DashboardStats,
   type ProductListItem,
 } from '../lib/products.ts'
-import { formatBDT, formatCountBn } from '../lib/pricing.ts'
+import { formatBDT, formatCountBn, toBnDigits } from '../lib/pricing.ts'
+import {
+  fetchMySubscription,
+  type MySubscription,
+} from '../lib/subscription.ts'
 import { navigate } from '../lib/router.ts'
 import { requireSupabase } from '../lib/supabase.ts'
 import {
@@ -37,6 +41,7 @@ import {
 } from '../components/icons.tsx'
 import type { ShopRow } from '../lib/types.ts'
 import SetupWizard from './SetupWizard.tsx'
+import SubscriptionSettings from '../components/SubscriptionSettings.tsx'
 
 function formatDateTimeShort(iso: string): string {
   return new Date(iso).toLocaleString('bn-BD', {
@@ -221,6 +226,7 @@ export function DashboardOverview() {
   const { seller } = useAuth()
   const [stats, setStats] = useState<DashboardStats | null>(null)
   const [products, setProducts] = useState<ProductListItem[]>([])
+  const [mySub, setMySub] = useState<MySubscription | null>(null)
   const [range, setRange] = useState<SalesRange>('7d')
   const [loading, setLoading] = useState(true)
   const [error, setError] = useState('')
@@ -231,10 +237,12 @@ export function DashboardOverview() {
     Promise.all([
       fetchDashboardStats(seller.id),
       fetchSellerProducts(seller.id),
+      fetchMySubscription(seller.id).catch(() => null),
     ])
-      .then(([s, list]) => {
+      .then(([s, list, sub]) => {
         setStats(s)
         setProducts(list)
+        setMySub(sub)
       })
       .catch((err: unknown) => {
         setError(err instanceof Error ? err.message : 'লোড করা যায়নি।')
@@ -295,11 +303,59 @@ export function DashboardOverview() {
         স্বাগতম{seller?.shop_name ? `, ${seller.shop_name}` : ''}
       </h1>
       <p className="mt-1.5 text-[15px] text-gray-500">{todayBnLong()}</p>
-      {/* সাবস্ক্রিপশন সিস্টেম (Phase 5) এখনো নেই — সবাই ফ্রি প্ল্যানে। */}
+      {/* বর্তমান প্ল্যান — সার্ভারের লাইভ সাবস্ক্রিপশন থেকে। */}
       <span className="mt-4 inline-flex items-center gap-2 rounded-full border border-gray-200 bg-white px-3.5 py-2 text-sm font-bold text-gray-700 shadow-sm">
         <span className="h-2.5 w-2.5 rounded-full bg-brand" />
-        ফ্রি প্ল্যান · দোকান সক্রিয়
+        {mySub?.plan ? `${mySub.plan.name} প্ল্যান` : 'ফ্রি প্ল্যান'} ·
+        দোকান সক্রিয়
       </span>
+
+      {/* মেয়াদের সতর্কতা — আসল ডাটা থেকে। */}
+      {mySub?.state === 'expiring' ? (
+        <div className="mt-4 flex flex-wrap items-center justify-between gap-3 rounded-2xl border border-amber-300 bg-amber-50 px-4 py-3">
+          <p className="text-sm font-bold text-amber-800">
+            আপনার {mySub.plan?.name} প্যাকেজের মেয়াদ{' '}
+            {toBnDigits(mySub.daysLeft)} দিন পর শেষ হবে।
+          </p>
+          <button
+            type="button"
+            onClick={() => navigate('/dashboard/settings')}
+            className="rounded-xl bg-gradient-to-r from-brand-dark to-brand px-3.5 py-2 text-sm font-bold text-white shadow"
+          >
+            নবায়ন করুন →
+          </button>
+        </div>
+      ) : null}
+      {mySub?.state === 'grace' ? (
+        <div className="mt-4 flex flex-wrap items-center justify-between gap-3 rounded-2xl border border-amber-300 bg-amber-50 px-4 py-3">
+          <p className="text-sm font-bold text-amber-800">
+            মেয়াদ শেষ হয়েছে — {toBnDigits(mySub.daysLeft)} দিনের গ্রেস
+            চলছে। এর মধ্যে নবায়ন করলে সব পেজ চালু থাকবে।
+          </p>
+          <button
+            type="button"
+            onClick={() => navigate('/dashboard/settings')}
+            className="rounded-xl bg-gradient-to-r from-brand-dark to-brand px-3.5 py-2 text-sm font-bold text-white shadow"
+          >
+            নবায়ন করুন →
+          </button>
+        </div>
+      ) : null}
+      {mySub?.state === 'expired' ? (
+        <div className="mt-4 flex flex-wrap items-center justify-between gap-3 rounded-2xl border border-red-200 bg-red-50 px-4 py-3">
+          <p className="text-sm font-bold text-red-700">
+            মেয়াদ শেষ — ফ্রি সার্ভিসে আছেন। শুধু ১টি পেজ চালু আছে, বাকিগুলো
+            সাসপেন্ডেড।
+          </p>
+          <button
+            type="button"
+            onClick={() => navigate('/dashboard/settings')}
+            className="rounded-xl bg-gradient-to-r from-brand-dark to-brand px-3.5 py-2 text-sm font-bold text-white shadow"
+          >
+            প্যাকেজ কিনুন →
+          </button>
+        </div>
+      ) : null}
 
       {loading ? (
         <p className="mt-6 text-gray-600">লোড হচ্ছে…</p>
@@ -428,12 +484,18 @@ export function DashboardOverview() {
                     </span>
                     <span
                       className={`shrink-0 rounded-full px-2 py-0.5 text-xs font-bold ${
-                        item.page?.is_published
-                          ? 'bg-brand-light text-brand-dark'
-                          : 'bg-gray-100 text-gray-600'
+                        item.page?.is_suspended
+                          ? 'bg-amber-100 text-amber-800'
+                          : item.page?.is_published
+                            ? 'bg-brand-light text-brand-dark'
+                            : 'bg-gray-100 text-gray-600'
                       }`}
                     >
-                      {item.page?.is_published ? 'প্রকাশিত' : 'খসড়া'}
+                      {item.page?.is_suspended
+                        ? 'সাসপেন্ডেড'
+                        : item.page?.is_published
+                          ? 'প্রকাশিত'
+                          : 'খসড়া'}
                     </span>
                   </button>
                 ))}
@@ -857,16 +919,7 @@ export function SettingsPage() {
             />
           ) : null}
 
-          {category === 'subscription' ? (
-            <ReadOnlyPanel
-              title="সাবস্ক্রিপশন"
-              rows={[
-                { label: 'বর্তমান প্যাকেজ', value: 'ফ্রি প্ল্যান' },
-                { label: 'সক্রিয় পেজের সীমা', value: '১টি' },
-              ]}
-              note="প্যাকেজ কেনা, পেমেন্ট আর মেয়াদ বাড়ানো পরের ধাপে (মনিটাইজেশন) আসছে। এখন সবাই ফ্রি প্ল্যানে ১টি পেজ ব্যবহার করতে পারে।"
-            />
-          ) : null}
+          {category === 'subscription' ? <SubscriptionSettings /> : null}
 
           {category === 'security' ? (
             <ReadOnlyPanel

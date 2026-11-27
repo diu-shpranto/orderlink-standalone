@@ -15,6 +15,7 @@ import type {
 } from './types.ts'
 import type { PageLang } from './types.ts'
 import { daysAgoDhaka, todayDhaka } from './pricing.ts'
+import { canPublishPage } from './subscription.ts'
 
 export const PRODUCT_IMAGES_BUCKET = 'product-images'
 export const MAX_IMAGES_PER_PRODUCT = 8
@@ -102,6 +103,7 @@ export async function fetchPageBySlug(
     .select('slug, shop_id')
     .eq('slug', slug)
     .eq('is_published', true)
+    .eq('is_suspended', false)
     .limit(1)
     .maybeSingle()
   if (error) throw error
@@ -306,6 +308,29 @@ export async function saveProductAndPage(input: {
     page_lang: input.page.pageLang,
     is_published: input.page.isPublished,
   }
+  // প্রকাশ করতে চাইলে সার্ভারের সীমা-চেক — আগে থেকে প্রকাশিত পেজ
+  // আবার সেভ করলে চেক লাগে না। আসল বাধা ডাটাবেসের ট্রিগারে।
+  if (input.page.isPublished) {
+    let alreadyPublished = false
+    if (input.productId) {
+      const { data: existingPage } = await client
+        .from('pages')
+        .select('is_published')
+        .eq('product_id', input.productId)
+        .maybeSingle()
+      alreadyPublished = Boolean(
+        (existingPage as { is_published: boolean } | null)?.is_published,
+      )
+    }
+    if (!alreadyPublished) {
+      const allowed = await canPublishPage(input.sellerId)
+      if (!allowed) {
+        throw new Error(
+          'প্যাকেজের সীমা শেষ — নতুন পেজ প্রকাশ করতে প্যাকেজ আপগ্রেড করুন বা একটি পেজ খসড়া করুন।',
+        )
+      }
+    }
+  }
   const { data: pageData, error: pageError } = await client
     .from('pages')
     .upsert(pagePayload, { onConflict: 'product_id' })
@@ -411,8 +436,18 @@ export async function deleteProduct(productId: string): Promise<void> {
 export async function setPagePublished(
   pageId: string,
   published: boolean,
+  sellerId: string,
 ): Promise<void> {
   const client = requireSupabase()
+  // প্রকাশ করতে চাইলে সার্ভারের সীমা-চেক — আসল বাধা ডাটাবেসের ট্রিগারে।
+  if (published) {
+    const allowed = await canPublishPage(sellerId)
+    if (!allowed) {
+      throw new Error(
+        'প্যাকেজের সীমা শেষ — নতুন পেজ প্রকাশ করতে প্যাকেজ আপগ্রেড করুন বা একটি পেজ খসড়া করুন।',
+      )
+    }
+  }
   const { error } = await client
     .from('pages')
     .update({ is_published: published })
@@ -437,6 +472,8 @@ export interface DashboardStats {
   totalPages: number
   /** খসড়া পেজ */
   draftPages: number
+  /** সাসপেন্ডেড পেজ (ফ্রি সার্ভিসে বন্ধ) */
+  suspendedPages: number
   /** শেষ ৭ দিনের দৈনিক বিক্রি — চার্টের জন্য (label: শনি/রবি/…/আজ) */
   dailySales7: { label: string; total: number }[]
   /** শেষ ৩০ দিনের দৈনিক বিক্রি */
@@ -458,14 +495,20 @@ export async function fetchDashboardStats(
   const orders = (ordersData ?? []).map(asOrder)
   const { data: pagesData } = await client
     .from('pages')
-    .select('id, is_published')
+    .select('id, is_published, is_suspended')
     .eq('seller_id', sellerId)
   const today = todayDhaka()
   const weekAgo = daysAgoDhaka(7)
   const monthAgo = daysAgoDhaka(30)
   const orderDate = (o: OrderRow) => o.created_at.slice(0, 10)
   const nonCancelled = (o: OrderRow) => o.status !== 'cancelled'
-  const pages = (pagesData ?? []) as { id: string; is_published: boolean }[]
+  const pages = (pagesData ?? []) as {
+    id: string
+    is_published: boolean
+    is_suspended: boolean
+  }[]
+  const isActivePage = (p: { is_published: boolean; is_suspended: boolean }) =>
+    p.is_published && !p.is_suspended
   const totalByDate = new Map<string, number>()
   for (const o of orders) {
     if (!nonCancelled(o)) continue
@@ -492,7 +535,7 @@ export async function fetchDashboardStats(
     todaySales: orders
       .filter((o) => orderDate(o) === today && nonCancelled(o))
       .reduce((sum, o) => sum + Number(o.total), 0),
-    activePages: pages.filter((p) => p.is_published).length,
+    activePages: pages.filter(isActivePage).length,
     salesLast7Days: orders
       .filter((o) => orderDate(o) >= weekAgo && nonCancelled(o))
       .reduce((sum, o) => sum + Number(o.total), 0),
@@ -507,6 +550,7 @@ export async function fetchDashboardStats(
       .reduce((sum, o) => sum + Number(o.total), 0),
     totalPages: pages.length,
     draftPages: pages.filter((p) => !p.is_published).length,
+    suspendedPages: pages.filter((p) => p.is_suspended).length,
     dailySales7,
     dailySales30,
     recentOrders: orders.slice(0, 5),
