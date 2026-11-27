@@ -516,7 +516,7 @@ export default function Auth({
 
             {/* সাইনআপ / লগইন পিল টগল */}
             {isAuthMode ? (
-              <div className="mt-3 inline-flex rounded-full border border-gray-200 bg-white p-1 shadow-sm sm:mt-5">
+              <div className="mt-3 flex w-fit mx-auto rounded-full border border-gray-200 bg-white p-1 shadow-sm sm:mt-5 lg:mx-0">
                 <button
                   type="button"
                   onClick={() => switchMode('signup')}
