@@ -83,6 +83,17 @@ export type TemplateId =
   | 'sunset-offer'
   | 'signature-pro'
   | 'classic-green'
+  | 'marketplace-pro'
+
+/** একই দোকানের অন্য প্রকাশিত পণ্য — "এই দোকানের আরও পণ্য" সারির
+    জন্য (Marketplace Pro টেমপ্লেট)। fetchRelatedProducts থেকে আসে। */
+export interface RelatedProductItem {
+  slug: string
+  name: string
+  price: number
+  oldPrice: number | null
+  imageUrl: string | null
+}
 
 export interface PageRow {
   id: string
@@ -146,4 +157,8 @@ export interface CustomerPageData {
   images: ProductImageRow[]
   page: PageRow
   sellerWhatsapp: string | null
+  /** একই দোকানের অন্য প্রকাশিত পণ্য (Marketplace Pro-র "আরও পণ্য"
+      সারি)। না থাকলে (যেমন বিল্ডার প্রিভিউতে ফেচের আগে) সারিটা
+      দেখায় না — কোনো টেমপ্লেটের আচরণ বদলায় না। */
+  relatedProducts?: RelatedProductItem[]
 }

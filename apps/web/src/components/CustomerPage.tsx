@@ -4577,6 +4577,395 @@ const footer = (
     )
   }
 
+  // ---- Marketplace Pro — মার্কেটপ্লেস ধাঁচের প্রোডাক্ট পেজ ----
+  // দারাজ/অ্যামাজন-ধাঁচের কাঠামো (ব্র্যান্ডের নাম/লোগো/লেখা নয়, শুধু
+  // কাঠামো): ব্রেডক্রাম্ব, বামে গ্যালারি + ডানে তথ্যের কলাম, ডেলিভারি
+  // বাক্স, সেলার কার্ড, রেটিং ভাঙনসহ রিভিউ, একই দোকানের আরও পণ্য।
+  // সবই আসল ডাটা — ডেলিভারি সময়ের অনুমান, বিক্রির সংখ্যা, ভুয়া
+  // রেটিং কিছু নেই। দোকানের আলাদা পেজের রুট নেই, তাই ব্রেডক্রাম্বে
+  // দোকানের নাম লিংক নয় (শুধু হোম "/" আসল লিংক)।
+  if (page.template === 'marketplace-pro') {
+    const L = (bn: string, en: string) =>
+      page.page_lang === 'en' ? en : bn
+    const savings =
+      product.old_price && product.old_price > product.price
+        ? product.old_price - product.price
+        : 0
+    const mpRated = page.reviews.filter(
+      (r) => typeof r.rating === 'number' && r.rating > 0,
+    )
+    const mpAvg =
+      mpRated.length > 0
+        ? mpRated.reduce((sum, r) => sum + (r.rating ?? 0), 0) /
+          mpRated.length
+        : 0
+    const mpStarCount = (star: number) =>
+      mpRated.filter((r) => Math.round(r.rating ?? 0) === star).length
+    const freeDeliveryApplies =
+      shop.free_delivery_threshold !== null &&
+      shop.free_delivery_threshold > 0 &&
+      product.price >= Number(shop.free_delivery_threshold)
+    const related = data.relatedProducts ?? []
+    // রিভিউ সেকশন — রেটিং ভাঙন (৫★ থেকে ১★) + আসল রিভিউ কার্ড।
+    // ভাঙন শুধু রেটিং দেওয়া রিভিউ থাকলে; রিভিউ না থাকলে সৎ খালি
+    // বার্তা (শেয়ার করা renderSection-এর কার্ড-লেখাই ব্যবহার হয়)।
+    const mpReviewsNode =
+      page.reviews.length === 0 ? (
+        <section key="reviews">
+          <h2 className={headingClass}>{t.reviews}</h2>
+          <p className={`mt-3 text-sm ${bodyClass}`}>{t.noReviews}</p>
+        </section>
+      ) : (
+        <section key="reviews">
+          <h2 className={headingClass}>{t.reviews}</h2>
+          {mpRated.length > 0 ? (
+            <div className="mt-4 flex flex-col gap-5 rounded-xl border border-gray-200 bg-gray-50 p-4 sm:flex-row sm:items-center sm:gap-8">
+              <div className="shrink-0 text-center">
+                <p className="text-4xl font-extrabold text-gray-900">
+                  {toBnDigits(String(Math.round(mpAvg * 10) / 10))}
+                </p>
+                <p className="mt-1 text-lg font-bold leading-none text-amber-500">
+                  {'★'.repeat(Math.round(mpAvg))}
+                </p>
+                <p className="mt-1 text-xs text-gray-500">
+                  {t.basedOnReviews(mpRated.length)}
+                </p>
+              </div>
+              <div className="flex-1 space-y-1.5">
+                {[5, 4, 3, 2, 1].map((star) => {
+                  const count = mpStarCount(star)
+                  const pct =
+                    mpRated.length > 0
+                      ? Math.round((count / mpRated.length) * 100)
+                      : 0
+                  return (
+                    <div
+                      key={star}
+                      className="flex items-center gap-2 text-xs"
+                    >
+                      <span className="w-6 shrink-0 font-semibold text-gray-700">
+                        {toBnDigits(star)}★
+                      </span>
+                      <span className="h-2 flex-1 overflow-hidden rounded-full bg-gray-200">
+                        <span
+                          className="block h-full rounded-full bg-amber-500"
+                          style={{ width: `${pct}%` }}
+                        />
+                      </span>
+                      <span className="w-8 shrink-0 text-right text-gray-500">
+                        {toBnDigits(count)}
+                      </span>
+                    </div>
+                  )
+                })}
+              </div>
+            </div>
+          ) : null}
+          <div className="mt-4 space-y-3 lg:grid lg:grid-cols-2 lg:gap-4 lg:space-y-0">
+            {page.reviews.map((r, i) => (
+              <article
+                key={i}
+                className="rounded-xl border border-gray-200 bg-white p-4"
+              >
+                <div className="flex items-center gap-3">
+                  <ReviewAvatar photoUrl={r.photo_url} name={r.name} />
+                  <div>
+                    <p className="font-semibold text-gray-900">{r.name}</p>
+                    {typeof r.rating === 'number' && r.rating > 0 ? (
+                      <p className="text-sm font-bold text-amber-500">
+                        {'★'.repeat(Math.round(r.rating))}
+                      </p>
+                    ) : null}
+                  </div>
+                </div>
+                <p className={`mt-2 text-sm ${bodyClass}`}>{r.text}</p>
+                {r.screenshot_url ? (
+                  <ReviewScreenshot
+                    url={r.screenshot_url}
+                    alt={`${r.name} — রিভিউর স্ক্রিনশট`}
+                  />
+                ) : null}
+              </article>
+            ))}
+          </div>
+        </section>
+      )
+    // সেকশন — বিল্ডারের ক্রম ও চালু/বন্ধ মেনে; রিভিউ শুধু উপরের
+    // ভাঙনসহ রূপে আসে। প্রতিটি সেকশন সাদা কার্ডে (ধূসর পটভূমিতে)।
+    const mpSections = sectionOrder
+      .map((id) => {
+        const node = id === 'reviews' ? mpReviewsNode : renderSection(id)
+        if (!node) return null
+        return (
+          <div
+            key={id}
+            className="rounded-xl bg-white p-5 shadow-sm"
+          >
+            {node}
+          </div>
+        )
+      })
+      .filter(Boolean)
+    const waText = sellerWhatsapp
+      ? encodeURIComponent(
+          `আসসালামু আলাইকুম, ${shop.name} — ${product.name} সম্পর্কে জানতে চাই।`,
+        )
+      : ''
+    return (
+      <div className="min-h-screen bg-[#F1F1F1] text-gray-900">
+        <header className="border-b border-gray-200 bg-white">
+          <div className="mx-auto flex max-w-6xl items-center justify-between px-4 py-3">
+            <span className="flex items-center gap-2.5">
+              {shop.logo_url ? (
+                <img
+                  src={shop.logo_url}
+                  alt=""
+                  className="h-9 w-9 rounded-full object-cover"
+                />
+              ) : (
+                <span className="flex h-9 w-9 items-center justify-center rounded-full bg-[#F97316] text-base font-extrabold text-white">
+                  {shop.name.charAt(0)}
+                </span>
+              )}
+              <span className="text-base font-extrabold tracking-wide text-gray-900">
+                {shop.name}
+              </span>
+            </span>
+            <div className="flex items-center gap-3">
+              <span className="hidden text-xs text-gray-500 sm:block">
+                {t.shopPage}
+              </span>
+              <a
+                href="#order"
+                className="hidden rounded-full bg-[#F97316] px-4 py-2 text-sm font-bold text-white sm:block"
+              >
+                {t.orderNow}
+              </a>
+            </div>
+          </div>
+        </header>
+        <main className="mx-auto max-w-6xl px-4 pb-24 lg:pb-12">
+          <nav
+            aria-label="Breadcrumb"
+            className="flex flex-wrap items-center gap-1.5 pt-4 text-xs text-gray-500"
+          >
+            <a href="/" className="font-semibold text-[#F97316] hover:underline">
+              {L('হোম', 'Home')}
+            </a>
+            <span aria-hidden="true">/</span>
+            <span className="font-semibold text-gray-700">{shop.name}</span>
+            {product.category ? (
+              <>
+                <span aria-hidden="true">/</span>
+                <span>{product.category}</span>
+              </>
+            ) : null}
+            <span aria-hidden="true">/</span>
+            <span aria-current="page" className="min-w-0 truncate text-gray-700">
+              {product.name}
+            </span>
+          </nav>
+          <div className="mt-3 rounded-xl bg-white p-4 shadow-sm lg:p-6">
+            <div
+              className={
+                showGallery
+                  ? 'lg:grid lg:grid-cols-5 lg:items-start lg:gap-8'
+                  : undefined
+              }
+            >
+              <div className={showGallery ? 'lg:col-span-2' : undefined}>
+                {showGallery ? (
+                  <Gallery
+                    images={images}
+                    productName={product.name}
+                    thumbActiveClass="border-[#F97316]"
+                  />
+                ) : null}
+              </div>
+              <div className={showGallery ? 'lg:col-span-3' : undefined}>
+                <h1 className="mt-5 text-2xl font-extrabold leading-snug tracking-tight text-gray-900 lg:mt-0 lg:text-3xl lg:leading-tight">
+                  {product.name}
+                </h1>
+                <div className="mt-2">
+                  <RatingSummary data={data} t={t} />
+                </div>
+                <div className="mt-4 flex flex-wrap items-baseline gap-2">
+                  <span className="text-3xl font-extrabold text-[#F97316] lg:text-4xl">
+                    {formatBDT(product.price)}
+                  </span>
+                  {product.old_price &&
+                  product.old_price > product.price ? (
+                    <>
+                      <span className="text-lg text-gray-400 line-through">
+                        {formatBDT(product.old_price)}
+                      </span>
+                      <span className="rounded-full bg-[#F97316] px-2 py-0.5 text-xs font-bold text-white">
+                        {toBnDigits(discount)}% {L('ছাড়', 'off')}
+                      </span>
+                    </>
+                  ) : null}
+                </div>
+                {savings > 0 ? (
+                  <p className="mt-3 inline-block rounded-full bg-[#FFF1E7] px-3 py-1 text-xs font-bold text-[#C2410C]">
+                    {L('সাশ্রয়', 'You save')}: {formatBDT(savings)}
+                  </p>
+                ) : null}
+                {heroCopy ? (
+                  <p className="mt-4 text-sm leading-relaxed text-gray-600 lg:text-base lg:leading-relaxed">
+                    {heroCopy}
+                  </p>
+                ) : null}
+                <div className="mt-5 rounded-xl border border-gray-200 bg-[#FAFAFA] p-4">
+                  <p className="text-sm font-bold text-gray-900">
+                    {L('ডেলিভারি', 'Delivery')}
+                  </p>
+                  <div className="mt-2 space-y-1 text-sm text-gray-700">
+                    <p>
+                      {t.deliveryInside}:{' '}
+                      {shop.delivery_inside_charge > 0
+                        ? formatBDT(shop.delivery_inside_charge)
+                        : t.freeDelivery}
+                    </p>
+                    <p>
+                      {t.deliveryOutside}:{' '}
+                      {shop.delivery_outside_charge > 0
+                        ? formatBDT(shop.delivery_outside_charge)
+                        : t.freeDelivery}
+                    </p>
+                    {freeDeliveryApplies ? (
+                      <p className="font-bold text-[#15803D]">
+                        ✓ {L('এই অর্ডারে ডেলিভারি ফ্রি', 'Free delivery on this order')}
+                      </p>
+                    ) : null}
+                    <p className="pt-1 font-semibold">
+                      ✓ {L('ক্যাশ অন ডেলিভারি', 'Cash on Delivery')}
+                    </p>
+                    <p className="font-semibold">
+                      ✓ {L('অর্ডার কনফার্ম করে পাঠানো হয়', 'Order confirmed before dispatch')}
+                    </p>
+                  </div>
+                </div>
+                <a
+                  href="#order"
+                  className="mt-5 block rounded-xl bg-[#F97316] px-4 py-3.5 text-center text-lg font-extrabold text-white shadow-sm hover:bg-[#EA580C]"
+                >
+                  {L('এখনই কিনুন', 'Buy Now')}
+                </a>
+                <div className="mt-4 rounded-xl border border-gray-200 p-4">
+                  <div className="flex items-center gap-3">
+                    <span className="flex h-11 w-11 shrink-0 items-center justify-center rounded-full bg-[#F97316] text-lg font-extrabold text-white">
+                      {shop.name.charAt(0)}
+                    </span>
+                    <div className="min-w-0">
+                      <p className="truncate font-extrabold text-gray-900">
+                        {shop.name}
+                      </p>
+                      <p className="text-xs text-gray-500">{t.shopPage}</p>
+                    </div>
+                  </div>
+                  <div className="mt-3 flex flex-wrap gap-2">
+                    {sellerWhatsapp ? (
+                      <a
+                        href={`https://wa.me/${sellerWhatsapp}?text=${waText}`}
+                        target="_blank"
+                        rel="noreferrer"
+                        className="flex-1 rounded-lg bg-[#25d366] px-3 py-2.5 text-center text-sm font-bold text-white"
+                      >
+                        WhatsApp-এ মেসেজ করুন
+                      </a>
+                    ) : null}
+                    {related.length > 0 ? (
+                      <a
+                        href="#related"
+                        className="flex-1 rounded-lg border border-gray-300 px-3 py-2.5 text-center text-sm font-bold text-gray-700"
+                      >
+                        {L('আরও পণ্য দেখুন', 'See more products')}
+                      </a>
+                    ) : null}
+                  </div>
+                </div>
+              </div>
+            </div>
+          </div>
+          {mpSections.length > 0 ? (
+            <div className="mt-4 space-y-4">{mpSections}</div>
+          ) : null}
+          {related.length > 0 ? (
+            <section
+              id="related"
+              className="mt-4 rounded-xl bg-white p-5 shadow-sm"
+            >
+              <h2 className="text-lg font-bold text-gray-900">
+                {L('এই দোকানের আরও পণ্য', 'More from this shop')}
+              </h2>
+              <div className="mt-4 grid grid-cols-2 gap-3 sm:grid-cols-3 lg:grid-cols-6">
+                {related.map((rel) => (
+                  <a
+                    key={rel.slug}
+                    href={`/${shop.slug}/${rel.slug}`}
+                    className="group overflow-hidden rounded-xl border border-gray-200 hover:border-[#F97316]"
+                  >
+                    <div className="aspect-[4/3] w-full bg-gray-100">
+                      {rel.imageUrl ? (
+                        <img
+                          src={rel.imageUrl}
+                          alt={rel.name}
+                          loading="lazy"
+                          className="h-full w-full object-cover"
+                        />
+                      ) : null}
+                    </div>
+                    <div className="p-2.5">
+                      <p className="line-clamp-2 min-h-10 text-sm font-medium leading-snug text-gray-900 group-hover:text-[#C2410C]">
+                        {rel.name}
+                      </p>
+                      <p className="mt-1 text-base font-extrabold text-[#F97316]">
+                        {formatBDT(rel.price)}
+                      </p>
+                      {rel.oldPrice && rel.oldPrice > rel.price ? (
+                        <p className="text-xs text-gray-400 line-through">
+                          {formatBDT(rel.oldPrice)}
+                        </p>
+                      ) : null}
+                    </div>
+                  </a>
+                ))}
+              </div>
+            </section>
+          ) : null}
+          <div className="mt-4">
+            <OrderSection
+              data={data}
+              t={t}
+              placed={placed}
+              preview={preview}
+              onPlaced={setPlaced}
+              onOrderAgain={() => setPlaced(null)}
+              accent="#F97316"
+              accentText="#FFFFFF"
+              lightAccent="#F97316"
+            />
+          </div>
+        </main>
+        {footer}
+        <div className="fixed inset-x-0 bottom-0 z-40 flex items-center justify-between gap-3 bg-[#F97316] px-4 py-3 shadow-lg lg:hidden">
+          <div className="min-w-0">
+            <p className="truncate text-xs text-white/80">{product.name}</p>
+            <p className="text-lg font-extrabold text-white">
+              {formatBDT(product.price)}
+            </p>
+          </div>
+          <a
+            href="#order"
+            className="shrink-0 rounded-xl bg-white px-5 py-2.5 text-sm font-extrabold text-[#C2410C]"
+          >
+            {L('এখনই কিনুন', 'Buy Now')}
+          </a>
+        </div>
+      </div>
+    )
+  }
+
   if (page.template === 'classic-green') {
     const L = (bn: string, en: string) =>
       page.page_lang === 'en' ? en : bn

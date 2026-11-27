@@ -23,6 +23,7 @@ import {
 import {
   cropImageTo43,
   fetchProductForEdit,
+  fetchRelatedProducts,
   fetchSellerShop,
   MAX_IMAGES_PER_PRODUCT,
   saveProductAndPage,
@@ -45,6 +46,7 @@ import type {
   CustomerPageData,
   FaqItem,
   PageLang,
+  RelatedProductItem,
   ReviewItem,
   ShopRow,
   TemplateId,
@@ -281,6 +283,11 @@ export default function ProductBuilder({
 }) {
   const { seller } = useAuth()
   const [shop, setShop] = useState<ShopRow | null>(null)
+  // একই দোকানের অন্য পণ্য — Marketplace Pro প্রিভিউতে "আরও পণ্য"
+  // সারি দেখাতে। শুধু প্রিভিউয়ের জন্য; সেভে হাত পড়ে না।
+  const [relatedProducts, setRelatedProducts] = useState<
+    RelatedProductItem[]
+  >([])
   const [step, setStep] = useState(1)
   const [loading, setLoading] = useState(true)
   const [busy, setBusy] = useState(false)
@@ -589,6 +596,19 @@ export default function ProductBuilder({
     productId,
     hasUnsavedFiles,
   ])
+
+  // একই দোকানের অন্য প্রকাশিত পণ্য — Marketplace Pro প্রিভিউয়ের
+  // "আরও পণ্য" সারির জন্য। স্লাগ বদলালে ৪০০ মি.সে. পরে ফেচ হয়
+  // (টাইপের সময় বারবার নয়); না পেলে সারিটা লুকিয়ে যায়।
+  useEffect(() => {
+    if (!shop) return
+    const t = window.setTimeout(() => {
+      fetchRelatedProducts(shop.id, slug || '')
+        .then(setRelatedProducts)
+        .catch(() => setRelatedProducts([]))
+    }, 400)
+    return () => window.clearTimeout(t)
+  }, [shop, slug])
 
   // সেভ না-করা খসড়া থাকলে ট্যাব বন্ধ/রিলোডের আগে সতর্কবার্তা।
   useEffect(() => {
@@ -1003,6 +1023,7 @@ export default function ProductBuilder({
             is_suspended: false,
           },
           sellerWhatsapp: seller.whatsapp,
+          relatedProducts,
         }
       : null
 

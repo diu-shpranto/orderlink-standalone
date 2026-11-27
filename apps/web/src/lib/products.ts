@@ -9,6 +9,7 @@ import type {
   PageRow,
   ProductImageRow,
   ProductRow,
+  RelatedProductItem,
   ReviewItem,
   ShopRow,
   TemplateId,
@@ -81,6 +82,91 @@ async function fetchSellerWhatsapp(
 // আগের পরপর-পড়া পথ (দোকান → পেজ → প্রোডাক্ট → ছবি → WhatsApp) —
 // এমবেডেড কোয়েরি কোনো কারণে না চললে ফলব্যাক হিসেবে রাখা আছে;
 // ফলাফল হুবহু একই, শুধু ধীর।
+// একই দোকানের অন্য প্রকাশিত পণ্য — Marketplace Pro টেমপ্লেটের
+// "এই দোকানের আরও পণ্য" সারির জন্য। একটাই কোয়েরি, সর্বোচ্চ ৬টি,
+// শুধু কার্ডে যা লাগে (স্লাগ/নাম/দাম/প্রধান ছবি)। প্রকাশিত নয় বা
+// ফ্রি সার্ভিসে বন্ধ পেজ কখনো আসে না (pages পাবলিক পড়া যায় বলে
+// ফিল্টারটা এখানেই দিতে হয়)। কখনো throw করে না — না পেলে []।
+type RelatedRow = {
+  slug: string
+  product: {
+    id: string
+    name: string
+    price: number
+    old_price: number | null
+    images?: { url: string; is_main: boolean; sort_order: number }[]
+  } | null
+}
+
+function mapRelatedRows(data: unknown): RelatedProductItem[] {
+  const rows = (data ?? []) as RelatedRow[]
+  return rows
+    .filter((row) => row.product)
+    .map((row) => {
+      const imgs = [...(row.product?.images ?? [])].sort(
+        (a, b) => (a.sort_order ?? 0) - (b.sort_order ?? 0),
+      )
+      const main = imgs.find((img) => img.is_main) ?? imgs[0]
+      return {
+        slug: row.slug,
+        name: row.product?.name ?? '',
+        price: Number(row.product?.price ?? 0),
+        oldPrice: row.product?.old_price ?? null,
+        imageUrl: main?.url ?? null,
+      }
+    })
+}
+
+export async function fetchRelatedProducts(
+  shopId: string,
+  currentSlug: string,
+): Promise<RelatedProductItem[]> {
+  try {
+    const client = requireSupabase()
+    const { data, error } = await client
+      .from('pages')
+      .select(
+        'slug, product:products(id,name,price,old_price,images:product_images(url,is_main,sort_order))',
+      )
+      .eq('shop_id', shopId)
+      .eq('is_published', true)
+      .eq('is_suspended', false)
+      .neq('slug', currentSlug)
+      .order('created_at', { ascending: false })
+      .limit(6)
+    if (error) return []
+    return mapRelatedRows(data)
+  } catch {
+    return []
+  }
+}
+
+// দোকানের slug দিয়ে একই কোয়েরি — fetchCustomerPage-এ মূল কোয়েরির
+// সাথে সমান্তরালে চলে (shop.id তখনো জানা থাকে না বলে)।
+async function fetchRelatedProductsBySlug(
+  client: ReturnType<typeof requireSupabase>,
+  shopSlug: string,
+  currentSlug: string,
+): Promise<RelatedProductItem[]> {
+  try {
+    const { data, error } = await client
+      .from('pages')
+      .select(
+        'slug, shop:shops!inner(slug), product:products(id,name,price,old_price,images:product_images(url,is_main,sort_order))',
+      )
+      .eq('shop.slug', shopSlug)
+      .eq('is_published', true)
+      .eq('is_suspended', false)
+      .neq('slug', currentSlug)
+      .order('created_at', { ascending: false })
+      .limit(6)
+    if (error) return []
+    return mapRelatedRows(data)
+  } catch {
+    return []
+  }
+}
+
 async function fetchCustomerPageSequential(
   client: ReturnType<typeof requireSupabase>,
   shopSlug: string,
@@ -115,12 +201,14 @@ async function fetchCustomerPageSequential(
     shopSlug,
     shop.seller_id,
   )
+  const relatedProducts = await fetchRelatedProducts(shop.id, productSlug)
   return {
     shop,
     product: asProduct(productData),
     images: (imageData ?? []).map(asImage),
     page,
     sellerWhatsapp,
+    relatedProducts,
   }
 }
 
@@ -131,7 +219,13 @@ export async function fetchCustomerPage(
   const client = requireSupabase()
   // WhatsApp নম্বর শুধু দোকানের slug দিয়েই আনা যায়, তাই ডাটা
   // কোয়েরির সাথে সমান্তরালে চালানো হয় (আগে এটা চেইনের শেষে বসত)।
+  // একই দোকানের আরও পণ্যও একই সাথে চলে — পেজ ধীর হয় না।
   const whatsappPromise = fetchSellerWhatsapp(client, shopSlug)
+  const relatedPromise = fetchRelatedProductsBySlug(
+    client,
+    shopSlug,
+    productSlug,
+  )
   try {
     // একটাই কোয়েরি: পেজ + দোকান + প্রোডাক্ট + ছবি — PostgREST
     // এমবেডিং। আগে এগুলো ৫টা আলাদা রাউন্ড-ট্রিপে পরপর আসত
@@ -155,6 +249,7 @@ export async function fetchCustomerPage(
     }
     if (!row.product) return null
     const sellerWhatsapp = await whatsappPromise
+    const relatedProducts = await relatedPromise
     const { images: embeddedImages, ...productRest } = row.product
     const images = [...(embeddedImages ?? [])]
       .sort((a, b) => (a.sort_order ?? 0) - (b.sort_order ?? 0))
@@ -166,6 +261,7 @@ export async function fetchCustomerPage(
       images,
       page: asPage(pageRest),
       sellerWhatsapp,
+      relatedProducts,
     }
   } catch {
     // এমবেডেড কোয়েরি না চললে আগের পথে ফিরে যাওয়া।
