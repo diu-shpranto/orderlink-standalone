@@ -38,6 +38,7 @@ const TEXT: Record<
     tabSignup: string
     tabLogin: string
     google: string
+    demo: string
     or: string
     email: string
     password: string
@@ -73,6 +74,7 @@ const TEXT: Record<
     tabSignup: 'অ্যাকাউন্ট খুলুন',
     tabLogin: 'লগইন',
     google: 'Google দিয়ে চালিয়ে যান',
+    demo: 'ডেমো অ্যাকাউন্ট দিয়ে দেখুন',
     or: 'অথবা',
     email: 'ইমেইল',
     password: 'পাসওয়ার্ড',
@@ -108,6 +110,7 @@ const TEXT: Record<
     tabSignup: 'Create account',
     tabLogin: 'Log in',
     google: 'Continue with Google',
+    demo: 'Try the demo account',
     or: 'or',
     email: 'Email',
     password: 'Password',
@@ -380,6 +383,20 @@ export default function Auth({
     }
   }
 
+  async function handleDemoLogin() {
+    setError('')
+    setNotice('')
+    setBusy(true)
+    try {
+      await signIn('demo@orderlink.demo', 'demo1234')
+      navigate('/dashboard')
+    } catch (err) {
+      setError(friendlyError(err instanceof Error ? err.message : ''))
+    } finally {
+      setBusy(false)
+    }
+  }
+
   function switchMode(next: Mode) {
     setMode(next)
     setError('')
@@ -548,6 +565,15 @@ export default function Auth({
                   >
                     <GoogleG className="h-5 w-5" />
                     {t.google}
+                  </button>
+
+                  <button
+                    type="button"
+                    onClick={() => void handleDemoLogin()}
+                    disabled={busy}
+                    className="mt-3 flex w-full items-center justify-center gap-2 rounded-2xl bg-brand-light px-4 py-3.5 text-[15px] font-bold text-brand-dark transition hover:bg-brand-light/70 disabled:opacity-50"
+                  >
+                    {t.demo}
                   </button>
 
                   <div className="my-5 flex items-center gap-3 text-sm text-gray-400">
