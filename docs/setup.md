@@ -117,3 +117,19 @@ supabase functions deploy verify-reset-code --no-verify-jwt
   `VITE_SUPABASE_ANON_KEY`।
 - গ্রহণের পরীক্ষা: প্রোডাক্ট বানিয়ে প্রকাশ করলে `/<shop>/<product>`
   লিংকটা নতুন ট্যাবে সরাসরি খুলে ঠিক সেই প্রোডাক্টই দেখাবে।
+
+## Phase 3 — অর্ডার (27 Nov 2026)
+
+- **মাইগ্রেশন চালান:** Supabase Dashboard → SQL Editor-এ
+  `supabase/migrations/0003_order_events.sql`-এর পুরো কনটেন্ট পেস্ট করে
+  Run করুন। এতে অর্ডার কোডের সিকোয়েন্স (OL-1001… — insert-এর আগে
+  trigger বসিয়ে দেয়), `order_events` টেবিল (স্ট্যাটাস পরিবর্তনের
+  ইতিহাস — trigger নিজে লেখে), orders-এ `internal_notes` কলাম,
+  shops-এ `free_delivery_threshold` কলাম বসবে। 0001/0002 আবার
+  চালাতে হবে না।
+- নতুন env ভেরিয়েবল লাগে না।
+- গ্রহণের পরীক্ষা: কাস্টমার পেজে অর্ডার ফর্ম জমা দিন → Supabase
+  orders টেবিলে OL-1001… কোডসহ সারি আসবে, আর সেলারের
+  /dashboard/orders-এ সঠিক মোটসহ দেখা যাবে। স্ট্যাটাস বদলালে
+  order_events-এ ইতিহাস জমবে। Sheet সিঙ্ক Phase 4-এর — অর্ডার দিলে
+  এখনো Sheet-এ যাবে না, সেটা কোথাও বলা হয়নি।

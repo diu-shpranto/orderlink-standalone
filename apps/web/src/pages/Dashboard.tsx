@@ -173,47 +173,6 @@ export function DashboardOverview() {
   )
 }
 
-export function OrdersPlaceholder() {
-  const { seller } = useAuth()
-  const [stats, setStats] = useState<DashboardStats | null>(null)
-
-  useEffect(() => {
-    if (!seller) return
-    fetchDashboardStats(seller.id)
-      .then((s) => setStats(s))
-      .catch(() => undefined)
-  }, [seller])
-
-  return (
-    <SellerShell active="orders">
-      <h1 className="text-2xl font-extrabold">অর্ডার</h1>
-      <div className="mt-6 rounded-2xl border border-gray-200 bg-white p-5">
-        <p className="text-sm leading-relaxed text-gray-600">
-          অর্ডার ব্যবস্থাপনা (স্ট্যাটাস বদল, খোঁজা, ছাঁকনি) পরের ধাপে আসছে —
-          এখানে আপাতত সাম্প্রতিক অর্ডারগুলো দেখা যাবে।
-        </p>
-        {!stats || stats.recentOrders.length === 0 ? (
-          <p className="mt-4 text-sm text-gray-500">এখনো কোনো অর্ডার আসেনি।</p>
-        ) : (
-          <ul className="mt-4 divide-y divide-gray-100">
-            {stats.recentOrders.map((o) => (
-              <li key={o.id} className="flex justify-between gap-3 py-2 text-sm">
-                <span>
-                  <span className="font-semibold">{o.order_code}</span>
-                  <span className="block text-gray-500">
-                    {o.customer_name} · {STATUS_BN[o.status] ?? o.status}
-                  </span>
-                </span>
-                <span className="font-bold">{formatBDT(o.total)}</span>
-              </li>
-            ))}
-          </ul>
-        )}
-      </div>
-    </SellerShell>
-  )
-}
-
 export function SettingsPage() {
   return <SetupWizard onDone={() => navigate('/dashboard')} />
 }

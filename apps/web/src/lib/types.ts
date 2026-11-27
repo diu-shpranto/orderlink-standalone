@@ -8,6 +8,7 @@ export interface ShopRow {
   logo_url: string | null
   delivery_inside_charge: number
   delivery_outside_charge: number
+  free_delivery_threshold: number | null
 }
 
 export interface ProductRow {
@@ -81,12 +82,27 @@ export interface OrderRow {
   order_code: string
   customer_name: string
   customer_phone: string
+  division: string | null
+  district: string | null
+  upazila: string | null
+  address_line: string | null
   delivery_area: 'inside' | 'outside'
   delivery_charge: number
   quantity: number
   total: number
   status: string
   sheet_status: string
+  internal_notes: string
+  created_at: string
+  updated_at: string
+}
+
+export interface OrderEventRow {
+  id: string
+  order_id: string
+  seller_id: string
+  old_status: string | null
+  new_status: string
   created_at: string
 }
 

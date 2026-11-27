@@ -1031,7 +1031,7 @@ export default function ProductBuilder({
               কাস্টমার ঠিক এভাবেই পেজটা দেখবে।
             </p>
             <div className="mt-3 overflow-hidden rounded-2xl border-2 border-gray-300">
-              {previewData ? <CustomerPage data={previewData} /> : null}
+              {previewData ? <CustomerPage data={previewData} preview /> : null}
             </div>
           </div>
 

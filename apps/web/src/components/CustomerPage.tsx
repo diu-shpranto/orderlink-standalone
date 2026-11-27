@@ -4,9 +4,11 @@
 // থাকলে রেটিং দেখানো হয় না। ডেলিভারি চার্জ শুধু দোকানের সেটিংস থেকে।
 // ভেরিয়েন্ট নেই। স্টিকি মোবাইল অর্ডার বার শুধু Aura/Nova/Social Proof-এ।
 // ছবি 4:3 ফ্রেমে, object-contain, ঝাপসা কপি। ছাড়ের % অটো-হিসাব।
-// অর্ডার ফর্ম Phase 3-এ আসছে — আপাতত WhatsApp-এ অর্ডারের বোতাম।
+// অর্ডার ফর্ম আসল — জমা হলে ধন্যবাদ পেজ দেখায় (অর্ডার নম্বরসহ)।
 import { useState } from 'react'
 import FramedPhoto from './FramedPhoto.tsx'
+import OrderForm from './OrderForm.tsx'
+import type { PlacedOrder } from './OrderForm.tsx'
 import { customerStrings } from '../lib/i18n.ts'
 import {
   discountPercent,
@@ -125,9 +127,74 @@ function RatingSummary({
   )
 }
 
-function OrderBox({ data, t }: { data: CustomerPageData; t: StringsType }) {
+function OrderSection({
+  data,
+  t,
+  placed,
+  preview,
+  onPlaced,
+  onOrderAgain,
+}: {
+  data: CustomerPageData
+  t: StringsType
+  placed: PlacedOrder | null
+  preview: boolean
+  onPlaced: (placed: PlacedOrder) => void
+  onOrderAgain: () => void
+}) {
   const { shop, sellerWhatsapp, product } = data
-  const waText = encodeURIComponent(`আমি "${product.name}" অর্ডার করতে চাই।`)
+  if (placed) {
+    const waText = encodeURIComponent(
+      `আমার অর্ডার ${placed.orderCode} — "${product.name}"।`,
+    )
+    return (
+      <section
+        id="order"
+        className="rounded-2xl border border-gray-200 bg-white p-5 text-center"
+      >
+        <p className="text-4xl">✓</p>
+        <h2 className="mt-2 text-xl font-extrabold text-gray-900">
+          {t.orderPlaced}
+        </h2>
+        <p className="mt-2 text-sm leading-relaxed text-gray-600">
+          {t.orderReceived}
+        </p>
+        <div className="mx-auto mt-4 max-w-sm space-y-1 rounded-xl bg-gray-50 px-4 py-3 text-left text-sm">
+          <p className="flex justify-between">
+            <span className="text-gray-600">{t.orderNumber}</span>
+            <span className="font-bold">{placed.orderCode}</span>
+          </p>
+          <p className="flex justify-between">
+            <span className="text-gray-600">{product.name}</span>
+            <span className="font-semibold">
+              × {toBnDigits(placed.quantity)}
+            </span>
+          </p>
+          <p className="flex justify-between border-t border-gray-200 pt-2 font-extrabold">
+            <span>{t.total}</span>
+            <span>{formatBDT(placed.total)}</span>
+          </p>
+        </div>
+        {sellerWhatsapp ? (
+          <a
+            href={`https://wa.me/${sellerWhatsapp}?text=${waText}`}
+            target="_blank"
+            rel="noreferrer"
+            className="mt-4 block rounded-lg bg-brand px-4 py-3 font-semibold text-white"
+          >
+            {t.whatsappSeller}
+          </a>
+        ) : null}
+        <button
+          type="button"
+          onClick={onOrderAgain}
+          className="mt-3 text-sm font-semibold text-brand-dark underline"
+        >
+          {t.orderAgain}
+        </button>
+      </section>
+    )
+  }
   return (
     <section id="order" className="rounded-2xl border border-gray-200 bg-white p-5">
       <h2 className="text-lg font-bold text-gray-900">{t.orderNow}</h2>
@@ -145,17 +212,16 @@ function OrderBox({ data, t }: { data: CustomerPageData; t: StringsType }) {
             : t.freeDelivery}
         </p>
       </div>
-      <p className="mt-3 text-sm text-gray-500">{t.orderSoon}</p>
-      {sellerWhatsapp ? (
-        <a
-          href={`https://wa.me/${sellerWhatsapp}?text=${waText}`}
-          target="_blank"
-          rel="noreferrer"
-          className="mt-4 block rounded-lg bg-brand px-4 py-3 text-center font-semibold text-white"
-        >
-          {t.whatsappOrder}
-        </a>
-      ) : null}
+      {preview ? (
+        <p className="mt-4 rounded-lg bg-gray-50 px-4 py-3 text-sm text-gray-600">
+          এটা প্রিভিউ — এখান থেকে অর্ডার দেওয়া যাবে না। প্রকাশ করা পেজে
+          কাস্টমাররা এই ফর্মে অর্ডার দেবে।
+        </p>
+      ) : (
+        <div className="mt-4">
+          <OrderForm data={data} t={t} onPlaced={onPlaced} />
+        </div>
+      )}
     </section>
   )
 }
@@ -179,8 +245,15 @@ function StickyOrderBar({ data, t }: { data: CustomerPageData; t: StringsType })
   )
 }
 
-export default function CustomerPage({ data }: { data: CustomerPageData }) {
+export default function CustomerPage({
+  data,
+  preview = false,
+}: {
+  data: CustomerPageData
+  preview?: boolean
+}) {
   const { page, product, shop, images } = data
+  const [placed, setPlaced] = useState<PlacedOrder | null>(null)
   const t: StringsType = customerStrings(page.page_lang)
   const meta = templateById(page.template)
   const dark = meta.dark
@@ -410,7 +483,14 @@ export default function CustomerPage({ data }: { data: CustomerPageData }) {
 
   const orderBox = (
     <div className="mt-8">
-      <OrderBox data={data} t={t} />
+      <OrderSection
+        data={data}
+        t={t}
+        placed={placed}
+        preview={preview}
+        onPlaced={setPlaced}
+        onOrderAgain={() => setPlaced(null)}
+      />
     </div>
   )
 

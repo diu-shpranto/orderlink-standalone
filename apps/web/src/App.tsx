@@ -9,11 +9,7 @@ import { fetchCustomerPage, fetchPageBySlug } from './lib/products.ts'
 import { navigate, pathSegments, usePath } from './lib/router.ts'
 import type { CustomerPageData } from './lib/types.ts'
 import Auth from './pages/Auth.tsx'
-import {
-  DashboardOverview,
-  OrdersPlaceholder,
-  SettingsPage,
-} from './pages/Dashboard.tsx'
+import { DashboardOverview, SettingsPage } from './pages/Dashboard.tsx'
 import Home from './pages/Home.tsx'
 import {
   AboutPage,
@@ -24,6 +20,7 @@ import {
 } from './pages/InfoPages.tsx'
 import Products from './pages/Products.tsx'
 import ProductBuilder from './pages/ProductBuilder.tsx'
+import Orders from './pages/Orders.tsx'
 import SetupWizard from './pages/SetupWizard.tsx'
 
 function Centered({ children }: { children: React.ReactNode }) {
@@ -233,7 +230,7 @@ function Shell() {
     if (segments[1] === 'orders') {
       return (
         <SellerGate>
-          <OrdersPlaceholder />
+          <Orders />
         </SellerGate>
       )
     }
