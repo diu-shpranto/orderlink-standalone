@@ -26,12 +26,19 @@ begin
     v_demo_id := gen_random_uuid();
     insert into auth.users (
       id, instance_id, email, encrypted_password, email_confirmed_at,
-      raw_app_meta_data, raw_user_meta_data, aud, role, created_at, updated_at
+      raw_app_meta_data, raw_user_meta_data, aud, role,
+      -- টোকেন ঘরগুলো '' হতে হবে, NULL নয় — GoTrue লগইনে NULL পড়তে পারে না
+      -- ("converting NULL to string is unsupported") বলে 500 দেয়।
+      confirmation_token, recovery_token, email_change_token_new,
+      email_change_token_current, phone_change_token, email_change, phone_change,
+      created_at, updated_at
     ) values (
       v_demo_id, '00000000-0000-0000-0000-000000000000', 'demo@orderlink.demo',
       crypt('demo1234', gen_salt('bf')), now(),
       '{"provider":"email","providers":["email"]}'::jsonb, '{}'::jsonb,
-      'authenticated', 'authenticated', now(), now()
+      'authenticated', 'authenticated',
+      '', '', '', '', '', '', '',
+      now(), now()
     );
   end if;
 
