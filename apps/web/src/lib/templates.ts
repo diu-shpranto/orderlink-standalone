@@ -1,10 +1,11 @@
-// ১০টি ল্যান্ডিং পেজ টেমপ্লেট — বিল্ডারে সবগুলোই বাছাই করা যায়।
+// ১৭টি ল্যান্ডিং পেজ টেমপ্লেট — বিল্ডারে সবগুলোই বাছাই করা যায়।
 // হোম পেজের গ্যালারিতে শুধু ৪টি দেখানো হয় (নিচে INTRO_TEMPLATES)।
 // নিয়ম: ভুয়া রিভিউ/রেটিং/ছাড়/কাউন্টডাউন নেই — শুধু আসল সেভ করা ডাটা।
-// স্টিকি মোবাইল অর্ডার বার: aura/nova/social-proof/luxury-premium-এ
-// শেয়ার করা বার; fashion-store-এ নিজের সবুজ বার, tech-gadget-এ নিজের
-// সায়ান বার, bd-single-product-এ নিজের সবুজ COD বার (রেজিস্ট্রিতে
-// stickyBar: false — শেয়ার করা লাল বার যাতে না বসে)।
+// স্টিকি মোবাইল অর্ডার বার: aura/nova/social-proof-এ শেয়ার করা বার;
+// luxury-premium-এ নিজের সোনালি বার, fashion-store-এ নিজের সবুজ বার,
+// tech-gadget-এ নিজের সায়ান বার, bd-single-product-এ নিজের সবুজ COD বার,
+// lavender-premium/emerald-trust/midnight-premium/sunset-offer-এ নিজের
+// বার (রেজিস্ট্রিতে stickyBar: false — শেয়ার করা লাল বার যাতে না বসে)।
 
 import type { TemplateId } from './types.ts'
 
@@ -121,6 +122,38 @@ export const TEMPLATES: TemplateMeta[] = [
     dark: false,
     stickyBar: false,
     accentClass: 'bg-[#16A34A] text-white',
+  },
+  {
+    id: 'lavender-premium',
+    nameBn: 'Lavender Premium',
+    taglineBn: 'নরম ল্যাভেন্ডার, দুই কলামের প্রিমিয়াম হিরো',
+    dark: false,
+    stickyBar: false,
+    accentClass: 'bg-[#EDE9FE] text-[#7C3AED]',
+  },
+  {
+    id: 'emerald-trust',
+    nameBn: 'Emerald Trust',
+    taglineBn: 'পরিষ্কার সবুজ, আস্থার ট্রাস্ট স্ট্রিপ',
+    dark: false,
+    stickyBar: false,
+    accentClass: 'bg-[#D1FAE5] text-[#047857]',
+  },
+  {
+    id: 'midnight-premium',
+    nameBn: 'Midnight Premium',
+    taglineBn: 'গাঢ় মিডনাইট নীল, ভায়োলেট অ্যাকসেন্ট',
+    dark: true,
+    stickyBar: false,
+    accentClass: 'bg-[#1E1B3A] text-[#A78BFA]',
+  },
+  {
+    id: 'sunset-offer',
+    nameBn: 'Sunset Offer',
+    taglineBn: 'উষ্ণ অফার লুক, ছাড় বড় করে',
+    dark: false,
+    stickyBar: false,
+    accentClass: 'bg-[#FFEDD5] text-[#EA580C]',
   },
 ]
 

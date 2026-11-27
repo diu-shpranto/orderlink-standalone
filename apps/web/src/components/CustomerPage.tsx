@@ -2,7 +2,9 @@
 // একই কম্পোনেন্ট লাইভ পেজ ও বিল্ডারের লাইভ প্রিভিউ — দুই জায়গায় চলে।
 // নিয়ম: ভুয়া রিভিউ/রেটিং/ছাড় নেই — শুধু আসল সেভ করা ডাটা; রিভিউ না
 // থাকলে রেটিং দেখানো হয় না। ডেলিভারি চার্জ শুধু দোকানের সেটিংস থেকে।
-// ভেরিয়েন্ট নেই। স্টিকি মোবাইল অর্ডার বার শুধু Aura/Nova/Social Proof-এ।
+// ভেরিয়েন্ট নেই। স্টিকি মোবাইল অর্ডার বার শুধু Aura/Nova/Social Proof-এ
+// (শেয়ার করা বার); Luxury/Fashion/Tech/Beauty/BD/Lavender/Emerald/
+// Midnight/Sunset-এর নিজের বার।
 // ছবি আসল অনুপাতে, ঝাপসা কপি নেই, কখনো ক্রপ হয় না। ছাড়ের % অটো-হিসাব।
 // অর্ডার ফর্ম আসল — জমা হলে ধন্যবাদ পেজ দেখায় (অর্ডার নম্বরসহ)।
 import { useEffect, useState } from 'react'
@@ -3285,6 +3287,537 @@ const footer = (
           <a
             href="#order"
             className="shrink-0 rounded-xl bg-[#16A34A] px-5 py-2.5 text-sm font-extrabold text-white"
+          >
+            {t.orderNow}
+          </a>
+        </div>
+      </div>
+    )
+  }
+
+  // Lavender Premium (Template 14) — নরম ল্যাভেন্ডার প্রিমিয়াম লুক।
+  // ডেস্কটপে দুই কলামের চওড়া হিরো (ছবি বামে, তথ্য ডানে), মোবাইলে
+  // স্ট্যাকড। নিজের মোবাইল স্টিকি বার (শেয়ার করা বার নয়)।
+  if (page.template === 'lavender-premium') {
+    const L = (bn: string, en: string) =>
+      page.page_lang === 'en' ? en : bn
+    const savings =
+      product.old_price && product.old_price > product.price
+        ? product.old_price - product.price
+        : 0
+    return (
+      <div className="min-h-screen bg-[#F5F1FB] text-gray-900">
+        {discount > 0 ? (
+          <div className="bg-[#7C3AED] px-4 py-2 text-center text-sm font-semibold text-white">
+            {t.discountRunning(discount)}
+          </div>
+        ) : null}
+        <header className="border-b border-[#E9E2F7] bg-white">
+          <div className="mx-auto flex max-w-6xl items-center justify-between px-4 py-3">
+            <span className="flex items-center gap-2.5">
+              {shop.logo_url ? (
+                <img
+                  src={shop.logo_url}
+                  alt=""
+                  className="h-9 w-9 rounded-full object-cover"
+                />
+              ) : (
+                <span className="flex h-9 w-9 items-center justify-center rounded-full bg-[#7C3AED] text-base font-extrabold text-white">
+                  {shop.name.charAt(0)}
+                </span>
+              )}
+              <span className="text-base font-extrabold tracking-wide text-gray-900">
+                {shop.name}
+              </span>
+            </span>
+            <div className="flex items-center gap-3">
+              <span className="hidden text-xs text-gray-500 sm:block">
+                {t.shopPage}
+              </span>
+              <a
+                href="#order"
+                className="hidden rounded-full bg-[#7C3AED] px-4 py-2 text-sm font-bold text-white sm:block"
+              >
+                {t.orderNow}
+              </a>
+            </div>
+          </div>
+        </header>
+        <main className="mx-auto max-w-6xl px-4 py-6 pb-24 lg:py-10 lg:pb-10">
+          <div className="rounded-3xl border border-[#E9E2F7] bg-white p-5 shadow-sm lg:p-8">
+            <div className="grid gap-8 lg:grid-cols-2 lg:items-start">
+              <div>
+                {showGallery ? (
+                  <Gallery
+                    images={images}
+                    productName={product.name}
+                    thumbActiveClass="border-[#7C3AED]"
+                  />
+                ) : null}
+              </div>
+              <div>
+                {product.category ? (
+                  <p className="inline-block rounded-full bg-[#EDE9FE] px-3 py-1 text-xs font-bold text-[#7C3AED]">
+                    {product.category}
+                  </p>
+                ) : null}
+                <h1 className="mt-3 text-2xl font-extrabold leading-snug text-gray-900 lg:text-4xl">
+                  {product.name}
+                </h1>
+                <div className="mt-2">
+                  <RatingSummary data={data} t={t} />
+                </div>
+                <div className="mt-3">
+                  <PriceRow data={data} dark={false} />
+                </div>
+                {savings > 0 ? (
+                  <p className="mt-2 inline-block rounded-full bg-[#EDE9FE] px-3 py-1 text-xs font-bold text-[#7C3AED]">
+                    {L('সাশ্রয়', 'You save')}: {formatBDT(savings)}
+                  </p>
+                ) : null}
+                {heroCopy ? (
+                  <p className="mt-3 text-sm leading-relaxed text-gray-700 lg:text-base">
+                    {heroCopy}
+                  </p>
+                ) : null}
+                <a
+                  href="#order"
+                  className="mt-5 block rounded-xl bg-[#7C3AED] px-4 py-3.5 text-center font-bold text-white shadow-sm"
+                >
+                  {t.orderNow}
+                </a>
+                <div className="mt-4 flex flex-wrap gap-x-4 gap-y-1 text-xs font-semibold text-gray-600">
+                  <span>✓ {L('ক্যাশ অন ডেলিভারি', 'Cash on Delivery')}</span>
+                  <span>
+                    ✓ {L('সারা দেশে হোম ডেলিভারি', 'Home delivery across the country')}
+                  </span>
+                  <span>
+                    ✓ {L('অর্ডার কনফার্ম করে পাঠানো হয়', 'Order confirmed before dispatch')}
+                  </span>
+                </div>
+              </div>
+            </div>
+          </div>
+          <div className="mt-10">{sections}</div>
+          {orderBox}
+        </main>
+        {footer}
+        <div className="fixed inset-x-0 bottom-0 z-40 flex items-center justify-between gap-3 border-t border-gray-200 bg-white px-4 py-3 shadow-lg lg:hidden">
+          <div className="min-w-0">
+            <p className="truncate text-xs text-gray-500">{product.name}</p>
+            <p className="text-lg font-extrabold text-[#7C3AED]">
+              {formatBDT(product.price)}
+            </p>
+          </div>
+          <a
+            href="#order"
+            className="shrink-0 rounded-xl bg-[#7C3AED] px-5 py-2.5 text-sm font-extrabold text-white"
+          >
+            {t.orderNow}
+          </a>
+        </div>
+      </div>
+    )
+  }
+
+  // Emerald Trust (Template 15) — পরিষ্কার সবুজ আস্থার লুক।
+  // নরম সবুজ হিরো প্যানেলে দুই কলামের হিরো, ট্রাস্ট স্ট্রিপ,
+  // মোবাইলে স্ট্যাকড + নিজের সবুজ স্টিকি বার।
+  if (page.template === 'emerald-trust') {
+    const L = (bn: string, en: string) =>
+      page.page_lang === 'en' ? en : bn
+    const savings =
+      product.old_price && product.old_price > product.price
+        ? product.old_price - product.price
+        : 0
+    return (
+      <div className="min-h-screen bg-white text-gray-900">
+        {discount > 0 ? (
+          <div className="bg-[#047857] px-4 py-2 text-center text-sm font-semibold text-white">
+            {t.discountRunning(discount)}
+          </div>
+        ) : null}
+        <header className="border-b border-[#D1FAE5] bg-white">
+          <div className="mx-auto flex max-w-6xl items-center justify-between px-4 py-3">
+            <span className="flex items-center gap-2.5">
+              {shop.logo_url ? (
+                <img
+                  src={shop.logo_url}
+                  alt=""
+                  className="h-9 w-9 rounded-full object-cover"
+                />
+              ) : (
+                <span className="flex h-9 w-9 items-center justify-center rounded-full bg-[#047857] text-base font-extrabold text-white">
+                  {shop.name.charAt(0)}
+                </span>
+              )}
+              <span className="text-base font-extrabold tracking-wide text-gray-900">
+                {shop.name}
+              </span>
+            </span>
+            <div className="flex items-center gap-3">
+              <span className="hidden text-xs text-gray-500 sm:block">
+                {t.shopPage}
+              </span>
+              <a
+                href="#order"
+                className="hidden rounded-full bg-[#047857] px-4 py-2 text-sm font-bold text-white sm:block"
+              >
+                {t.orderNow}
+              </a>
+            </div>
+          </div>
+        </header>
+        <main className="mx-auto max-w-6xl px-4 py-6 pb-24 lg:py-10 lg:pb-10">
+          <div className="rounded-3xl bg-[#ECFDF5] p-5 lg:p-8">
+            <div className="grid gap-8 lg:grid-cols-2 lg:items-start">
+              <div>
+                {showGallery ? (
+                  <Gallery
+                    images={images}
+                    productName={product.name}
+                    thumbActiveClass="border-[#047857]"
+                  />
+                ) : null}
+              </div>
+              <div>
+                {product.category ? (
+                  <p className="inline-block rounded-full bg-[#D1FAE5] px-3 py-1 text-xs font-bold text-[#047857]">
+                    {product.category}
+                  </p>
+                ) : null}
+                <h1 className="mt-3 text-2xl font-extrabold leading-snug text-gray-900 lg:text-4xl">
+                  {product.name}
+                </h1>
+                <div className="mt-2">
+                  <RatingSummary data={data} t={t} />
+                </div>
+                <div className="mt-3">
+                  <PriceRow data={data} dark={false} />
+                </div>
+                {savings > 0 ? (
+                  <p className="mt-2 inline-block rounded-full bg-[#D1FAE5] px-3 py-1 text-xs font-bold text-[#047857]">
+                    {L('সাশ্রয়', 'You save')}: {formatBDT(savings)}
+                  </p>
+                ) : null}
+                {heroCopy ? (
+                  <p className="mt-3 text-sm leading-relaxed text-gray-700 lg:text-base">
+                    {heroCopy}
+                  </p>
+                ) : null}
+                <a
+                  href="#order"
+                  className="mt-5 block rounded-xl bg-[#047857] px-4 py-3.5 text-center font-bold text-white shadow-sm"
+                >
+                  {t.orderNow}
+                </a>
+                <div className="mt-4 rounded-2xl border border-[#A7F3D0] bg-white px-4 py-3">
+                  <p className="text-xs font-bold text-[#065F46]">
+                    {L('কেন আমাদের থেকে কিনবেন', 'Why buy from us')}
+                  </p>
+                  <div className="mt-2 flex flex-wrap gap-x-4 gap-y-1 text-xs font-semibold text-gray-700">
+                    <span>✓ {L('ক্যাশ অন ডেলিভারি', 'Cash on Delivery')}</span>
+                    <span>
+                      ✓ {L('সারা দেশে হোম ডেলিভারি', 'Home delivery across the country')}
+                    </span>
+                    <span>
+                      ✓ {L('অর্ডার কনফার্ম করে পাঠানো হয়', 'Order confirmed before dispatch')}
+                    </span>
+                  </div>
+                </div>
+              </div>
+            </div>
+          </div>
+          <div className="mt-10">{sections}</div>
+          {orderBox}
+        </main>
+        {footer}
+        <div className="fixed inset-x-0 bottom-0 z-40 flex items-center justify-between gap-3 border-t border-gray-200 bg-white px-4 py-3 shadow-lg lg:hidden">
+          <div className="min-w-0">
+            <p className="truncate text-xs text-gray-500">{product.name}</p>
+            <p className="text-lg font-extrabold text-[#047857]">
+              {formatBDT(product.price)}
+            </p>
+          </div>
+          <a
+            href="#order"
+            className="shrink-0 rounded-xl bg-[#047857] px-5 py-2.5 text-sm font-extrabold text-white"
+          >
+            {t.orderNow}
+          </a>
+        </div>
+      </div>
+    )
+  }
+
+  // Midnight Premium (Template 16) — গাঢ় মিডনাইট প্রিমিয়াম ডার্ক থিম।
+  // ভায়োলেট অ্যাকসেন্ট, দুই কলামের চওড়া হিরো, মোবাইলে স্ট্যাকড।
+  // সেকশন ও অর্ডার ফর্ম গাঢ় রূপে (OrderSection-এর dark প্রপস)।
+  if (page.template === 'midnight-premium') {
+    const L = (bn: string, en: string) =>
+      page.page_lang === 'en' ? en : bn
+    const savings =
+      product.old_price && product.old_price > product.price
+        ? product.old_price - product.price
+        : 0
+    const ratedReviews = data.page.reviews.filter(
+      (r) => typeof r.rating === 'number' && r.rating > 0,
+    )
+    const midnightAvg =
+      ratedReviews.length > 0
+        ? ratedReviews.reduce((sum, r) => sum + (r.rating ?? 0), 0) /
+          ratedReviews.length
+        : null
+    return (
+      <div className="min-h-screen bg-[#0B1020] text-gray-100">
+        {discount > 0 ? (
+          <div className="bg-[#8B5CF6] px-4 py-2 text-center text-sm font-semibold text-white">
+            {t.discountRunning(discount)}
+          </div>
+        ) : null}
+        <header className="border-b border-[#232C44] bg-[#0B1020]">
+          <div className="mx-auto flex max-w-6xl items-center justify-between px-4 py-3">
+            <span className="flex items-center gap-2.5">
+              {shop.logo_url ? (
+                <img
+                  src={shop.logo_url}
+                  alt=""
+                  className="h-9 w-9 rounded-full object-cover"
+                />
+              ) : (
+                <span className="flex h-9 w-9 items-center justify-center rounded-full bg-[#8B5CF6] text-base font-extrabold text-white">
+                  {shop.name.charAt(0)}
+                </span>
+              )}
+              <span className="text-base font-extrabold tracking-wide text-white">
+                {shop.name}
+              </span>
+            </span>
+            <div className="flex items-center gap-3">
+              <span className="hidden text-xs text-gray-400 sm:block">
+                {t.shopPage}
+              </span>
+              <a
+                href="#order"
+                className="hidden rounded-full bg-[#8B5CF6] px-4 py-2 text-sm font-bold text-white sm:block"
+              >
+                {t.orderNow}
+              </a>
+            </div>
+          </div>
+        </header>
+        <main className="mx-auto max-w-6xl px-4 py-6 pb-24 lg:py-10 lg:pb-10">
+          <div className="rounded-3xl border border-[#232C44] bg-[#141B2E] p-5 lg:p-8">
+            <div className="grid gap-8 lg:grid-cols-2 lg:items-start">
+              <div>
+                {showGallery ? (
+                  <Gallery
+                    images={images}
+                    productName={product.name}
+                    thumbActiveClass="border-[#8B5CF6]"
+                  />
+                ) : null}
+              </div>
+              <div>
+                {product.category ? (
+                  <p className="inline-block rounded-full bg-[#2A2350] px-3 py-1 text-xs font-bold text-[#C4B5FD]">
+                    {product.category}
+                  </p>
+                ) : null}
+                <h1 className="mt-3 text-2xl font-extrabold leading-snug text-white lg:text-4xl">
+                  {product.name}
+                </h1>
+                {midnightAvg !== null ? (
+                  <p className="mt-2 text-sm text-gray-300">
+                    <span className="font-bold text-amber-400">
+                      {'★'.repeat(Math.round(midnightAvg))}
+                    </span>{' '}
+                    {toBnDigits(String(Math.round(midnightAvg * 10) / 10))} ·{' '}
+                    {t.basedOnReviews(ratedReviews.length)}
+                  </p>
+                ) : null}
+                <div className="mt-3">
+                  <PriceRow data={data} dark />
+                </div>
+                {savings > 0 ? (
+                  <p className="mt-2 inline-block rounded-full bg-[#2A2350] px-3 py-1 text-xs font-bold text-[#C4B5FD]">
+                    {L('সাশ্রয়', 'You save')}: {formatBDT(savings)}
+                  </p>
+                ) : null}
+                {heroCopy ? (
+                  <p className="mt-3 text-sm leading-relaxed text-gray-300 lg:text-base">
+                    {heroCopy}
+                  </p>
+                ) : null}
+                <a
+                  href="#order"
+                  className="mt-5 block rounded-xl bg-[#8B5CF6] px-4 py-3.5 text-center font-bold text-white shadow-sm"
+                >
+                  {t.orderNow}
+                </a>
+                <div className="mt-4 flex flex-wrap gap-x-4 gap-y-1 text-xs font-semibold text-gray-400">
+                  <span>✓ {L('ক্যাশ অন ডেলিভারি', 'Cash on Delivery')}</span>
+                  <span>
+                    ✓ {L('সারা দেশে হোম ডেলিভারি', 'Home delivery across the country')}
+                  </span>
+                  <span>
+                    ✓ {L('অর্ডার কনফার্ম করে পাঠানো হয়', 'Order confirmed before dispatch')}
+                  </span>
+                </div>
+              </div>
+            </div>
+          </div>
+          <div className="mt-10">{sections}</div>
+          <div className="mt-8">
+            <OrderSection
+              data={data}
+              t={t}
+              placed={placed}
+              preview={preview}
+              onPlaced={setPlaced}
+              onOrderAgain={() => setPlaced(null)}
+              dark
+              accent="#A78BFA"
+              accentText="#0B1020"
+            />
+          </div>
+        </main>
+        {footer}
+        <div className="fixed inset-x-0 bottom-0 z-40 flex items-center justify-between gap-3 border-t border-[#232C44] bg-[#141B2E] px-4 py-3 shadow-lg lg:hidden">
+          <div className="min-w-0">
+            <p className="truncate text-xs text-gray-400">{product.name}</p>
+            <p className="text-lg font-extrabold text-[#A78BFA]">
+              {formatBDT(product.price)}
+            </p>
+          </div>
+          <a
+            href="#order"
+            className="shrink-0 rounded-xl bg-[#8B5CF6] px-5 py-2.5 text-sm font-extrabold text-white"
+          >
+            {t.orderNow}
+          </a>
+        </div>
+      </div>
+    )
+  }
+
+  // Sunset Offer (Template 17) — উষ্ণ সানসেট অফার লুক।
+  // উষ্ণ ক্রিম পটভূমি, কমলা অ্যাকসেন্ট, ছাড় বড় করে; ডেস্কটপে
+  // দুই কলামের চওড়া হিরো, মোবাইলে স্ট্যাকড + নিজের কমলা বার।
+  if (page.template === 'sunset-offer') {
+    const L = (bn: string, en: string) =>
+      page.page_lang === 'en' ? en : bn
+    const savings =
+      product.old_price && product.old_price > product.price
+        ? product.old_price - product.price
+        : 0
+    return (
+      <div className="min-h-screen bg-[#FFF7ED] text-gray-900">
+        {discount > 0 ? (
+          <div className="bg-[#EA580C] px-4 py-2 text-center text-sm font-semibold text-white">
+            {t.discountRunning(discount)}
+          </div>
+        ) : null}
+        <header className="border-b border-[#FED7AA] bg-white">
+          <div className="mx-auto flex max-w-6xl items-center justify-between px-4 py-3">
+            <span className="flex items-center gap-2.5">
+              {shop.logo_url ? (
+                <img
+                  src={shop.logo_url}
+                  alt=""
+                  className="h-9 w-9 rounded-full object-cover"
+                />
+              ) : (
+                <span className="flex h-9 w-9 items-center justify-center rounded-full bg-[#EA580C] text-base font-extrabold text-white">
+                  {shop.name.charAt(0)}
+                </span>
+              )}
+              <span className="text-base font-extrabold tracking-wide text-gray-900">
+                {shop.name}
+              </span>
+            </span>
+            <div className="flex items-center gap-3">
+              <span className="hidden text-xs text-gray-500 sm:block">
+                {t.shopPage}
+              </span>
+              <a
+                href="#order"
+                className="hidden rounded-full bg-[#EA580C] px-4 py-2 text-sm font-bold text-white sm:block"
+              >
+                {t.orderNow}
+              </a>
+            </div>
+          </div>
+        </header>
+        <main className="mx-auto max-w-6xl px-4 py-6 pb-24 lg:py-10 lg:pb-10">
+          <div className="rounded-3xl border border-[#FED7AA] bg-white p-5 shadow-sm lg:p-8">
+            <div className="grid gap-8 lg:grid-cols-2 lg:items-start">
+              <div>
+                {showGallery ? (
+                  <Gallery
+                    images={images}
+                    productName={product.name}
+                    thumbActiveClass="border-[#EA580C]"
+                  />
+                ) : null}
+              </div>
+              <div>
+                {product.category ? (
+                  <p className="inline-block rounded-full bg-[#FFEDD5] px-3 py-1 text-xs font-bold text-[#C2410C]">
+                    {product.category}
+                  </p>
+                ) : null}
+                <h1 className="mt-3 text-2xl font-extrabold leading-snug text-gray-900 lg:text-4xl">
+                  {product.name}
+                </h1>
+                <div className="mt-2">
+                  <RatingSummary data={data} t={t} />
+                </div>
+                <div className="mt-3">
+                  <PriceRow data={data} dark={false} />
+                </div>
+                {savings > 0 ? (
+                  <p className="mt-2 inline-block rounded-full bg-[#FFEDD5] px-3 py-1 text-xs font-extrabold text-[#C2410C]">
+                    {L('সাশ্রয়', 'You save')}: {formatBDT(savings)}
+                  </p>
+                ) : null}
+                {heroCopy ? (
+                  <p className="mt-3 text-sm leading-relaxed text-gray-700 lg:text-base">
+                    {heroCopy}
+                  </p>
+                ) : null}
+                <a
+                  href="#order"
+                  className="mt-5 block rounded-xl bg-[#EA580C] px-4 py-3.5 text-center font-bold text-white shadow-sm"
+                >
+                  {t.orderNow}
+                </a>
+                <div className="mt-4 flex flex-wrap gap-x-4 gap-y-1 text-xs font-semibold text-gray-600">
+                  <span>✓ {L('ক্যাশ অন ডেলিভারি', 'Cash on Delivery')}</span>
+                  <span>
+                    ✓ {L('সারা দেশে হোম ডেলিভারি', 'Home delivery across the country')}
+                  </span>
+                  <span>
+                    ✓ {L('অর্ডার কনফার্ম করে পাঠানো হয়', 'Order confirmed before dispatch')}
+                  </span>
+                </div>
+              </div>
+            </div>
+          </div>
+          <div className="mt-10">{sections}</div>
+          {orderBox}
+        </main>
+        {footer}
+        <div className="fixed inset-x-0 bottom-0 z-40 flex items-center justify-between gap-3 border-t border-gray-200 bg-white px-4 py-3 shadow-lg lg:hidden">
+          <div className="min-w-0">
+            <p className="truncate text-xs text-gray-500">{product.name}</p>
+            <p className="text-lg font-extrabold text-[#EA580C]">
+              {formatBDT(product.price)}
+            </p>
+          </div>
+          <a
+            href="#order"
+            className="shrink-0 rounded-xl bg-[#EA580C] px-5 py-2.5 text-sm font-extrabold text-white"
           >
             {t.orderNow}
           </a>

@@ -66,6 +66,10 @@ export type TemplateId =
   | 'beauty-cosmetics'
   | 'tech-gadget'
   | 'bd-single-product'
+  | 'lavender-premium'
+  | 'emerald-trust'
+  | 'midnight-premium'
+  | 'sunset-offer'
 
 export interface PageRow {
   id: string
