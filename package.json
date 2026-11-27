@@ -1,0 +1,1 @@
+{"description":"Orderlink — standalone rebuild (React + Vite + TypeScript + Tailwind frontend, Supabase backend).","engines":{"node":">=20"},"name":"orderlink-standalone","private":true,"scripts":{"build":"npm --prefix apps/web run build","dev":"npm --prefix apps/web run dev","preview":"npm --prefix apps/web run preview"},"version":"0.1.0","workspaces":["apps/*","packages/*"]}

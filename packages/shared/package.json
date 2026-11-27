@@ -1,0 +1,1 @@
+{"description":"Shared code used by the web app and server functions (price math, order status, validation rules).","exports":{".":"./src/index.ts"},"main":"src/index.ts","name":"@orderlink/shared","private":true,"types":"src/index.ts","version":"0.1.0"}
