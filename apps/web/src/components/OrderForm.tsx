@@ -153,8 +153,9 @@ export default function OrderForm({
         quantity,
       })
       // Sheet সিঙ্ক ফায়ার-অ্যান্ড-ফরগেট — সিঙ্ক ব্যর্থ হলেও অর্ডার
-      // আটকায় না; কিউ থেকে রিট্রাই হবে।
-      triggerOrderSync(placed.id)
+      // আটকায় না; কিউ থেকে রিট্রাই হবে। id না থাকলে (ফলব্যাক পথে)
+      // ডাকা হয় না — সারি pending থাকায় রিট্রাই তুলে নেবে।
+      if (placed.id) triggerOrderSync(placed.id)
       onPlaced({
         orderCode: placed.orderCode,
         total,

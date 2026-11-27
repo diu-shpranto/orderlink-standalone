@@ -78,18 +78,35 @@ export async function fetchCustomerPage(
     .eq('product_id', page.product_id)
     .order('sort_order', { ascending: true })
   if (imageError) throw imageError
-  const { data: sellerData } = await client
-    .from('sellers')
-    .select('whatsapp')
-    .eq('id', shop.seller_id)
-    .maybeSingle()
+  // সেলারের WhatsApp নম্বর — পাবলিক পেজে দেখানোর জন্য। sellers
+  // টেবিল সরাসরি পড়া লগইন ছাড়া RLS-এ আটকায় (sellers_owner_select),
+  // তাই মাইগ্রেশন 0007-এর get_seller_whatsapp ফাংশন ব্যবহার হয় —
+  // ওটা শুধু নম্বরটাই ফেরত দেয়, সেলারের আর কোনো তথ্য নয়। ফাংশন
+  // এখনো লাইভে না থাকলে পুরনো পথে চেষ্টা (লগইন করা সেলারের
+  // প্রিভিউতে এটা চলে; লগইন ছাড়া আগের মতোই null আসে)।
+  let sellerWhatsapp: string | null = null
+  const { data: whatsappData, error: whatsappError } = await client.rpc(
+    'get_seller_whatsapp',
+    { p_shop_slug: shopSlug },
+  )
+  if (!whatsappError) {
+    sellerWhatsapp =
+      typeof whatsappData === 'string' ? whatsappData : null
+  } else {
+    const { data: sellerData } = await client
+      .from('sellers')
+      .select('whatsapp')
+      .eq('id', shop.seller_id)
+      .maybeSingle()
+    sellerWhatsapp =
+      (sellerData as { whatsapp: string | null } | null)?.whatsapp ?? null
+  }
   return {
     shop,
     product: asProduct(productData),
     images: (imageData ?? []).map(asImage),
     page,
-    sellerWhatsapp:
-      (sellerData as { whatsapp: string | null } | null)?.whatsapp ?? null,
+    sellerWhatsapp,
   }
 }
 

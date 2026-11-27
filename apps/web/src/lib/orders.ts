@@ -131,30 +131,91 @@ export async function placeOrder(
     deliveryCharge,
   )
   // order_code দেওয়া হয় না — ডাটাবেসের trigger OL-1001… বসিয়ে দেয়।
-  const { data, error } = await client
+  const payload = {
+    seller_id: input.shop.seller_id,
+    shop_id: input.shop.id,
+    product_id: input.product.id,
+    customer_name: input.customerName.trim(),
+    customer_phone: input.customerPhone,
+    division: input.division,
+    district: input.district,
+    upazila: input.upazila || null,
+    address_line: input.addressLine.trim(),
+    delivery_area: input.deliveryArea,
+    delivery_charge: deliveryCharge,
+    quantity: input.quantity,
+    total,
+    status: 'new',
+    sheet_status: 'pending',
+  }
+  // client_key: জমা দেওয়া অর্ডারের কোড ফেরত পাওয়ার চাবি। আগে
+  // .insert().select().single() করা হতো — insert RLS পেরোলেও
+  // read-back orders_owner_select-এ আটকায় (লগইন ছাড়া auth.uid()
+  // নেই), তাই 401 আসত আর কাস্টমার "অর্ডার দেওয়া যায়নি" দেখত —
+  // অথচ অর্ডার তৈরি হয়েই যেত। এখন insert return=minimal-এ হয়
+  // (select নেই), তারপর কোড আনা হয় SECURITY DEFINER ফাংশন দিয়ে।
+  // কী-টা প্রতি জমায় নতুন random UUID — আন্দাজ করা যায় না; ফাংশন
+  // শুধু id + order_code ফেরত দেয়, কাস্টমারের আর কোনো তথ্য নয়।
+  const clientKey = crypto.randomUUID()
+  let useClientKey = true
+  let { error } = await client
     .from('orders')
-    .insert({
-      seller_id: input.shop.seller_id,
-      shop_id: input.shop.id,
-      product_id: input.product.id,
-      customer_name: input.customerName.trim(),
-      customer_phone: input.customerPhone,
-      division: input.division,
-      district: input.district,
-      upazila: input.upazila || null,
-      address_line: input.addressLine.trim(),
-      delivery_area: input.deliveryArea,
-      delivery_charge: deliveryCharge,
-      quantity: input.quantity,
-      total,
-      status: 'new',
-      sheet_status: 'pending',
-    })
-    .select('id, order_code')
-    .single()
+    .insert({ ...payload, client_key: clientKey })
+  if (error && isUnknownColumnError(error, 'client_key')) {
+    // মাইগ্রেশন 0007 এখনো লাইভে চালানো হয়নি — কী ছাড়া জমা দিন;
+    // কোড আনা হবে ফোন দিয়ে (check_recent_order, 0003 থেকেই আছে)।
+    useClientKey = false
+    ;({ error } = await client.from('orders').insert(payload))
+  }
   if (error) throw error
-  const row = data as { id: string; order_code: string }
-  return { id: row.id, orderCode: row.order_code }
+  if (useClientKey) {
+    const lookedUp = await lookupOrderByClientKey(clientKey)
+    if (lookedUp) return lookedUp
+    // ফাংশন এখনো নেই বা খুঁজে পাওয়া যায়নি — ফোন দিয়ে ফলব্যাক।
+  }
+  const recent = await findRecentOrderByPhone(
+    input.shop.id,
+    input.customerPhone,
+  )
+  if (recent) {
+    // এই পথে অর্ডারের id জানা নেই — Sheet সিঙ্ক এখানে ফায়ার হবে না;
+    // সারি pending থাকায় ৩০ মিনিটের রিট্রাই কাজটা সেটা তুলে নেবে।
+    return { id: '', orderCode: recent.orderCode }
+  }
+  throw new Error(
+    'অর্ডার জমা হয়েছে, কিন্তু অর্ডার কোড পাওয়া যায়নি — সেলারের সঙ্গে যোগাযোগ করুন।',
+  )
+}
+
+// মাইগ্রেশন 0007-এর ফাংশন দিয়ে অর্ডারের কোড আনা — ফাংশন না থাকলে
+// null (কলার ফোন-ফলব্যাকে যাবে)।
+async function lookupOrderByClientKey(
+  clientKey: string,
+): Promise<{ id: string; orderCode: string } | null> {
+  const client = requireSupabase()
+  try {
+    const { data, error } = await client.rpc(
+      'get_order_code_by_client_key',
+      { p_client_key: clientKey },
+    )
+    if (error) return null
+    const rows = (data ?? []) as { id: string; order_code: string }[]
+    if (rows.length === 0) return null
+    return { id: rows[0].id, orderCode: rows[0].order_code }
+  } catch {
+    return null
+  }
+}
+
+function isUnknownColumnError(
+  error: { code?: string; message?: string },
+  column: string,
+): boolean {
+  return (
+    error.code === 'PGRST204' &&
+    typeof error.message === 'string' &&
+    error.message.includes(column)
+  )
 }
 
 // একই ফোনে গত ২৪ ঘণ্টায় এই দোকানে অর্ডার আছে কি না (ডুপ্লিকেট সতর্কতা)।

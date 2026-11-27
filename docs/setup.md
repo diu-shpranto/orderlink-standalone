@@ -332,3 +332,31 @@ Basic ৳১৯৯/৫/২৫০ MB, Growth ৳৩৯৯/১০/৫০০ MB, Bu
   প্রত্যাশা: ৩টি সারি। মাইগ্রেশন না চলা পর্যন্ত বিল্ডার নতুন ফিল্ড
   ছাড়াই সেভ করবে (কোডে ফলব্যাক আছে) — সেভ ভাঙবে না, শুধু নতুন
   ৩টি ফিল্ড সেভ হবে না আর নোটিশে জানাবে।
+
+## লগইন ছাড়া অর্ডার + পাবলিক WhatsApp ঠিক করা (28 Nov 2026)
+
+দুটো পুরনো বাগ: (১) লগইন ছাড়া কাস্টমার অর্ডার দিলে "অর্ডার দেওয়া
+যায়নি" দেখাত — অথচ অর্ডার তৈরি হয়েই যেত (insert-এর read-back
+RLS-এ আটকাত); (২) পাবলিক পেজে সেলারের WhatsApp বোতাম কখনো
+দেখাত না (sellers টেবিল পড়া RLS-এ আটকাত)। ঠিক করা হয়েছে
+`orders.client_key` কলাম + দুটো SECURITY DEFINER ফাংশন দিয়ে
+(`get_order_code_by_client_key` — শুধু ওই কী-র অর্ডারের id + কোড,
+১০ মিনিটের ভেতরেরটা; `get_seller_whatsapp` — শুধু নম্বরটাই)।
+RLS পলিসিতে কোনো বদল নেই।
+
+- **মাইগ্রেশন চালান:** Supabase Dashboard → SQL Editor-এ
+  `supabase/migrations/0007_public_order_whatsapp.sql`-এর পুরো কনটেন্ট চালান।
+  প্রত্যাশা: "Success. No rows returned"। যাচাই:
+  ```sql
+  select column_name from information_schema.columns
+  where table_name = 'orders' and column_name = 'client_key';
+  select proname from pg_proc
+  where proname in ('get_order_code_by_client_key', 'get_seller_whatsapp');
+  select public.get_seller_whatsapp('demo-shop');
+  select * from public.get_order_code_by_client_key('no-such-key');
+  ```
+  প্রত্যাশা: ১ম কুয়েরিতে ১টি সারি (client_key), ২য়টায় ২টি সারি
+  (দুটো ফাংশন), ৩য়টায় ডেমো সেলারের নম্বর 8801712345678, ৪র্থটায়
+  ০টি সারি। মাইগ্রেশন না চলা পর্যন্তও অর্ডার চলবে (কোডে ফলব্যাক
+  আছে — কী ছাড়া জমা দিয়ে ফোন দিয়ে কোড আনা হয়), শুধু পাবলিক
+  পেজে WhatsApp বোতাম দেখাবে না।
