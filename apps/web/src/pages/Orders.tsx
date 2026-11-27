@@ -23,7 +23,7 @@ import { fetchSellerProducts } from '../lib/products.ts'
 import { formatBDT, formatCountBn, todayDhaka, toBnDigits } from '../lib/pricing.ts'
 import { SHEET_STATUS_BN, fetchSheetConnection } from '../lib/sheets.ts'
 import type { SheetConnection } from '../lib/sheets.ts'
-import { navigate } from '../lib/router.ts'
+import { navigate, useSearch } from '../lib/router.ts'
 import { IconDoc, IconDownload, IconPhone, IconSearch } from '../components/icons.tsx'
 import type { OrderEventRow, OrderRow, ProductRow } from '../lib/types.ts'
 
@@ -493,6 +493,33 @@ export default function Orders() {
     dateFrom: '',
     dateTo: '',
   })
+  // ড্যাশবোর্ডের স্ট্যাট কার্ড / ওপরের খোঁজা থেকে আসা ছাঁকনি —
+  // ?status=new, ?date=today, ?q=... — ঠিকানাতেই থাকে, তাই
+  // রিফ্রেশ করলেও ছাঁকনি হারায় না। প্যারামিটার না থাকলে
+  // ব্যবহারকারীর হাতে বদলানো ছাঁকনিতে হাত দেওয়া হয় না।
+  const search = useSearch()
+  useEffect(() => {
+    const params = new URLSearchParams(search)
+    const status = params.get('status')
+    const date = params.get('date')
+    const q = params.get('q')
+    if (status === null && date === null && q === null) return
+    setFilters((f) => {
+      const next = { ...f }
+      if (
+        status !== null &&
+        ['all', 'new', 'confirmed', 'processing', 'shipped', 'delivered', 'cancelled'].includes(status)
+      ) {
+        next.status = status
+      }
+      if (date === 'today') {
+        next.dateFrom = todayDhaka()
+        next.dateTo = todayDhaka()
+      }
+      if (q !== null) next.search = q
+      return next
+    })
+  }, [search])
   const [page, setPage] = useState(1)
   const [selected, setSelected] = useState<OrderRow | null>(null)
   // ডেস্কটপ টেবিলের ইনলাইন কাজ — মোডাল না খুলেই পরের ধাপ / কল / কপি।

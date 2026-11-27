@@ -7,6 +7,23 @@ export function getPath(): string {
   return window.location.pathname
 }
 
+// কোয়েরি স্ট্রিং (?status=new, ?q=...) — পথের সঙ্গে মেশানো হয় না,
+// যাতে App.tsx-র pathSegments রাউটিং না ভাঙে। পেজগুলো useSearch()
+// দিয়ে ছাঁকনি পড়ে (ড্যাশবোর্ডের স্ট্যাট কার্ড, ওপরের খোঁজা)।
+export function getSearch(): string {
+  return window.location.search
+}
+
+export function useSearch(): string {
+  const [search, setSearch] = useState(getSearch())
+  useEffect(() => {
+    const onChange = () => setSearch(getSearch())
+    window.addEventListener('popstate', onChange)
+    return () => window.removeEventListener('popstate', onChange)
+  }, [])
+  return search
+}
+
 export function navigate(to: string): void {
   window.history.pushState(null, '', to)
   window.dispatchEvent(new PopStateEvent('popstate'))

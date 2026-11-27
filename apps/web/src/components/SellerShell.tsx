@@ -5,6 +5,7 @@
 // থিম সবসময় হালকা (pinned light) — ডিভাইসের ডার্ক মোড অনুসরণ করে না।
 // বেলের সংখ্যা আসল নতুন অর্ডারের সংখ্যা (orders টেবিল থেকে)।
 import { useEffect, useState } from 'react'
+import { createPortal } from 'react-dom'
 import { useAuth } from '../lib/auth.tsx'
 import { fetchDashboardStats } from '../lib/products.ts'
 import { formatBDT, formatCountBn, toBnDigits } from '../lib/pricing.ts'
@@ -21,6 +22,7 @@ import {
   IconHome,
   IconLogout,
   IconReceipt,
+  IconSearch,
   IconSettings,
 } from './icons.tsx'
 import type { OrderRow } from '../lib/types.ts'
@@ -91,6 +93,7 @@ export default function SellerShell({
   const [newOrders, setNewOrders] = useState<OrderRow[]>([])
   const [bellOpen, setBellOpen] = useState(false)
   const [menuOpen, setMenuOpen] = useState(false)
+  const [topQuery, setTopQuery] = useState('')
   const [mySub, setMySub] = useState<MySubscription | null>(null)
   const [collapsed, setCollapsed] = useState(() => {
     try {
@@ -165,40 +168,43 @@ export default function SellerShell({
           </span>
         ) : null}
       </button>
-      {bellOpen ? (
-        <>
-          <button
-            type="button"
-            className="fixed inset-0 z-40 cursor-default"
-            onClick={() => setBellOpen(false)}
-            aria-label="বন্ধ করুন"
-          />
-          <div className="absolute right-0 z-50 mt-2 w-[calc(100vw-2rem)] max-w-sm rounded-3xl border border-gray-200 bg-white shadow-xl">
-            <p className="border-b border-gray-100 px-4 py-3 text-sm font-bold">
-              নতুন অর্ডার
-            </p>
-            {newOrders.length === 0 ? (
-              <p className="px-4 py-4 text-sm text-gray-500">
-                নতুন কোনো অর্ডার নেই।
-              </p>
-            ) : (
-              <ul className="max-h-64 overflow-y-auto">
-                {newOrders.map((o) => (
-                  <li
-                    key={o.id}
-                    className="border-b border-gray-100 px-4 py-3 text-sm last:border-0"
-                  >
-                    <p className="font-semibold">
-                      {o.order_code} · {o.customer_name}
-                    </p>
-                    <p className="text-gray-500">{formatBDT(o.total)}</p>
-                  </li>
-                ))}
-              </ul>
-            )}
-          </div>
-        </>
-      ) : null}
+      {bellOpen
+        ? createPortal(
+            <>
+              <button
+                type="button"
+                className="fixed inset-0 z-40 cursor-default"
+                onClick={() => setBellOpen(false)}
+                aria-label="বন্ধ করুন"
+              />
+              <div className="fixed inset-x-4 top-[68px] z-50 rounded-3xl border border-gray-200 bg-white shadow-xl lg:inset-x-auto lg:right-10 lg:top-[72px] lg:w-96 xl:right-12">
+                <p className="border-b border-gray-100 px-4 py-3 text-sm font-bold">
+                  নতুন অর্ডার
+                </p>
+                {newOrders.length === 0 ? (
+                  <p className="px-4 py-4 text-sm text-gray-500">
+                    নতুন কোনো অর্ডার নেই।
+                  </p>
+                ) : (
+                  <ul className="max-h-64 overflow-y-auto">
+                    {newOrders.map((o) => (
+                      <li
+                        key={o.id}
+                        className="border-b border-gray-100 px-4 py-3 text-sm last:border-0"
+                      >
+                        <p className="font-semibold">
+                          {o.order_code} · {o.customer_name}
+                        </p>
+                        <p className="text-gray-500">{formatBDT(o.total)}</p>
+                      </li>
+                    ))}
+                  </ul>
+                )}
+              </div>
+            </>,
+            document.body,
+          )
+        : null}
     </div>
   )
 
@@ -215,15 +221,16 @@ export default function SellerShell({
       >
         {shopName.charAt(0)}
       </button>
-      {menuOpen ? (
-        <>
-          <button
-            type="button"
-            className="fixed inset-0 z-40 cursor-default"
-            onClick={() => setMenuOpen(false)}
-            aria-label="বন্ধ করুন"
-          />
-          <div className="absolute right-0 z-50 mt-2 w-60 rounded-3xl border border-gray-200 bg-white shadow-xl">
+      {menuOpen
+        ? createPortal(
+            <>
+              <button
+                type="button"
+                className="fixed inset-0 z-40 cursor-default"
+                onClick={() => setMenuOpen(false)}
+                aria-label="বন্ধ করুন"
+              />
+              <div className="fixed right-4 top-[68px] z-50 w-60 rounded-3xl border border-gray-200 bg-white shadow-xl lg:right-10 lg:top-[72px] xl:right-12">
             <p className="border-b border-gray-100 px-4 py-3 text-sm">
               <span className="block font-bold">{shopName}</span>
               <span className="text-gray-500">{user?.email ?? ''}</span>
@@ -245,9 +252,11 @@ export default function SellerShell({
             >
               লগআউট
             </button>
-          </div>
-        </>
-      ) : null}
+              </div>
+            </>,
+            document.body,
+          )
+        : null}
     </div>
   )
 
@@ -415,16 +424,38 @@ export default function SellerShell({
           </div>
         </header>
 
-        {/* ডেস্কটপের ওপরের বার — দ্রুত কাজ + বেল + অ্যাভাটার */}
-        <header className="sticky top-0 z-40 hidden items-center justify-between gap-3 border-b border-gray-200/70 bg-cream/95 px-10 py-3 backdrop-blur lg:flex xl:px-12">
+        {/* ডেস্কটপের ওপরের বার — দ্রুত কাজ + অর্ডার খোঁজা + বেল + অ্যাভাটার */}
+        <header className="sticky top-0 z-40 hidden items-center gap-3 border-b border-gray-200/70 bg-cream/95 px-10 py-3 backdrop-blur lg:flex xl:px-12">
           <button
             type="button"
             onClick={() => navigate('/dashboard/products/new')}
-            className="inline-flex items-center gap-2 rounded-2xl bg-gradient-to-r from-brand-dark via-brand to-brand px-4 py-2.5 text-sm font-bold text-white shadow-lg shadow-brand/25"
+            className="inline-flex shrink-0 items-center gap-2 rounded-2xl bg-gradient-to-r from-brand-dark via-brand to-brand px-4 py-2.5 text-sm font-bold text-white shadow-lg shadow-brand/25"
           >
             + নতুন ল্যান্ডিং পেজ
           </button>
-          <div className="flex items-center gap-3">
+          <form
+            className="min-w-0 max-w-sm flex-1"
+            onSubmit={(event) => {
+              event.preventDefault()
+              navigate(
+                `/dashboard/orders?q=${encodeURIComponent(topQuery.trim())}`,
+              )
+              setTopQuery('')
+            }}
+          >
+            <div className="relative">
+              <IconSearch className="pointer-events-none absolute left-3 top-1/2 h-4 w-4 -translate-y-1/2 text-gray-400" />
+              <input
+                type="search"
+                value={topQuery}
+                onChange={(event) => setTopQuery(event.target.value)}
+                placeholder="অর্ডার খুঁজুন — কোড, নাম বা ফোন"
+                aria-label="অর্ডার খুঁজুন"
+                className="w-full rounded-2xl border border-gray-200 bg-white py-2.5 pl-9 pr-3 text-sm outline-none transition placeholder:text-gray-400 focus:border-brand focus:ring-2 focus:ring-brand/20"
+              />
+            </div>
+          </form>
+          <div className="ml-auto flex shrink-0 items-center gap-3">
             {bellButton}
             {avatarButton}
           </div>

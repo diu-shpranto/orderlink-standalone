@@ -15,7 +15,7 @@ import {
 } from '../lib/products.ts'
 import { chooseKeptPage } from '../lib/subscription.ts'
 import { formatBDT, formatCountBn } from '../lib/pricing.ts'
-import { navigate } from '../lib/router.ts'
+import { navigate, useSearch } from '../lib/router.ts'
 import { IconPlus, IconSearch } from '../components/icons.tsx'
 
 type PageFilter = 'all' | 'published' | 'draft'
@@ -29,6 +29,16 @@ export default function Products() {
   const [shopSlug, setShopSlug] = useState('')
   const [query, setQuery] = useState('')
   const [filter, setFilter] = useState<PageFilter>('all')
+  // ড্যাশবোর্ডের "সক্রিয় ল্যান্ডিং পেজ" কার্ড থেকে আসা ছাঁকনি —
+  // ?filter=published — ঠিকানাতেই থাকে, রিফ্রেশেও হারায় না।
+  const search = useSearch()
+  useEffect(() => {
+    const params = new URLSearchParams(search)
+    const f = params.get('filter')
+    const q = params.get('q')
+    if (f === 'published' || f === 'draft' || f === 'all') setFilter(f)
+    if (q !== null) setQuery(q)
+  }, [search])
   // ডেস্কটপে কার্ড বা তালিকা — ফোনে সবসময় কার্ড।
   const [view, setView] = useState<ProductsView>(() => {
     try {

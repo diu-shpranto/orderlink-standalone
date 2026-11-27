@@ -214,6 +214,26 @@ function SheetStatusCard() {
   )
 }
 
+// সাম্প্রতিক অর্ডারে স্ট্যাটাস পিল — Orders পেজের StatusBadge-এর
+// মতো একই রং, যাতে এক নজরে স্ট্যাটাস বোঝা যায়।
+function StatusPill({ status }: { status: string }) {
+  const color =
+    status === 'new'
+      ? 'bg-blue-100 text-blue-800'
+      : status === 'cancelled'
+        ? 'bg-red-100 text-red-800'
+        : status === 'delivered'
+          ? 'bg-green-100 text-green-800'
+          : 'bg-amber-100 text-amber-800'
+  return (
+    <span
+      className={`ml-1.5 inline-block rounded-full px-2 py-0.5 text-[11px] font-bold ${color}`}
+    >
+      {STATUS_BN[status] ?? status}
+    </span>
+  )
+}
+
 type SalesRange = 'today' | '7d' | '30d'
 
 const RANGE_LABEL: Record<SalesRange, string> = {
@@ -231,9 +251,10 @@ export function DashboardOverview() {
   const [loading, setLoading] = useState(true)
   const [error, setError] = useState('')
 
-  useEffect(() => {
+  function load() {
     if (!seller) return
     setLoading(true)
+    setError('')
     Promise.all([
       fetchDashboardStats(seller.id),
       fetchSellerProducts(seller.id),
@@ -248,6 +269,11 @@ export function DashboardOverview() {
         setError(err instanceof Error ? err.message : 'লোড করা যায়নি।')
       })
       .finally(() => setLoading(false))
+  }
+
+  useEffect(() => {
+    load()
+    // eslint-disable-next-line react-hooks/exhaustive-deps
   }, [seller])
 
   const rangeSales =
@@ -276,24 +302,28 @@ export function DashboardOverview() {
       value: formatCountBn(stats?.todayOrders ?? 0),
       sub: `মোট অর্ডার ${formatCountBn(stats?.totalOrders ?? 0)}টি`,
       icon: <IconDoc className="h-4 w-4" />,
+      to: '/dashboard/orders?date=today',
     },
     {
       label: 'নতুন অর্ডার',
       value: formatCountBn(stats?.newOrders ?? 0),
       sub: 'কনফার্ম করা বাকি আছে',
       icon: <IconBell className="h-4 w-4" />,
+      to: '/dashboard/orders?status=new',
     },
     {
       label: 'আজকের বিক্রি',
       value: formatBDT(stats?.todaySales ?? 0),
       sub: `এই মাসের বিক্রি ${formatBDT(stats?.monthSales ?? 0)}`,
       icon: <IconChart className="h-4 w-4" />,
+      to: '/dashboard/orders?date=today',
     },
     {
       label: 'সক্রিয় ল্যান্ডিং পেজ',
       value: formatCountBn(stats?.activePages ?? 0),
       sub: `মোট ${formatCountBn(stats?.totalPages ?? 0)}টি পেজ · ড্রাফট ${formatCountBn(stats?.draftPages ?? 0)}টি`,
       icon: <IconStore className="h-4 w-4" />,
+      to: '/dashboard/products?filter=published',
     },
   ]
 
@@ -304,11 +334,21 @@ export function DashboardOverview() {
       </h1>
       <p className="mt-1 text-sm text-gray-500">{todayBnLong()}</p>
       {/* বর্তমান প্ল্যান — সার্ভারের লাইভ সাবস্ক্রিপশন থেকে। */}
-      <span className="mt-3 inline-flex items-center gap-2 rounded-full border border-gray-200 bg-white px-3 py-1.5 text-[13px] font-bold text-gray-700 shadow-sm">
-        <span className="h-2 w-2 rounded-full bg-brand" />
-        {mySub?.plan ? `${mySub.plan.name} প্ল্যান` : 'ফ্রি প্ল্যান'} ·
-        দোকান সক্রিয়
-      </span>
+      <div className="mt-3 flex flex-wrap items-center gap-2">
+        <span className="inline-flex items-center gap-2 rounded-full border border-gray-200 bg-white px-3 py-1.5 text-[13px] font-bold text-gray-700 shadow-sm">
+          <span className="h-2 w-2 rounded-full bg-brand" />
+          {mySub?.plan ? `${mySub.plan.name} প্ল্যান` : 'ফ্রি প্ল্যান'} ·
+          দোকান সক্রিয়
+        </span>
+        {/* ফোনে নতুন পেজ বানানোর বোতাম — ডেস্কটপে ওপরের বারে আছে */}
+        <button
+          type="button"
+          onClick={() => navigate('/dashboard/products/new')}
+          className="inline-flex items-center gap-1.5 rounded-full bg-gradient-to-r from-brand-dark to-brand px-3.5 py-1.5 text-[13px] font-bold text-white shadow lg:hidden"
+        >
+          + নতুন ল্যান্ডিং পেজ
+        </button>
+      </div>
 
       {/* মেয়াদের সতর্কতা — আসল ডাটা থেকে। */}
       {mySub?.state === 'expiring' ? (
@@ -358,34 +398,57 @@ export function DashboardOverview() {
       ) : null}
 
       {loading ? (
-        <p className="mt-6 text-gray-600">লোড হচ্ছে…</p>
+        <div className="animate-pulse" aria-busy="true" aria-label="লোড হচ্ছে">
+          <div className="mt-4 grid grid-cols-2 gap-2.5 lg:grid-cols-4">
+            {[0, 1, 2, 3].map((i) => (
+              <div key={i} className="h-[99px] rounded-2xl bg-gray-200/70" />
+            ))}
+          </div>
+          <div className="mt-4 grid gap-4 xl:grid-cols-[minmax(0,1fr)_360px]">
+            <div className="h-64 rounded-2xl bg-gray-200/70" />
+            <div className="h-64 rounded-2xl bg-gray-200/70" />
+          </div>
+        </div>
       ) : error ? (
-        <p className="mt-6 rounded-2xl bg-red-50 px-4 py-3 text-sm text-red-700">
-          {error}
-        </p>
+        <div className="mt-6 rounded-2xl border border-red-200 bg-red-50 px-4 py-3">
+          <p className="text-sm font-bold text-red-700">{error}</p>
+          <p className="mt-1 text-sm text-red-600">
+            ইন্টারনেট দেখে আবার চেষ্টা করুন।
+          </p>
+          <button
+            type="button"
+            onClick={load}
+            className="mt-3 rounded-xl border border-red-200 bg-white px-4 py-2 text-sm font-bold text-red-700 shadow-sm"
+          >
+            আবার চেষ্টা করুন
+          </button>
+        </div>
       ) : (
         <>
           <div className="mt-4 grid grid-cols-2 gap-2.5 lg:grid-cols-4">
             {statCards.map((card) => (
-              <div
+              <button
                 key={card.label}
-                className="rounded-2xl border border-gray-200 bg-white p-3.5 shadow-sm sm:p-4"
+                type="button"
+                onClick={() => navigate(card.to)}
+                aria-label={`${card.label} — বিস্তারিত দেখুন`}
+                className="rounded-2xl border border-gray-200 bg-white p-3.5 text-left shadow-sm transition hover:border-brand/40 hover:shadow focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-brand/40 active:scale-[0.99] sm:p-4"
               >
-                <p className="whitespace-nowrap text-[13px] font-semibold leading-tight text-gray-500">
+                <span className="block whitespace-nowrap text-[13px] font-semibold leading-tight text-gray-500">
                   {card.label}
-                </p>
-                <div className="mt-1.5 flex items-end justify-between gap-2">
-                  <p className="text-2xl font-extrabold leading-none text-gray-900">
+                </span>
+                <span className="mt-1.5 flex items-end justify-between gap-2">
+                  <span className="text-2xl font-extrabold leading-none text-gray-900">
                     {card.value}
-                  </p>
+                  </span>
                   <span className="flex h-7 w-7 shrink-0 items-center justify-center rounded-lg bg-brand-mint text-brand-dark">
                     {card.icon}
                   </span>
-                </div>
-                <p className="mt-1 text-[11px] leading-snug text-gray-500">
+                </span>
+                <span className="mt-1 block text-[11px] leading-snug text-gray-500">
                   {card.sub}
-                </p>
-              </div>
+                </span>
+              </button>
             ))}
           </div>
 
@@ -534,8 +597,9 @@ export function DashboardOverview() {
                     >
                       <span>
                         <span className="font-bold">{o.order_code}</span>
+                        <StatusPill status={o.status} />
                         <span className="block text-gray-500">
-                          {o.customer_name} · {STATUS_BN[o.status] ?? o.status}
+                          {o.customer_name}
                         </span>
                       </span>
                       <span className="font-extrabold">
