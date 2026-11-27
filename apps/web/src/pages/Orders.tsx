@@ -1,14 +1,19 @@
-// সেলারের অর্ডার ব্যবস্থাপনা — লাইভ অ্যাপের ডিজাইন অনুযায়ী:
-// মোট অর্ডার + সর্বমোট বিক্রি, CSV ডাউনলোড, ৬টি স্ট্যাটাস কার্ড
-// (ক্লিক করলে ছাঁকনি), Google Sheet কানেক্ট কার্ড, খোঁজা,
-// স্ট্যাটাস + তারিখ + প্রোডাক্ট ছাঁকনি, বিস্তারিত ভিউ
+// সেলার অর্ডার ব্যবস্থাপনা — প্রিমিয়াম মোবাইল-ফার্স্ট রিডিজাইন:
+// ২০px শিরোনাম, ৬টি কমপ্যাক্ট স্ট্যাটাস কার্ড (ক্লিক করলে ছাঁকনি),
+// Google Sheet কানেক্ট কার্ড (আসল সিঙ্ক সংখ্যা + শেষ সিঙ্কসহ),
+// খোঁজা + স্ট্যাটাস পিল + প্রোডাক্ট/তারিখ ছাঁকনি, অর্ডার কার্ড
+// (চেকবক্স, কাস্টমার, ফোন, ঠিকানা, শিটের অবস্থা, বিস্তারিত,
+// ইনলাইন স্ট্যাটাস), বাল্ক স্ট্যাটাস + বাল্ক CSV, বিস্তারিত মোডাল
 // (স্ট্যাটাস পরিবর্তন, ইতিহাস, ভেতরের নোট, কল ও কপি)।
-// বাল্ক পরিবর্তন / প্রিন্ট — পরের পলিশ, এখানে নেই।
+// স্ট্যাটাসের নিয়ম আগের মতোই — New → Confirmed → Processing →
+// Shipped → Delivered, বা বাতিল; ভুল পরিবর্তন সার্ভারও ফেরায়।
+// "Returned" স্ট্যাটাস এই অ্যাপে নেই, তাই তার ছাঁকনি যোগ করা হয়নি।
 import { useEffect, useMemo, useState } from 'react'
 import SellerShell, { STATUS_BN } from '../components/SellerShell.tsx'
 import { useAuth } from '../lib/auth.tsx'
 import {
   NEXT_STATUS,
+  canTransition,
   computeOrderStats,
   countOrdersByPhone,
   fetchOrderEvents,
@@ -21,10 +26,23 @@ import {
 } from '../lib/orders.ts'
 import { fetchSellerProducts } from '../lib/products.ts'
 import { formatBDT, formatCountBn, todayDhaka, toBnDigits } from '../lib/pricing.ts'
-import { SHEET_STATUS_BN, fetchSheetConnection } from '../lib/sheets.ts'
-import type { SheetConnection } from '../lib/sheets.ts'
+import {
+  SHEET_STATUS_BN,
+  fetchSheetConnection,
+  fetchSheetSyncSummary,
+  triggerOrderSync,
+} from '../lib/sheets.ts'
+import type { SheetConnection, SheetSyncSummary } from '../lib/sheets.ts'
 import { navigate, useSearch } from '../lib/router.ts'
-import { IconDoc, IconDownload, IconPhone, IconSearch } from '../components/icons.tsx'
+import {
+  IconCheck,
+  IconCopy,
+  IconDoc,
+  IconDownload,
+  IconEye,
+  IconPhone,
+  IconSearch,
+} from '../components/icons.tsx'
 import type { OrderEventRow, OrderRow, ProductRow } from '../lib/types.ts'
 
 const PAGE_SIZE = 20
@@ -41,20 +59,48 @@ function formatDateTime(iso: string): string {
   })
 }
 
+const STATUS_COLOR: Record<string, string> = {
+  new: 'bg-blue-100 text-blue-800',
+  confirmed: 'bg-violet-100 text-violet-800',
+  processing: 'bg-amber-100 text-amber-800',
+  shipped: 'bg-sky-100 text-sky-800',
+  delivered: 'bg-green-100 text-green-800',
+  cancelled: 'bg-red-100 text-red-800',
+}
+
 function StatusBadge({ status }: { status: string }) {
+  return (
+    <span
+      className={`inline-block shrink-0 rounded-full px-2.5 py-0.5 text-xs font-bold ${
+        STATUS_COLOR[status] ?? 'bg-gray-100 text-gray-700'
+      }`}
+    >
+      {STATUS_BN[status] ?? status}
+    </span>
+  )
+}
+
+/** শিটের অবস্থার ছোট ব্যাজ — সিঙ্ক হয়েছে সবুজ, বাকি অ্যাম্বার/ধূসর। */
+function SheetBadge({ sheetStatus }: { sheetStatus: string }) {
+  if (sheetStatus === 'synced') {
+    return (
+      <span className="inline-flex items-center gap-1 rounded-full bg-green-100 px-2.5 py-0.5 text-xs font-bold text-green-800">
+        <IconCheck className="h-3.5 w-3.5" />
+        Sheet-এ গেছে
+      </span>
+    )
+  }
   const color =
-    status === 'new'
-      ? 'bg-blue-100 text-blue-800'
-      : status === 'cancelled'
-        ? 'bg-red-100 text-red-800'
-        : status === 'delivered'
-          ? 'bg-green-100 text-green-800'
-          : 'bg-amber-100 text-amber-800'
+    sheetStatus === 'failed'
+      ? 'bg-red-100 text-red-800'
+      : sheetStatus === 'not_connected'
+        ? 'bg-gray-100 text-gray-600'
+        : 'bg-amber-100 text-amber-800'
   return (
     <span
       className={`inline-block rounded-full px-2.5 py-0.5 text-xs font-bold ${color}`}
     >
-      {STATUS_BN[status] ?? status}
+      {SHEET_STATUS_BN[sheetStatus] ?? sheetStatus}
     </span>
   )
 }
@@ -115,17 +161,32 @@ function downloadOrdersCsv(
   URL.revokeObjectURL(url)
 }
 
-/** Google Sheet কানেক্ট কার্ড — যুক্ত না থাকলে লাইভ অ্যাপের মতো কার্ড,
- * যুক্ত থাকলে ছোট সবুজ অবস্থা। */
+function copyText(text: string, done: () => void) {
+  if (navigator.clipboard?.writeText) {
+    void navigator.clipboard.writeText(text).then(done, done)
+  } else {
+    done()
+  }
+}
+
+/** Google Sheet কানেক্ট কার্ড — যুক্ত থাকলে আসল সিঙ্ক সংখ্যা +
+ * শেষ সিঙ্কের সময়সহ সবুজ অবস্থা; না থাকলে কানেক্টের কার্ড। */
 function SheetConnectCard() {
   const { seller } = useAuth()
   const [connection, setConnection] = useState<SheetConnection | null>(null)
+  const [summary, setSummary] = useState<SheetSyncSummary | null>(null)
   const [loaded, setLoaded] = useState(false)
 
   useEffect(() => {
     if (!seller) return
     fetchSheetConnection(seller.id)
-      .then((conn) => setConnection(conn))
+      .then((conn) => {
+        setConnection(conn)
+        if (conn?.sheet_id) {
+          return fetchSheetSyncSummary(seller.id).then(setSummary)
+        }
+        return undefined
+      })
       .catch(() => setConnection(null))
       .finally(() => setLoaded(true))
   }, [seller])
@@ -133,29 +194,69 @@ function SheetConnectCard() {
   if (!loaded) return null
   if (connection?.sheet_id) {
     return (
-      <div className="mt-5 flex items-center gap-3 rounded-[24px] border border-gray-200 bg-white p-5 shadow-sm">
-        <span className="flex h-12 w-12 shrink-0 items-center justify-center rounded-2xl bg-brand text-white shadow-md">
-          <IconDoc className="h-6 w-6" />
-        </span>
-        <div className="min-w-0">
-          <p className="font-extrabold">Google Sheet যুক্ত আছে ✓</p>
-          <p className="mt-0.5 truncate text-sm text-gray-500">
-            {connection.google_email ?? ''} — প্রতিটা অর্ডার অটোমেটিক শিটে
-            জমা হচ্ছে।
-          </p>
+      <div className="mt-4 rounded-[20px] border border-green-200 bg-green-50/60 p-4 shadow-sm">
+        <div className="flex items-start gap-3">
+          <span className="flex h-11 w-11 shrink-0 items-center justify-center rounded-2xl bg-brand text-white shadow-md">
+            <IconDoc className="h-5 w-5" />
+          </span>
+          <div className="min-w-0 flex-1">
+            <p className="font-extrabold text-green-900">
+              Google Sheet যুক্ত আছে ✓
+            </p>
+            <p className="mt-0.5 truncate text-sm text-gray-600">
+              {connection.google_email ?? ''}
+            </p>
+            <p className="mt-1.5 text-[13px] leading-relaxed text-gray-600">
+              {summary ? (
+                <>
+                  সিঙ্ক হয়েছে{' '}
+                  <span className="font-bold text-gray-800">
+                    {toBnDigits(summary.synced)}টি
+                  </span>
+                  {' · '}অপেক্ষায়{' '}
+                  <span className="font-bold text-gray-800">
+                    {toBnDigits(summary.pending)}টি
+                  </span>
+                  {summary.failed > 0 ? (
+                    <>
+                      {' · '}ব্যর্থ{' '}
+                      <span className="font-bold text-red-700">
+                        {toBnDigits(summary.failed)}টি
+                      </span>
+                    </>
+                  ) : null}
+                  {summary.lastSyncedAt ? (
+                    <>
+                      <br />
+                      শেষ সিঙ্ক: {formatDateTime(summary.lastSyncedAt)}
+                    </>
+                  ) : null}
+                </>
+              ) : (
+                'প্রতিটা অর্ডার অটোমেটিক শিটে জমা হচ্ছে।'
+              )}
+            </p>
+            <button
+              type="button"
+              onClick={() => navigate('/dashboard/settings')}
+              className="mt-2 text-sm font-bold text-brand-dark underline underline-offset-2"
+            >
+              সেটিংসে সিঙ্ক দেখুন →
+            </button>
+          </div>
         </div>
       </div>
     )
   }
   return (
-    <div className="mt-5 rounded-[24px] border border-gray-200 bg-white p-5 shadow-sm">
-      <h2 className="flex items-center gap-3 text-lg font-extrabold">
-        <span className="flex h-12 w-12 shrink-0 items-center justify-center rounded-2xl bg-gradient-to-br from-brand-dark to-brand text-white shadow-md">
-          <IconDoc className="h-6 w-6" />
+    <div className="mt-4 rounded-[20px] border border-gray-200 bg-white p-4 shadow-sm">
+      <h2 className="flex items-center gap-3 text-[17px] font-extrabold">
+        <span className="flex h-11 w-11 shrink-0 items-center justify-center rounded-2xl bg-gradient-to-br from-brand-dark to-brand text-white shadow-md">
+          <IconDoc className="h-5 w-5" />
         </span>
         Google Sheet কানেক্ট করুন
       </h2>
-      <p className="mt-3 text-[15px] leading-relaxed text-gray-600">
+      <p className="mt-3 text-sm leading-relaxed text-gray-600">
         কানেক্ট করলেই প্রতিটি অর্ডার অটোমেটিক আপনার শিটে জমা হবে — Order ID,
         কাস্টমারের নাম, ফোন, ঠিকানা, মোট টাকাসহ। প্রতিদিনের অর্ডার সেই দিনের
         নামের আলাদা ট্যাবে যায়।
@@ -163,7 +264,7 @@ function SheetConnectCard() {
       <button
         type="button"
         onClick={() => navigate('/dashboard/settings')}
-        className="mt-4 rounded-2xl bg-gradient-to-r from-brand-dark via-brand to-brand px-5 py-3 text-sm font-bold text-white shadow-lg shadow-brand/25"
+        className="mt-3 rounded-2xl bg-gradient-to-r from-brand-dark via-brand to-brand px-5 py-2.5 text-sm font-bold text-white shadow-lg shadow-brand/25"
       >
         সেটিংসে গিয়ে কানেক্ট করুন
       </button>
@@ -192,7 +293,8 @@ function OrderDetail({
   const [busy, setBusy] = useState(false)
   const [error, setError] = useState('')
   const [confirmingCancel, setConfirmingCancel] = useState(false)
-  const [copied, setCopied] = useState(false)
+  const [copiedPhone, setCopiedPhone] = useState(false)
+  const [copiedCode, setCopiedCode] = useState(false)
 
   useEffect(() => {
     setEventsLoading(true)
@@ -237,18 +339,6 @@ function OrderDetail({
     }
   }
 
-  function copyPhone() {
-    const done = () => {
-      setCopied(true)
-      window.setTimeout(() => setCopied(false), 2000)
-    }
-    if (navigator.clipboard?.writeText) {
-      void navigator.clipboard.writeText(order.customer_phone).then(done, done)
-    } else {
-      done()
-    }
-  }
-
   const addressParts = [
     order.address_line,
     order.upazila,
@@ -258,12 +348,41 @@ function OrderDetail({
     .filter((part) => part && part.trim().length > 0)
     .join(', ')
 
+  const unitPrice =
+    order.quantity > 0
+      ? Math.round(
+          (Number(order.total) - Number(order.delivery_charge)) /
+            order.quantity,
+        )
+      : Number(order.total)
+
   return (
     <div className="fixed inset-0 z-50 flex items-end justify-center bg-black/50 sm:items-center sm:p-4">
       <div className="max-h-[90vh] w-full max-w-lg overflow-y-auto rounded-t-[28px] bg-white p-5 shadow-xl sm:rounded-[28px] sm:p-6">
         <div className="flex items-start justify-between gap-3">
           <div>
-            <h2 className="text-xl font-extrabold">{order.order_code}</h2>
+            <h2 className="flex items-center gap-2 text-xl font-extrabold">
+              {order.order_code}
+              <button
+                type="button"
+                onClick={() =>
+                  copyText(order.order_code, () => {
+                    setCopiedCode(true)
+                    window.setTimeout(() => setCopiedCode(false), 2000)
+                  })
+                }
+                className="flex h-7 w-7 items-center justify-center rounded-lg border border-gray-300 bg-white text-gray-600"
+                title="অর্ডার আইডি কপি করুন"
+                aria-label="অর্ডার আইডি কপি করুন"
+              >
+                <IconCopy className="h-3.5 w-3.5" />
+              </button>
+              {copiedCode ? (
+                <span className="text-xs font-bold text-brand">
+                  কপি হয়েছে ✓
+                </span>
+              ) : null}
+            </h2>
             <p className="text-sm text-gray-500">
               {formatDateTime(order.created_at)}
             </p>
@@ -278,8 +397,9 @@ function OrderDetail({
           </button>
         </div>
 
-        <div className="mt-4">
+        <div className="mt-4 flex flex-wrap items-center gap-2">
           <StatusBadge status={order.status} />
+          <SheetBadge sheetStatus={order.sheet_status} />
         </div>
 
         {error ? (
@@ -311,10 +431,15 @@ function OrderDetail({
               </a>
               <button
                 type="button"
-                onClick={copyPhone}
+                onClick={() =>
+                  copyText(order.customer_phone, () => {
+                    setCopiedPhone(true)
+                    window.setTimeout(() => setCopiedPhone(false), 2000)
+                  })
+                }
                 className="rounded-lg border border-gray-300 bg-white px-2 py-0.5 text-xs font-bold"
               >
-                {copied ? 'কপি হয়েছে ✓' : 'কপি'}
+                {copiedPhone ? 'কপি হয়েছে ✓' : 'কপি'}
               </button>
             </span>
           </p>
@@ -337,6 +462,10 @@ function OrderDetail({
             <span className="font-medium">{toBnDigits(order.quantity)}টি</span>
           </p>
           <p className="flex justify-between">
+            <span className="text-gray-500">একক দাম</span>
+            <span className="font-medium">{formatBDT(unitPrice)}</span>
+          </p>
+          <p className="flex justify-between">
             <span className="text-gray-500">ডেলিভারি চার্জ</span>
             <span className="font-medium">
               {Number(order.delivery_charge) > 0
@@ -356,11 +485,12 @@ function OrderDetail({
           </p>
         </div>
 
-        <div className="mt-4 flex gap-2">
+        <div className="mt-4">
           <a
             href={`tel:${order.customer_phone}`}
-            className="flex-1 rounded-2xl bg-gradient-to-r from-brand-dark via-brand to-brand px-4 py-3 text-center text-sm font-bold text-white shadow"
+            className="flex items-center justify-center gap-2 rounded-2xl bg-gradient-to-r from-brand-dark via-brand to-brand px-4 py-3 text-sm font-bold text-white shadow"
           >
+            <IconPhone className="h-4 w-4" />
             কল করুন
           </a>
         </div>
@@ -456,9 +586,10 @@ function OrderDetail({
               এখনো কোনো স্ট্যাটাস পরিবর্তন হয়নি।
             </p>
           ) : (
-            <ul className="mt-2 space-y-2">
+            <ul className="mt-3 space-y-3 border-l-2 border-brand-mint pl-4">
               {events.map((ev) => (
-                <li key={ev.id} className="flex justify-between gap-3 text-sm">
+                <li key={ev.id} className="relative text-sm">
+                  <span className="absolute -left-[23px] top-1.5 h-2.5 w-2.5 rounded-full bg-brand ring-2 ring-white" />
                   <span>
                     {ev.old_status
                       ? `${STATUS_BN[ev.old_status] ?? ev.old_status} → `
@@ -467,7 +598,7 @@ function OrderDetail({
                       {STATUS_BN[ev.new_status] ?? ev.new_status}
                     </span>
                   </span>
-                  <span className="shrink-0 text-gray-500">
+                  <span className="block text-xs text-gray-500">
                     {formatDateTime(ev.created_at)}
                   </span>
                 </li>
@@ -478,6 +609,33 @@ function OrderDetail({
       </div>
     </div>
   )
+}
+
+const STATUS_PILLS: { key: string; label: string }[] = [
+  { key: 'all', label: 'সব' },
+  { key: 'new', label: STATUS_BN.new },
+  { key: 'confirmed', label: STATUS_BN.confirmed },
+  { key: 'processing', label: STATUS_BN.processing },
+  { key: 'shipped', label: STATUS_BN.shipped },
+  { key: 'delivered', label: STATUS_BN.delivered },
+  { key: 'cancelled', label: STATUS_BN.cancelled },
+]
+
+const BULK_TARGETS: { key: OrderStatus; label: string }[] = [
+  { key: 'confirmed', label: STATUS_BN.confirmed },
+  { key: 'processing', label: STATUS_BN.processing },
+  { key: 'shipped', label: STATUS_BN.shipped },
+  { key: 'delivered', label: STATUS_BN.delivered },
+  { key: 'cancelled', label: STATUS_BN.cancelled },
+]
+
+const STAT_DOT: Record<string, string> = {
+  all: 'bg-gray-900',
+  new: 'bg-blue-600',
+  confirmed: 'bg-violet-600',
+  processing: 'bg-amber-500',
+  delivered: 'bg-green-600',
+  cancelled: 'bg-red-500',
 }
 
 export default function Orders() {
@@ -493,6 +651,8 @@ export default function Orders() {
     dateFrom: '',
     dateTo: '',
   })
+  // "শিটে যায়নি" — শিটে এখনো যায়নি এমন অর্ডারগুলোই দেখায়।
+  const [syncFilter, setSyncFilter] = useState<'all' | 'unsynced'>('all')
   // ড্যাশবোর্ডের স্ট্যাট কার্ড / ওপরের খোঁজা / পণ্যের পেজ থেকে আসা ছাঁকনি —
   // ?status=new, ?date=today, ?q=..., ?product=<id> — ঠিকানাতেই থাকে, তাই
   // রিফ্রেশ করলেও ছাঁকনি হারায় না। প্যারামিটার না থাকলে
@@ -529,6 +689,15 @@ export default function Orders() {
   const [inlineBusyId, setInlineBusyId] = useState('')
   const [inlineError, setInlineError] = useState('')
   const [copiedId, setCopiedId] = useState('')
+  const [copiedCodeId, setCopiedCodeId] = useState('')
+  // বাল্ক নির্বাচন — অর্ডার id-র সেট।
+  const [selectedIds, setSelectedIds] = useState<Set<string>>(new Set())
+  const [bulkTarget, setBulkTarget] = useState('')
+  const [bulkBusy, setBulkBusy] = useState(false)
+  const [bulkMessage, setBulkMessage] = useState('')
+  // শিটে আবার পাঠানো (কার্ডের "আবার পাঠান")।
+  const [resendingId, setResendingId] = useState('')
+  const [resentNote, setResentNote] = useState('')
 
   async function advanceInline(order: OrderRow) {
     const next = NEXT_STATUS[order.status as OrderStatus]
@@ -547,18 +716,55 @@ export default function Orders() {
     }
   }
 
+  /** কার্ডের স্ট্যাটাস ড্রপডাউন — পরের ধাপ সরাসরি, বাতিল হলে
+   * নিশ্চিতকরণের জন্য বিস্তারিত মোডাল খোলে। */
+  async function changeStatusFromCard(order: OrderRow, value: string) {
+    if (value === 'cancelled') {
+      setSelected(order)
+      return
+    }
+    if (!canTransition(order.status, value)) return
+    setInlineError('')
+    setInlineBusyId(order.id)
+    try {
+      await updateOrderStatus(order, value as OrderStatus)
+      await reload()
+    } catch (err) {
+      setInlineError(
+        err instanceof Error ? err.message : 'স্ট্যাটাস বদলানো যায়নি।',
+      )
+    } finally {
+      setInlineBusyId('')
+    }
+  }
+
   function copyPhoneInline(order: OrderRow) {
     const done = () => {
       setCopiedId(order.id)
       window.setTimeout(() => setCopiedId(''), 2000)
     }
-    if (navigator.clipboard?.writeText) {
-      void navigator.clipboard
-        .writeText(order.customer_phone)
-        .then(done, done)
-    } else {
-      done()
+    copyText(order.customer_phone, done)
+  }
+
+  function copyCodeInline(order: OrderRow) {
+    const done = () => {
+      setCopiedCodeId(order.id)
+      window.setTimeout(() => setCopiedCodeId(''), 2000)
     }
+    copyText(order.order_code, done)
+  }
+
+  /** শিটে আবার পাঠান — সিঙ্ক ফায়ার-অ্যান্ড-ফরগেট, তারপর অবস্থা
+   * তাজা করতে তালিকা আবার লোড হয়। */
+  function resendSheet(order: OrderRow) {
+    setResendingId(order.id)
+    setResentNote('')
+    triggerOrderSync(order.id)
+    window.setTimeout(() => {
+      setResendingId('')
+      setResentNote('আবার পাঠানোর চেষ্টা করা হয়েছে — অবস্থা দেখে নিন।')
+      void reload()
+    }, 2500)
   }
 
   async function reload() {
@@ -586,7 +792,7 @@ export default function Orders() {
 
   useEffect(() => {
     setPage(1)
-  }, [filters])
+  }, [filters, syncFilter])
 
   const productNameById = useMemo(() => {
     const map = new Map<string, string>()
@@ -594,13 +800,86 @@ export default function Orders() {
     return map
   }, [products])
 
-  const filtered = useMemo(
-    () => filterOrders(orders, filters),
-    [orders, filters],
-  )
+  const filtered = useMemo(() => {
+    const base = filterOrders(orders, filters)
+    if (syncFilter === 'unsynced') {
+      return base.filter((o) => o.sheet_status !== 'synced')
+    }
+    return base
+  }, [orders, filters, syncFilter])
   const stats = useMemo(() => computeOrderStats(orders), [orders])
+  const shippedCount = useMemo(
+    () => orders.filter((o) => o.status === 'shipped').length,
+    [orders],
+  )
+  const unsyncedCount = useMemo(
+    () => orders.filter((o) => o.sheet_status !== 'synced').length,
+    [orders],
+  )
   const totalPages = Math.max(1, Math.ceil(filtered.length / PAGE_SIZE))
   const pageOrders = filtered.slice((page - 1) * PAGE_SIZE, page * PAGE_SIZE)
+
+  const selectedOrders = useMemo(
+    () => orders.filter((o) => selectedIds.has(o.id)),
+    [orders, selectedIds],
+  )
+
+  function toggleSelect(id: string) {
+    setSelectedIds((prev) => {
+      const next = new Set(prev)
+      if (next.has(id)) next.delete(id)
+      else next.add(id)
+      return next
+    })
+  }
+
+  function selectAllFiltered() {
+    setSelectedIds(new Set(filtered.map((o) => o.id)))
+  }
+
+  function clearSelection() {
+    setSelectedIds(new Set())
+    setBulkMessage('')
+    setBulkTarget('')
+  }
+
+  const allFilteredSelected =
+    filtered.length > 0 && filtered.every((o) => selectedIds.has(o.id))
+
+  /** বাল্ক স্ট্যাটাস — শুধু যেসব অর্ডারে ওই পরিবর্তন নিয়মমাফিক
+   * হয় সেগুলোই বদলায়; বাকিগুলো বাদ যায়, গুনে জানানো হয়। */
+  async function applyBulkStatus() {
+    if (!bulkTarget || selectedOrders.length === 0 || bulkBusy) return
+    const target = bulkTarget as OrderStatus
+    setBulkBusy(true)
+    setBulkMessage('')
+    let applied = 0
+    let skipped = 0
+    for (const order of selectedOrders) {
+      if (!canTransition(order.status, target)) {
+        skipped += 1
+        continue
+      }
+      try {
+        await updateOrderStatus(order, target)
+        applied += 1
+      } catch {
+        skipped += 1
+      }
+    }
+    setBulkBusy(false)
+    setBulkTarget('')
+    setSelectedIds(new Set())
+    setBulkMessage(
+      applied > 0
+        ? `${toBnDigits(applied)}টি অর্ডারের স্ট্যাটাস বদলানো হয়েছে` +
+            (skipped > 0
+              ? ` — ${toBnDigits(skipped)}টি বাদ গেছে (সেই স্ট্যাটাস থেকে বদলানো যায় না)।`
+              : '।')
+        : 'কোনো অর্ডারের স্ট্যাটাস বদলানো যায়নি — নির্বাচিত অর্ডারগুলো থেকে এই ধাপে যাওয়া যায় না।',
+    )
+    await reload()
+  }
 
   // স্ট্যাটাস কার্ডগুলোই ছাঁকনি — ক্লিক করলে সেই স্ট্যাটাসের অর্ডার দেখায়।
   const statCards: { label: string; value: string; status: string }[] = [
@@ -628,14 +907,28 @@ export default function Orders() {
     setFilters((f) => ({ ...f, ...patch }))
   }
 
+  const pillCount = (key: string): number => {
+    if (key === 'all') return stats.total
+    if (key === 'new') return stats.newCount
+    if (key === 'confirmed') return stats.confirmed
+    if (key === 'processing') return stats.processing
+    if (key === 'shipped') return shippedCount
+    if (key === 'delivered') return stats.delivered
+    if (key === 'cancelled') return stats.cancelled
+    return 0
+  }
+
   return (
     <SellerShell active="orders">
       <div className="lg:flex lg:items-end lg:justify-between lg:gap-4">
         <div>
-          <h1 className="text-[28px] font-extrabold leading-tight text-gray-900 sm:text-3xl">
+          <h1 className="text-xl font-extrabold leading-tight text-gray-900">
             অর্ডার
           </h1>
-          <p className="mt-1.5 text-[15px] text-gray-500">
+          <p className="mt-1 text-sm text-gray-500">
+            সব অর্ডার দেখুন এবং পরিচালনা করুন।
+          </p>
+          <p className="mt-0.5 text-sm text-gray-500">
             মোট {formatCountBn(stats.total)}টি অর্ডার · সর্বমোট বিক্রি{' '}
             {formatBDT(stats.totalSales)}
           </p>
@@ -644,14 +937,14 @@ export default function Orders() {
           type="button"
           onClick={() => downloadOrdersCsv(filtered, productNameById)}
           disabled={filtered.length === 0}
-          className="mt-5 inline-flex shrink-0 items-center gap-2 rounded-2xl border border-gray-200 bg-white px-4 py-2.5 text-sm font-bold shadow-sm disabled:opacity-50 lg:mt-0"
+          className="mt-4 inline-flex w-full shrink-0 items-center justify-center gap-2 rounded-2xl border border-gray-200 bg-white px-4 py-2.5 text-sm font-bold shadow-sm disabled:opacity-50 lg:mt-0 lg:w-auto"
         >
           <IconDownload className="h-4 w-4" />
           CSV ডাউনলোড
         </button>
       </div>
 
-      <div className="mt-5 grid grid-cols-2 gap-3 md:grid-cols-3 xl:grid-cols-6">
+      <div className="mt-4 grid grid-cols-2 gap-2.5 md:grid-cols-3 xl:grid-cols-6">
         {statCards.map((card) => {
           const isActive = filters.status === card.status
           return (
@@ -659,16 +952,21 @@ export default function Orders() {
               key={card.label}
               type="button"
               onClick={() => setFilter({ status: card.status })}
-              className={`rounded-[24px] border bg-white p-4 text-left shadow-sm transition ${
+              className={`rounded-[20px] border bg-white p-3.5 text-left shadow-sm transition ${
                 isActive
                   ? 'border-brand ring-2 ring-brand/60'
                   : 'border-gray-200'
               }`}
             >
-              <p className="text-2xl font-extrabold text-gray-900 sm:text-3xl">
+              <p className="flex items-center gap-2 text-[22px] font-extrabold leading-none text-gray-900">
+                <span
+                  className={`h-2.5 w-2.5 shrink-0 rounded-full ${STAT_DOT[card.status] ?? 'bg-gray-400'}`}
+                />
                 {card.value}
               </p>
-              <p className="mt-1 text-sm text-gray-500">{card.label}</p>
+              <p className="mt-1.5 text-[13px] font-medium text-gray-500">
+                {card.label}
+              </p>
             </button>
           )
         })}
@@ -677,15 +975,32 @@ export default function Orders() {
       <SheetConnectCard />
 
       {loading ? (
-        <p className="mt-6 text-gray-600">লোড হচ্ছে…</p>
+        <div aria-label="লোড হচ্ছে" className="mt-5 space-y-3">
+          <div className="h-[104px] animate-pulse rounded-[20px] bg-gray-200/70" />
+          <div className="space-y-3">
+            {[0, 1, 2].map((i) => (
+              <div
+                key={i}
+                className="h-[148px] animate-pulse rounded-[20px] bg-gray-200/70"
+              />
+            ))}
+          </div>
+        </div>
       ) : error ? (
-        <p className="mt-6 rounded-2xl bg-red-50 px-4 py-3 text-sm text-red-700">
-          {error}
-        </p>
+        <div className="mt-5 rounded-[20px] border border-red-200 bg-red-50 p-4">
+          <p className="text-sm font-medium text-red-700">{error}</p>
+          <button
+            type="button"
+            onClick={() => void reload()}
+            className="mt-3 rounded-2xl bg-red-600 px-4 py-2 text-sm font-bold text-white"
+          >
+            আবার চেষ্টা করুন
+          </button>
+        </div>
       ) : (
         <>
-          <div className="mt-6 space-y-3 rounded-[24px] border border-gray-200 bg-white p-4 shadow-sm lg:flex lg:items-end lg:gap-3 lg:space-y-0">
-            <div className="relative lg:min-w-0 lg:flex-1">
+          <div className="mt-5 rounded-[20px] border border-gray-200 bg-white p-4 shadow-sm">
+            <div className="relative">
               <span className="pointer-events-none absolute left-4 top-1/2 -translate-y-1/2 text-gray-400">
                 <IconSearch className="h-5 w-5" />
               </span>
@@ -697,21 +1012,28 @@ export default function Orders() {
                 className="w-full rounded-2xl border border-gray-300 py-3 pl-11 pr-4 text-[15px] placeholder:text-gray-400 outline-none transition focus:border-brand focus:ring-2 focus:ring-brand/20"
               />
             </div>
-            <div className="grid grid-cols-2 gap-3 lg:flex lg:shrink-0 lg:gap-3">
-              <select
-                value={filters.productId}
-                onChange={(e) => setFilter({ productId: e.target.value })}
-                className="rounded-2xl border border-gray-300 bg-white px-3 py-2.5 text-sm outline-none lg:w-48"
-              >
-                <option value="all">সব প্রোডাক্ট</option>
-                {products.map((p) => (
-                  <option key={p.id} value={p.id}>
-                    {p.name}
-                  </option>
-                ))}
-              </select>
+            <div className="mt-3 grid grid-cols-2 gap-3 lg:flex lg:gap-3">
+              <label className="block lg:w-52">
+                <span className="text-xs font-medium text-gray-500">
+                  পণ্য / ল্যান্ডিং পেজ
+                </span>
+                <select
+                  value={filters.productId}
+                  onChange={(e) => setFilter({ productId: e.target.value })}
+                  className="mt-0.5 w-full rounded-2xl border border-gray-300 bg-white px-3 py-2.5 text-sm outline-none"
+                >
+                  <option value="all">সব পণ্য</option>
+                  {products.map((p) => (
+                    <option key={p.id} value={p.id}>
+                      {p.name}
+                    </option>
+                  ))}
+                </select>
+              </label>
               <label className="block lg:w-40">
-                <span className="text-xs text-gray-500">তারিখ থেকে</span>
+                <span className="text-xs font-medium text-gray-500">
+                  তারিখ থেকে
+                </span>
                 <input
                   type="date"
                   value={filters.dateFrom}
@@ -720,7 +1042,9 @@ export default function Orders() {
                 />
               </label>
               <label className="block lg:w-40">
-                <span className="text-xs text-gray-500">তারিখ পর্যন্ত</span>
+                <span className="text-xs font-medium text-gray-500">
+                  তারিখ পর্যন্ত
+                </span>
                 <input
                   type="date"
                   value={filters.dateTo}
@@ -729,25 +1053,144 @@ export default function Orders() {
                 />
               </label>
             </div>
+            <div className="-mx-1 mt-3 flex gap-2 overflow-x-auto px-1 pb-1">
+              {STATUS_PILLS.map((pill) => {
+                const isActive =
+                  syncFilter === 'all' && filters.status === pill.key
+                return (
+                  <button
+                    key={pill.key}
+                    type="button"
+                    onClick={() => {
+                      setSyncFilter('all')
+                      setFilter({ status: pill.key })
+                    }}
+                    className={`shrink-0 whitespace-nowrap rounded-full px-3.5 py-2 text-[13px] font-bold transition ${
+                      isActive
+                        ? 'bg-brand text-white shadow-md shadow-brand/25'
+                        : 'border border-gray-200 bg-white text-gray-700'
+                    }`}
+                  >
+                    {pill.label} · {toBnDigits(pillCount(pill.key))}
+                  </button>
+                )
+              })}
+              <button
+                type="button"
+                onClick={() => setSyncFilter((s) => (s === 'unsynced' ? 'all' : 'unsynced'))}
+                className={`shrink-0 whitespace-nowrap rounded-full px-3.5 py-2 text-[13px] font-bold transition ${
+                  syncFilter === 'unsynced'
+                    ? 'bg-amber-500 text-white shadow-md shadow-amber-500/25'
+                    : 'border border-amber-200 bg-amber-50 text-amber-800'
+                }`}
+              >
+                শিটে যায়নি · {toBnDigits(unsyncedCount)}
+              </button>
+            </div>
           </div>
 
-          {filtered.length === 0 ? (
-            <p className="mt-6 rounded-[24px] border border-gray-200 bg-white p-5 text-sm text-gray-500 shadow-sm">
-              কোনো অর্ডার পাওয়া যায়নি।
+          {resentNote ? (
+            <p className="mt-4 rounded-2xl bg-green-50 px-4 py-3 text-sm font-medium text-green-800">
+              {resentNote}
             </p>
+          ) : null}
+
+          {filtered.length === 0 ? (
+            <div className="mt-5 rounded-[20px] border border-gray-200 bg-white p-6 text-center shadow-sm">
+              <p className="font-extrabold">
+                {orders.length === 0
+                  ? 'এখনো কোনো অর্ডার আসেনি।'
+                  : 'খুঁজে কিছু পাওয়া যায়নি।'}
+              </p>
+              <p className="mt-1 text-sm text-gray-500">
+                {orders.length === 0
+                  ? 'কাস্টমার আপনার ল্যান্ডিং পেজ থেকে অর্ডার করলেই এখানে দেখা যাবে।'
+                  : 'অন্য কিছু খুঁজে দেখুন, বা ছাঁকনি বদলে নিন।'}
+              </p>
+              {orders.length > 0 ? (
+                <button
+                  type="button"
+                  onClick={() => {
+                    setFilters({
+                      search: '',
+                      status: 'all',
+                      productId: 'all',
+                      dateFrom: '',
+                      dateTo: '',
+                    })
+                    setSyncFilter('all')
+                  }}
+                  className="mt-4 rounded-2xl border border-gray-300 bg-white px-4 py-2 text-sm font-bold"
+                >
+                  ছাঁকনি পরিষ্কার করুন
+                </button>
+              ) : null}
+            </div>
           ) : (
             <>
               {inlineError ? (
-                <p className="mt-6 rounded-2xl bg-red-50 px-4 py-3 text-sm font-medium text-red-700">
+                <p className="mt-4 rounded-2xl bg-red-50 px-4 py-3 text-sm font-medium text-red-700">
                   {inlineError}
                 </p>
               ) : null}
-              {/* ডেস্কটপ টেবিল — ইনলাইন কাজসহ: পরের ধাপ, কল, কপি।
+              <div className="mt-4 flex items-center gap-2 px-1">
+                <label className="flex cursor-pointer items-center gap-2 text-sm font-bold text-gray-700">
+                  <input
+                    type="checkbox"
+                    checked={allFilteredSelected}
+                    onChange={() => {
+                      if (allFilteredSelected) clearSelection()
+                      else selectAllFiltered()
+                    }}
+                    className="h-5 w-5 shrink-0 accent-brand"
+                    aria-label="সব অর্ডার নির্বাচন করুন"
+                  />
+                  সব নির্বাচন করুন
+                </label>
+                <span className="text-sm text-gray-500">
+                  ({formatCountBn(filtered.length)}টি)
+                </span>
+                {selectedIds.size > 0 ? (
+                  <button
+                    type="button"
+                    onClick={clearSelection}
+                    className="ml-auto text-sm font-bold text-red-600"
+                  >
+                    নির্বাচন বাতিল করুন
+                  </button>
+                ) : null}
+              </div>
+
+              {/* ডেস্কটপ টেবিল — চেকবক্স + ইনলাইন কাজসহ: পরের ধাপ, কল, কপি।
                   বিস্তারিত (নোট/ইতিহাস/বাতিল) এখনো সারিতে ক্লিক করলে খোলে। */}
-              <div className="mt-6 hidden overflow-x-auto rounded-[24px] border border-gray-200 bg-white shadow-sm md:block">
+              <div className="mt-4 hidden overflow-x-auto rounded-[20px] border border-gray-200 bg-white shadow-sm md:block">
                 <table className="w-full text-left text-sm">
                   <thead>
                     <tr className="border-b border-gray-200 text-gray-500">
+                      <th className="px-3 py-3">
+                        <input
+                          type="checkbox"
+                          checked={
+                            pageOrders.length > 0 &&
+                            pageOrders.every((o) => selectedIds.has(o.id))
+                          }
+                          onChange={() => {
+                            const allPage = pageOrders.every((o) =>
+                              selectedIds.has(o.id),
+                            )
+                            setSelectedIds((prev) => {
+                              const next = new Set(prev)
+                              for (const o of pageOrders) {
+                                if (allPage) next.delete(o.id)
+                                else next.add(o.id)
+                              }
+                              return next
+                            })
+                          }}
+                          className="h-4 w-4 accent-brand"
+                          aria-label="এই পেজের সব অর্ডার নির্বাচন করুন"
+                        />
+                      </th>
                       <th className="px-4 py-3">অর্ডার</th>
                       <th className="px-4 py-3">কাস্টমার</th>
                       <th className="px-4 py-3">ফোন</th>
@@ -763,110 +1206,285 @@ export default function Orders() {
                     {pageOrders.map((o) => {
                       const next = NEXT_STATUS[o.status as OrderStatus]
                       return (
-                      <tr
-                        key={o.id}
-                        onClick={() => setSelected(o)}
-                        className="cursor-pointer border-b border-gray-100 last:border-0 hover:bg-gray-50"
-                      >
-                        <td className="px-4 py-3 font-bold">
-                          {o.order_code}
-                        </td>
-                        <td className="px-4 py-3">{o.customer_name}</td>
-                        <td className="px-4 py-3">{o.customer_phone}</td>
-                        <td className="px-4 py-3">
-                          {o.product_id
-                            ? (productNameById.get(o.product_id) ?? '—')
-                            : '—'}
-                        </td>
-                        <td className="px-4 py-3">
-                          {toBnDigits(o.quantity)}টি
-                        </td>
-                        <td className="px-4 py-3 font-extrabold">
-                          {formatBDT(Number(o.total))}
-                        </td>
-                        <td className="px-4 py-3">
-                          <StatusBadge status={o.status} />
-                        </td>
-                        <td className="px-4 py-3 text-gray-500">
-                          {formatDateTime(o.created_at)}
-                        </td>
-                        <td
-                          className="px-4 py-3"
-                          onClick={(e) => e.stopPropagation()}
+                        <tr
+                          key={o.id}
+                          onClick={() => setSelected(o)}
+                          className={`cursor-pointer border-b border-gray-100 last:border-0 hover:bg-gray-50 ${
+                            selectedIds.has(o.id) ? 'bg-brand-mint/40' : ''
+                          }`}
                         >
-                          <span className="flex items-center gap-1.5">
-                            {next ? (
+                          <td
+                            className="px-3 py-3"
+                            onClick={(e) => e.stopPropagation()}
+                          >
+                            <input
+                              type="checkbox"
+                              checked={selectedIds.has(o.id)}
+                              onChange={() => toggleSelect(o.id)}
+                              className="h-4 w-4 accent-brand"
+                              aria-label={`${o.order_code} নির্বাচন করুন`}
+                            />
+                          </td>
+                          <td className="px-4 py-3">
+                            <span className="flex items-center gap-1.5 font-bold">
+                              {o.order_code}
                               <button
                                 type="button"
-                                disabled={inlineBusyId === o.id}
-                                onClick={() => void advanceInline(o)}
-                                className="whitespace-nowrap rounded-lg bg-gradient-to-r from-brand-dark to-brand px-2.5 py-1.5 text-xs font-bold text-white disabled:opacity-50"
-                                title="পরের ধাপে নিন"
+                                onClick={(e) => {
+                                  e.stopPropagation()
+                                  copyCodeInline(o)
+                                }}
+                                className="flex h-6 w-6 items-center justify-center rounded-md text-gray-400 hover:bg-gray-100 hover:text-gray-700"
+                                title="অর্ডার আইডি কপি করুন"
+                                aria-label="অর্ডার আইডি কপি করুন"
                               >
-                                → {STATUS_BN[next] ?? next}
+                                <IconCopy className="h-3.5 w-3.5" />
                               </button>
-                            ) : null}
-                            <a
-                              href={`tel:${o.customer_phone}`}
-                              className="flex h-8 w-8 items-center justify-center rounded-lg border border-gray-300 bg-white text-brand-dark"
-                              title="কল করুন"
-                              aria-label="কল করুন"
-                            >
-                              <IconPhone className="h-4 w-4" />
-                            </a>
-                            <button
-                              type="button"
-                              onClick={() => copyPhoneInline(o)}
-                              className="whitespace-nowrap rounded-lg border border-gray-300 bg-white px-2.5 py-1.5 text-xs font-bold"
-                              title="ফোন নম্বর কপি করুন"
-                            >
-                              {copiedId === o.id ? 'কপি হয়েছে ✓' : 'কপি'}
-                            </button>
-                          </span>
-                        </td>
-                      </tr>
+                              {copiedCodeId === o.id ? (
+                                <span className="text-xs font-bold text-brand">
+                                  কপি ✓
+                                </span>
+                              ) : null}
+                            </span>
+                          </td>
+                          <td className="px-4 py-3">{o.customer_name}</td>
+                          <td className="px-4 py-3">{o.customer_phone}</td>
+                          <td className="px-4 py-3">
+                            {o.product_id
+                              ? (productNameById.get(o.product_id) ?? '—')
+                              : '—'}
+                          </td>
+                          <td className="px-4 py-3">
+                            {toBnDigits(o.quantity)}টি
+                          </td>
+                          <td className="px-4 py-3 font-extrabold">
+                            {formatBDT(Number(o.total))}
+                          </td>
+                          <td className="px-4 py-3">
+                            <StatusBadge status={o.status} />
+                          </td>
+                          <td className="px-4 py-3 text-gray-500">
+                            {formatDateTime(o.created_at)}
+                          </td>
+                          <td
+                            className="px-4 py-3"
+                            onClick={(e) => e.stopPropagation()}
+                          >
+                            <span className="flex items-center gap-1.5">
+                              {next ? (
+                                <button
+                                  type="button"
+                                  disabled={inlineBusyId === o.id}
+                                  onClick={() => void advanceInline(o)}
+                                  className="whitespace-nowrap rounded-lg bg-gradient-to-r from-brand-dark to-brand px-2.5 py-1.5 text-xs font-bold text-white disabled:opacity-50"
+                                  title="পরের ধাপে নিন"
+                                >
+                                  → {STATUS_BN[next] ?? next}
+                                </button>
+                              ) : null}
+                              <a
+                                href={`tel:${o.customer_phone}`}
+                                className="flex h-8 w-8 items-center justify-center rounded-lg border border-gray-300 bg-white text-brand-dark"
+                                title="কল করুন"
+                                aria-label="কল করুন"
+                              >
+                                <IconPhone className="h-4 w-4" />
+                              </a>
+                              <button
+                                type="button"
+                                onClick={() => copyPhoneInline(o)}
+                                className="whitespace-nowrap rounded-lg border border-gray-300 bg-white px-2.5 py-1.5 text-xs font-bold"
+                                title="ফোন নম্বর কপি করুন"
+                              >
+                                {copiedId === o.id ? 'কপি হয়েছে ✓' : 'কপি'}
+                              </button>
+                            </span>
+                          </td>
+                        </tr>
                       )
                     })}
                   </tbody>
                 </table>
               </div>
 
-              {/* ফোন কার্ড */}
-              <div className="mt-6 space-y-3 md:hidden">
-                {pageOrders.map((o) => (
-                  <button
-                    key={o.id}
-                    type="button"
-                    onClick={() => setSelected(o)}
-                    className="block w-full rounded-[24px] border border-gray-200 bg-white p-4 text-left shadow-sm"
-                  >
-                    <span className="flex items-center justify-between gap-2">
-                      <span className="font-extrabold">{o.order_code}</span>
-                      <StatusBadge status={o.status} />
-                    </span>
-                    <span className="mt-2 block text-sm text-gray-600">
-                      {o.customer_name} · {o.customer_phone}
-                    </span>
-                    <span className="mt-1 block text-sm text-gray-500">
-                      {o.product_id
-                        ? (productNameById.get(o.product_id) ?? '—')
-                        : '—'}{' '}
-                      · {toBnDigits(o.quantity)}টি
-                    </span>
-                    <span className="mt-1 flex items-center justify-between">
-                      <span className="text-sm font-extrabold">
-                        {formatBDT(Number(o.total))}
-                      </span>
-                      <span className="text-xs text-gray-400">
-                        {formatDateTime(o.created_at)}
-                      </span>
-                    </span>
-                  </button>
-                ))}
+              {/* ফোন কার্ড — চেকবক্স, কাস্টমার, ফোন, ঠিকানা,
+                  শিটের অবস্থা, মোট, বিস্তারিত ও স্ট্যাটাস বদল। */}
+              <div className="mt-4 space-y-3 md:hidden">
+                {pageOrders.map((o) => {
+                  const next = NEXT_STATUS[o.status as OrderStatus]
+                  const canCancel =
+                    o.status === 'new' ||
+                    o.status === 'confirmed' ||
+                    o.status === 'processing' ||
+                    o.status === 'shipped'
+                  const addressParts = [
+                    o.address_line,
+                    o.upazila,
+                    o.district,
+                    o.division,
+                  ]
+                    .filter((part) => part && part.trim().length > 0)
+                    .join(', ')
+                  return (
+                    <article
+                      key={o.id}
+                      className={`rounded-[20px] border bg-white p-4 shadow-sm ${
+                        selectedIds.has(o.id)
+                          ? 'border-brand ring-1 ring-brand/50'
+                          : 'border-gray-200'
+                      }`}
+                    >
+                      <div className="flex items-start gap-2.5">
+                        <input
+                          type="checkbox"
+                          checked={selectedIds.has(o.id)}
+                          onChange={() => toggleSelect(o.id)}
+                          className="mt-0.5 h-5 w-5 shrink-0 accent-brand"
+                          aria-label={`${o.order_code} নির্বাচন করুন`}
+                        />
+                        <div className="min-w-0 flex-1">
+                          <div className="flex items-center justify-between gap-2">
+                            <span className="flex min-w-0 items-center gap-1.5 font-extrabold">
+                              <span className="truncate">{o.order_code}</span>
+                              <button
+                                type="button"
+                                onClick={() => copyCodeInline(o)}
+                                className="flex h-6 w-6 shrink-0 items-center justify-center rounded-md text-gray-400 hover:bg-gray-100 hover:text-gray-700"
+                                title="অর্ডার আইডি কপি করুন"
+                                aria-label="অর্ডার আইডি কপি করুন"
+                              >
+                                <IconCopy className="h-3.5 w-3.5" />
+                              </button>
+                              {copiedCodeId === o.id ? (
+                                <span className="shrink-0 text-xs font-bold text-brand">
+                                  কপি ✓
+                                </span>
+                              ) : null}
+                            </span>
+                            <StatusBadge status={o.status} />
+                          </div>
+                          <p className="mt-0.5 text-xs text-gray-400">
+                            {formatDateTime(o.created_at)}
+                          </p>
+                        </div>
+                      </div>
+
+                      <div className="mt-2.5 flex items-center justify-between gap-2">
+                        <SheetBadge sheetStatus={o.sheet_status} />
+                        {o.sheet_status === 'pending' ||
+                        o.sheet_status === 'failed' ? (
+                          <button
+                            type="button"
+                            disabled={resendingId === o.id}
+                            onClick={() => resendSheet(o)}
+                            className="rounded-full border border-gray-300 bg-white px-3 py-1.5 text-xs font-bold disabled:opacity-50"
+                          >
+                            {resendingId === o.id
+                              ? 'পাঠানো হচ্ছে…'
+                              : '↻ আবার পাঠান'}
+                          </button>
+                        ) : null}
+                      </div>
+
+                      <div className="mt-3 border-t border-gray-100 pt-3">
+                        <p className="font-bold">{o.customer_name}</p>
+                        <p className="mt-1.5 flex flex-wrap items-center gap-2 text-sm">
+                          <a
+                            href={`tel:${o.customer_phone}`}
+                            className="font-bold text-brand-dark"
+                          >
+                            {o.customer_phone}
+                          </a>
+                          <button
+                            type="button"
+                            onClick={() => copyPhoneInline(o)}
+                            className="rounded-lg border border-gray-300 bg-white px-2.5 py-1 text-xs font-bold"
+                          >
+                            {copiedId === o.id ? 'কপি হয়েছে ✓' : 'কপি'}
+                          </button>
+                          <a
+                            href={`tel:${o.customer_phone}`}
+                            className="flex h-8 w-8 items-center justify-center rounded-full bg-brand-mint text-brand-dark"
+                            title="কল করুন"
+                            aria-label="কল করুন"
+                          >
+                            <IconPhone className="h-4 w-4" />
+                          </a>
+                        </p>
+                        {addressParts ? (
+                          <p className="mt-1.5 text-sm leading-relaxed text-gray-600">
+                            {addressParts}
+                          </p>
+                        ) : null}
+                        <p className="mt-0.5 text-sm text-gray-500">
+                          ডেলিভারি এলাকা:{' '}
+                          {o.delivery_area === 'inside'
+                            ? 'ঢাকার ভেতরে'
+                            : 'ঢাকার বাইরে'}
+                        </p>
+                        <p className="mt-2 text-sm">
+                          <span className="font-bold">
+                            {o.product_id
+                              ? (productNameById.get(o.product_id) ?? '—')
+                              : '—'}
+                          </span>
+                          <span className="text-gray-500">
+                            {' '}
+                            · পরিমাণ: {toBnDigits(o.quantity)}টি
+                          </span>
+                        </p>
+                      </div>
+
+                      <div className="mt-3 flex items-center justify-between gap-2 border-t border-gray-100 pt-3">
+                        <span className="text-lg font-extrabold">
+                          {formatBDT(Number(o.total))}
+                        </span>
+                        <span className="flex items-center gap-2">
+                          <button
+                            type="button"
+                            onClick={() => setSelected(o)}
+                            className="flex items-center gap-1.5 rounded-2xl border border-gray-300 bg-white px-3.5 py-2 text-sm font-bold"
+                          >
+                            <IconEye className="h-4 w-4" />
+                            বিস্তারিত
+                          </button>
+                          {next || canCancel ? (
+                            <select
+                              value={o.status}
+                              onChange={(e) =>
+                                void changeStatusFromCard(o, e.target.value)
+                              }
+                              disabled={inlineBusyId === o.id}
+                              className="max-w-[132px] truncate rounded-2xl border border-brand bg-brand-mint px-2.5 py-2 text-sm font-bold text-brand-dark outline-none disabled:opacity-50"
+                              aria-label="স্ট্যাটাস বদলান"
+                            >
+                              <option value={o.status} disabled>
+                                {STATUS_BN[o.status] ?? o.status}
+                              </option>
+                              {next ? (
+                                <option value={next}>
+                                  → {STATUS_BN[next] ?? next}
+                                </option>
+                              ) : null}
+                              {canCancel ? (
+                                <option value="cancelled">বাতিল করুন</option>
+                              ) : null}
+                            </select>
+                          ) : null}
+                        </span>
+                      </div>
+                    </article>
+                  )
+                })}
               </div>
 
+              <p className="mt-4 text-center text-sm text-gray-500">
+                মোট {formatCountBn(filtered.length)}টি অর্ডারের মধ্যে{' '}
+                {formatCountBn(pageOrders.length)}টি দেখানো হচ্ছে
+              </p>
+
               {totalPages > 1 ? (
-                <div className="mt-6 flex items-center justify-center gap-3">
+                <div className="mt-4 flex items-center justify-center gap-3">
                   <button
                     type="button"
                     disabled={page <= 1}
@@ -892,6 +1510,66 @@ export default function Orders() {
           )}
         </>
       )}
+
+      {/* বাল্ক বার — শুধু নির্বাচিত অর্ডার থাকলেই দেখায়। */}
+      {selectedIds.size > 0 ? (
+        <div className="fixed bottom-[76px] left-4 right-4 z-40 lg:bottom-6 lg:left-auto lg:right-10 lg:w-[560px]">
+          {bulkMessage ? (
+            <p className="mb-2 rounded-2xl bg-gray-900 px-4 py-2.5 text-sm font-medium text-white shadow-lg">
+              {bulkMessage}
+            </p>
+          ) : null}
+          <div className="rounded-[20px] border border-gray-200 bg-white p-3 shadow-xl">
+            <p className="text-sm font-extrabold">
+              {toBnDigits(selectedIds.size)}টি অর্ডার নির্বাচিত
+            </p>
+            <div className="mt-2.5 flex flex-wrap items-center gap-2">
+              <select
+                value={bulkTarget}
+                onChange={(e) => setBulkTarget(e.target.value)}
+                className="min-w-0 flex-1 rounded-2xl border border-gray-300 bg-white px-3 py-2.5 text-sm font-bold outline-none"
+                aria-label="বাল্ক স্ট্যাটাস বেছে নিন"
+              >
+                <option value="">স্ট্যাটাস বেছে নিন</option>
+                {BULK_TARGETS.map((t) => (
+                  <option key={t.key} value={t.key}>
+                    {t.label} করুন
+                  </option>
+                ))}
+              </select>
+              <button
+                type="button"
+                disabled={!bulkTarget || bulkBusy}
+                onClick={() => void applyBulkStatus()}
+                className="rounded-2xl bg-gradient-to-r from-brand-dark to-brand px-4 py-2.5 text-sm font-bold text-white disabled:opacity-50"
+              >
+                {bulkBusy ? 'বদলানো হচ্ছে…' : 'বদলান'}
+              </button>
+              <button
+                type="button"
+                onClick={() =>
+                  downloadOrdersCsv(selectedOrders, productNameById)
+                }
+                className="flex items-center gap-1.5 rounded-2xl border border-gray-300 bg-white px-3.5 py-2.5 text-sm font-bold"
+              >
+                <IconDownload className="h-4 w-4" />
+                CSV
+              </button>
+              <button
+                type="button"
+                onClick={clearSelection}
+                className="rounded-2xl px-3 py-2.5 text-sm font-bold text-red-600"
+              >
+                ছাড়ুন
+              </button>
+            </div>
+          </div>
+        </div>
+      ) : bulkMessage ? (
+        <p className="fixed bottom-[76px] left-4 right-4 z-40 rounded-2xl bg-gray-900 px-4 py-2.5 text-sm font-medium text-white shadow-lg lg:bottom-6 lg:left-auto lg:right-10 lg:w-[560px]">
+          {bulkMessage}
+        </p>
+      ) : null}
 
       {selected ? (
         <OrderDetail
