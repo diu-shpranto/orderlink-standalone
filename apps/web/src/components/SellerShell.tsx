@@ -7,8 +7,12 @@
 import { useEffect, useState } from 'react'
 import { useAuth } from '../lib/auth.tsx'
 import { fetchDashboardStats } from '../lib/products.ts'
-import { formatBDT, formatCountBn } from '../lib/pricing.ts'
+import { formatBDT, formatCountBn, toBnDigits } from '../lib/pricing.ts'
 import { navigate } from '../lib/router.ts'
+import {
+  fetchMySubscription,
+  type MySubscription,
+} from '../lib/subscription.ts'
 import { LogoTile, LogoWordmark } from './Logo.tsx'
 import {
   IconBell,
@@ -37,6 +41,7 @@ const TABS: {
   label: string
   shortLabel: string
   to: string
+  section: 'main' | 'shop'
   icon: (className?: string) => React.ReactNode
 }[] = [
   {
@@ -44,6 +49,7 @@ const TABS: {
     label: 'ড্যাশবোর্ড',
     shortLabel: 'হোম',
     to: '/dashboard',
+    section: 'main',
     icon: (c) => <IconHome className={c} />,
   },
   {
@@ -51,6 +57,7 @@ const TABS: {
     label: 'পণ্য',
     shortLabel: 'পণ্য',
     to: '/dashboard/products',
+    section: 'main',
     icon: (c) => <IconBox className={c} />,
   },
   {
@@ -58,6 +65,7 @@ const TABS: {
     label: 'অর্ডার',
     shortLabel: 'অর্ডার',
     to: '/dashboard/orders',
+    section: 'main',
     icon: (c) => <IconReceipt className={c} />,
   },
   {
@@ -65,6 +73,7 @@ const TABS: {
     label: 'সেটিংস',
     shortLabel: 'সেটিংস',
     to: '/dashboard/settings',
+    section: 'shop',
     icon: (c) => <IconSettings className={c} />,
   },
 ]
@@ -82,6 +91,7 @@ export default function SellerShell({
   const [newOrders, setNewOrders] = useState<OrderRow[]>([])
   const [bellOpen, setBellOpen] = useState(false)
   const [menuOpen, setMenuOpen] = useState(false)
+  const [mySub, setMySub] = useState<MySubscription | null>(null)
   const [collapsed, setCollapsed] = useState(() => {
     try {
       return localStorage.getItem(COLLAPSE_KEY) === '1'
@@ -99,6 +109,13 @@ export default function SellerShell({
       })
       .catch(() => {
         // বেল না খুললে ড্যাশবোর্ড থামবে না — সংখ্যা ০ দেখাবে।
+      })
+    fetchMySubscription(seller.id)
+      .then((sub) => {
+        if (mounted) setMySub(sub)
+      })
+      .catch(() => {
+        // প্ল্যান না জানা গেলে চিপটা দেখাবে না — ভুল তথ্য দেখাবে না।
       })
     return () => {
       mounted = false
@@ -236,10 +253,10 @@ export default function SellerShell({
 
   return (
     <div className="min-h-screen bg-cream text-gray-900 lg:flex">
-      {/* ডেস্কটপ সাইডবার */}
+      {/* ডেস্কটপ সাইডবার — পুরো লেবেলসহ, ভাঁজ করা যায় ৭৬px আইকন রেলে */}
       <aside
         className={`sticky top-0 hidden h-screen shrink-0 flex-col border-r border-gray-200 bg-white lg:flex ${
-          collapsed ? 'w-[76px]' : 'w-64'
+          collapsed ? 'w-[76px]' : 'w-72'
         }`}
       >
         <div
@@ -260,7 +277,7 @@ export default function SellerShell({
           )}
         </div>
 
-        {/* দোকানের কার্ড */}
+        {/* দোকানের কার্ড + বর্তমান প্ল্যান */}
         <div className="border-b border-gray-100 px-3 py-4">
           {collapsed ? (
             <div className="flex justify-center" title={shopName}>
@@ -269,43 +286,81 @@ export default function SellerShell({
               </span>
             </div>
           ) : (
-            <div className="flex items-center gap-3 rounded-2xl bg-cream px-3 py-3">
-              <LogoTile size={40} />
-              <div className="min-w-0">
-                <p className="truncate text-[15px] font-extrabold">
-                  {shopName}
-                </p>
-                <p className="truncate text-xs text-gray-500">
-                  {user?.email ?? ''}
-                </p>
+            <>
+              <div className="flex items-center gap-3 rounded-2xl bg-cream px-3 py-3">
+                <LogoTile size={40} />
+                <div className="min-w-0">
+                  <p className="truncate text-[15px] font-extrabold">
+                    {shopName}
+                  </p>
+                  <p className="truncate text-xs text-gray-500">
+                    {user?.email ?? ''}
+                  </p>
+                </div>
               </div>
-            </div>
+              {mySub ? (
+                <button
+                  type="button"
+                  onClick={() => navigate('/dashboard/settings')}
+                  className="mt-2 flex w-full items-center gap-2 rounded-2xl border border-gray-200 px-3 py-2.5 text-left text-sm font-bold text-gray-700 transition hover:border-brand/40"
+                  title="সাবস্ক্রিপশন দেখুন"
+                >
+                  <span
+                    className={`h-2.5 w-2.5 shrink-0 rounded-full ${
+                      mySub.state === 'expired'
+                        ? 'bg-red-500'
+                        : mySub.state === 'grace' ||
+                            mySub.state === 'expiring'
+                          ? 'bg-amber-500'
+                          : 'bg-brand'
+                    }`}
+                  />
+                  <span className="min-w-0 flex-1 truncate">
+                    {mySub.plan ? `${mySub.plan.name} প্ল্যান` : 'ফ্রি প্ল্যান'}
+                    {mySub.state === 'expiring' ||
+                    mySub.state === 'grace'
+                      ? ` · ${toBnDigits(mySub.daysLeft)} দিন বাকি`
+                      : ''}
+                  </span>
+                  <IconChevronRight className="h-4 w-4 shrink-0 text-gray-400" />
+                </button>
+              ) : null}
+            </>
           )}
         </div>
 
-        <nav className="flex-1 space-y-1 px-3 py-4">
-          {TABS.map((tab) => {
-            const isActive = active === tab.id
-            return (
-              <button
-                key={tab.id}
-                type="button"
-                onClick={() => navigate(tab.to)}
-                title={tab.label}
-                className={`relative flex w-full items-center gap-3 rounded-2xl px-3 py-3 text-sm font-bold transition ${
-                  isActive
-                    ? 'bg-brand-mint text-brand-dark'
-                    : 'text-gray-600 hover:bg-gray-50'
-                } ${collapsed ? 'justify-center px-0' : ''}`}
-              >
-                {isActive ? (
-                  <span className="absolute left-0 top-1/2 h-6 w-1 -translate-y-1/2 rounded-r-full bg-brand" />
-                ) : null}
-                {tab.icon('h-5 w-5 shrink-0')}
-                {collapsed ? null : tab.label}
-              </button>
-            )
-          })}
+        <nav className="flex-1 space-y-1 overflow-y-auto px-3 py-4">
+          {(['main', 'shop'] as const).map((section) => (
+            <div key={section} className={section === 'shop' ? 'mt-5' : ''}>
+              {collapsed ? null : (
+                <p className="px-3 pb-2 text-xs font-extrabold uppercase tracking-wide text-gray-400">
+                  {section === 'main' ? 'প্রধান' : 'দোকান'}
+                </p>
+              )}
+              {TABS.filter((tab) => tab.section === section).map((tab) => {
+                const isActive = active === tab.id
+                return (
+                  <button
+                    key={tab.id}
+                    type="button"
+                    onClick={() => navigate(tab.to)}
+                    title={tab.label}
+                    className={`relative flex w-full items-center gap-3 rounded-2xl px-3 py-3 text-sm font-bold transition ${
+                      isActive
+                        ? 'bg-brand-mint text-brand-dark'
+                        : 'text-gray-600 hover:bg-gray-50'
+                    } ${collapsed ? 'justify-center px-0' : ''}`}
+                  >
+                    {isActive ? (
+                      <span className="absolute left-0 top-1/2 h-6 w-1 -translate-y-1/2 rounded-r-full bg-brand" />
+                    ) : null}
+                    {tab.icon('h-5 w-5 shrink-0')}
+                    {collapsed ? null : tab.label}
+                  </button>
+                )
+              })}
+            </div>
+          ))}
         </nav>
 
         <div className="space-y-1 border-t border-gray-100 px-3 py-4">
@@ -360,13 +415,23 @@ export default function SellerShell({
           </div>
         </header>
 
-        {/* ডেস্কটপের ওপরের বার — বেল + অ্যাভাটার */}
-        <header className="sticky top-0 z-40 hidden items-center justify-end gap-3 border-b border-gray-200/70 bg-cream/95 px-8 py-3 backdrop-blur lg:flex">
-          {bellButton}
-          {avatarButton}
+        {/* ডেস্কটপের ওপরের বার — দ্রুত কাজ + বেল + অ্যাভাটার */}
+        <header className="sticky top-0 z-40 hidden items-center justify-between gap-3 border-b border-gray-200/70 bg-cream/95 px-10 py-3 backdrop-blur lg:flex xl:px-12">
+          <button
+            type="button"
+            onClick={() => navigate('/dashboard/products/new')}
+            className="inline-flex items-center gap-2 rounded-2xl bg-gradient-to-r from-brand-dark via-brand to-brand px-4 py-2.5 text-sm font-bold text-white shadow-lg shadow-brand/25"
+          >
+            + নতুন ল্যান্ডিং পেজ
+          </button>
+          <div className="flex items-center gap-3">
+            {bellButton}
+            {avatarButton}
+          </div>
         </header>
 
-        <main className="mx-auto w-full max-w-5xl px-4 pb-28 pt-5 lg:px-8 lg:pb-10 lg:pt-6">
+        {/* ডেস্কটপে চওড়া ওয়ার্কস্পেস (সর্বোচ্চ ১৬০০px), ফোনে আগের মতো */}
+        <main className="mx-auto w-full max-w-5xl px-4 pb-28 pt-5 lg:mx-0 lg:max-w-[1600px] lg:px-10 lg:pb-10 lg:pt-6 xl:px-12">
           {children}
         </main>
 

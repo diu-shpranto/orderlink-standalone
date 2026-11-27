@@ -53,6 +53,110 @@ interface ImageItem {
 
 const inputClass = 'mt-1 w-full rounded border border-gray-300 px-3 py-2'
 
+/** বিল্ডারের ডেস্কটপ সারাংশ প্যানেল — লাইভ তথ্য, কোনো নতুন ডাটা নয়। */
+function BuilderSummary({
+  name,
+  priceNum,
+  oldPriceNum,
+  discount,
+  slug,
+  shopSlug,
+  template,
+  imageCount,
+  reviewCount,
+  faqCount,
+  hasVideo,
+  isPublished,
+}: {
+  name: string
+  priceNum: number
+  oldPriceNum: number | null
+  discount: number
+  slug: string
+  shopSlug: string
+  template: TemplateId
+  imageCount: number
+  reviewCount: number
+  faqCount: number
+  hasVideo: boolean
+  isPublished: boolean
+}) {
+  const templateName =
+    TEMPLATES.find((t) => t.id === template)?.nameBn ?? template
+  return (
+    <div className="sticky top-6 space-y-5">
+      <div className="rounded-2xl border border-gray-200 bg-white p-5 shadow-sm">
+        <h2 className="font-extrabold">পেজের সারাংশ</h2>
+        <dl className="mt-4 space-y-3 text-sm">
+          <div className="flex items-start justify-between gap-3">
+            <dt className="text-gray-500">পণ্য</dt>
+            <dd className="text-right font-bold">
+              {name.trim() || 'পণ্যের নাম'}
+            </dd>
+          </div>
+          <div className="flex items-start justify-between gap-3">
+            <dt className="text-gray-500">দাম</dt>
+            <dd className="text-right font-bold">
+              {Number.isFinite(priceNum) && priceNum > 0
+                ? formatBDT(priceNum)
+                : '—'}
+              {oldPriceNum && oldPriceNum > priceNum ? (
+                <span className="ml-2 text-gray-400 line-through">
+                  {formatBDT(oldPriceNum)}
+                </span>
+              ) : null}
+            </dd>
+          </div>
+          {discount > 0 ? (
+            <div className="flex items-start justify-between gap-3">
+              <dt className="text-gray-500">ছাড়</dt>
+              <dd className="font-bold text-accent">
+                {toBnDigits(discount)}% ছাড়
+              </dd>
+            </div>
+          ) : null}
+          <div className="flex items-start justify-between gap-3">
+            <dt className="text-gray-500">ঠিকানা</dt>
+            <dd className="break-all text-right font-bold">
+              /{shopSlug}/{slug || '…'}
+            </dd>
+          </div>
+          <div className="flex items-start justify-between gap-3">
+            <dt className="text-gray-500">টেমপ্লেট</dt>
+            <dd className="text-right font-bold">{templateName}</dd>
+          </div>
+          <div className="flex items-start justify-between gap-3">
+            <dt className="text-gray-500">ছবি</dt>
+            <dd className="font-bold">{toBnDigits(imageCount)}টি</dd>
+          </div>
+          <div className="flex items-start justify-between gap-3">
+            <dt className="text-gray-500">রিভিউ</dt>
+            <dd className="font-bold">{toBnDigits(reviewCount)}টি</dd>
+          </div>
+          <div className="flex items-start justify-between gap-3">
+            <dt className="text-gray-500">জিজ্ঞাসা</dt>
+            <dd className="font-bold">{toBnDigits(faqCount)}টি</dd>
+          </div>
+          <div className="flex items-start justify-between gap-3">
+            <dt className="text-gray-500">ভিডিও</dt>
+            <dd className="font-bold">{hasVideo ? 'আছে' : 'নেই'}</dd>
+          </div>
+          <div className="flex items-start justify-between gap-3">
+            <dt className="text-gray-500">অবস্থা</dt>
+            <dd className="font-bold">
+              {isPublished ? 'প্রকাশিত' : 'খসড়া'}
+            </dd>
+          </div>
+        </dl>
+      </div>
+      <p className="rounded-2xl bg-brand-light px-4 py-3 text-sm leading-relaxed text-brand-dark">
+        ধাপ ৩-এ গেলে পাশেই লাইভ প্রিভিউ দেখা যাবে — কাস্টমার ঠিক এভাবেই
+        পেজটা দেখবে।
+      </p>
+    </div>
+  )
+}
+
 export default function ProductBuilder({
   productId,
 }: {
@@ -476,7 +580,8 @@ export default function ProductBuilder({
       ) : null}
 
       {step === 1 && (
-        <div className="mt-6 space-y-5 rounded-2xl border border-gray-200 bg-white p-5">
+        <div className="mt-6 grid gap-5 xl:grid-cols-[minmax(0,1fr)_340px] xl:items-start">
+          <div className="min-w-0 space-y-5 rounded-2xl border border-gray-200 bg-white p-5">
           <label className="block">
             <span className="text-sm font-semibold text-gray-700">
               পণ্যের নাম *
@@ -676,11 +781,29 @@ export default function ProductBuilder({
               পরের ধাপ →
             </button>
           </div>
+          </div>
+          <div className="hidden xl:block">
+            <BuilderSummary
+              name={name}
+              priceNum={priceNum}
+              oldPriceNum={oldPriceNum}
+              discount={discount}
+              slug={slug}
+              shopSlug={shop.slug}
+              template={template}
+              imageCount={images.length}
+              reviewCount={reviews.length}
+              faqCount={faqs.length}
+              hasVideo={videoUrl.trim() !== ''}
+              isPublished={isPublished}
+            />
+          </div>
         </div>
       )}
 
       {step === 2 && (
-        <div className="mt-6 space-y-6 rounded-2xl border border-gray-200 bg-white p-5">
+        <div className="mt-6 grid gap-5 xl:grid-cols-[minmax(0,1fr)_340px] xl:items-start">
+          <div className="min-w-0 space-y-6 rounded-2xl border border-gray-200 bg-white p-5">
           <div>
             <span className="text-sm font-semibold text-gray-700">
               ছবির গ্যালারি (সর্বোচ্চ {toBnDigits(MAX_IMAGES_PER_PRODUCT)}টি)
@@ -934,14 +1057,35 @@ export default function ProductBuilder({
               পরের ধাপ →
             </button>
           </div>
+          </div>
+          <div className="hidden xl:block">
+            <BuilderSummary
+              name={name}
+              priceNum={priceNum}
+              oldPriceNum={oldPriceNum}
+              discount={discount}
+              slug={slug}
+              shopSlug={shop.slug}
+              template={template}
+              imageCount={images.length}
+              reviewCount={reviews.length}
+              faqCount={faqs.length}
+              hasVideo={videoUrl.trim() !== ''}
+              isPublished={isPublished}
+            />
+          </div>
         </div>
       )}
 
       {step === 3 && (
         <div className="mt-6 space-y-6">
+          {/* ডেস্কটপে: বামে ডিজাইনের নিয়ন্ত্রণ, ডানে আটকে থাকা লাইভ প্রিভিউ।
+              ফোনে আগের মতো একটার পর একটা। */}
+          <div className="grid gap-5 xl:grid-cols-[420px_minmax(0,1fr)] xl:items-start">
+            <div className="min-w-0 space-y-6">
           <div className="rounded-2xl border border-gray-200 bg-white p-5">
             <h2 className="font-bold">টেমপ্লেট বাছুন</h2>
-            <div className="mt-3 grid gap-3 sm:grid-cols-2 lg:grid-cols-4">
+            <div className="mt-3 grid gap-3 sm:grid-cols-2 lg:grid-cols-4 xl:grid-cols-2">
               {TEMPLATES.map((t) => (
                 <button
                   key={t.id}
@@ -1042,13 +1186,17 @@ export default function ProductBuilder({
             </div>
           </div>
 
+            </div>
+            <div className="min-w-0 xl:sticky xl:top-6">
           <div>
             <h2 className="font-bold">লাইভ প্রিভিউ</h2>
             <p className="mt-1 text-sm text-gray-500">
               কাস্টমার ঠিক এভাবেই পেজটা দেখবে।
             </p>
-            <div className="mt-3 overflow-hidden rounded-2xl border-2 border-gray-300">
+            <div className="mt-3 overflow-hidden rounded-2xl border-2 border-gray-300 xl:max-h-[calc(100vh-160px)] xl:overflow-y-auto">
               {previewData ? <CustomerPage data={previewData} preview /> : null}
+            </div>
+          </div>
             </div>
           </div>
 

@@ -24,7 +24,7 @@ import { formatBDT, formatCountBn, todayDhaka, toBnDigits } from '../lib/pricing
 import { SHEET_STATUS_BN, fetchSheetConnection } from '../lib/sheets.ts'
 import type { SheetConnection } from '../lib/sheets.ts'
 import { navigate } from '../lib/router.ts'
-import { IconDoc, IconDownload, IconSearch } from '../components/icons.tsx'
+import { IconDoc, IconDownload, IconPhone, IconSearch } from '../components/icons.tsx'
 import type { OrderEventRow, OrderRow, ProductRow } from '../lib/types.ts'
 
 const PAGE_SIZE = 20
@@ -495,6 +495,41 @@ export default function Orders() {
   })
   const [page, setPage] = useState(1)
   const [selected, setSelected] = useState<OrderRow | null>(null)
+  // ডেস্কটপ টেবিলের ইনলাইন কাজ — মোডাল না খুলেই পরের ধাপ / কল / কপি।
+  const [inlineBusyId, setInlineBusyId] = useState('')
+  const [inlineError, setInlineError] = useState('')
+  const [copiedId, setCopiedId] = useState('')
+
+  async function advanceInline(order: OrderRow) {
+    const next = NEXT_STATUS[order.status as OrderStatus]
+    if (!next) return
+    setInlineError('')
+    setInlineBusyId(order.id)
+    try {
+      await updateOrderStatus(order, next)
+      await reload()
+    } catch (err) {
+      setInlineError(
+        err instanceof Error ? err.message : 'স্ট্যাটাস বদলানো যায়নি।',
+      )
+    } finally {
+      setInlineBusyId('')
+    }
+  }
+
+  function copyPhoneInline(order: OrderRow) {
+    const done = () => {
+      setCopiedId(order.id)
+      window.setTimeout(() => setCopiedId(''), 2000)
+    }
+    if (navigator.clipboard?.writeText) {
+      void navigator.clipboard
+        .writeText(order.customer_phone)
+        .then(done, done)
+    } else {
+      done()
+    }
+  }
 
   async function reload() {
     if (!seller) return
@@ -565,25 +600,28 @@ export default function Orders() {
 
   return (
     <SellerShell active="orders">
-      <h1 className="text-[28px] font-extrabold leading-tight text-gray-900 sm:text-3xl">
-        অর্ডার
-      </h1>
-      <p className="mt-1.5 text-[15px] text-gray-500">
-        মোট {formatCountBn(stats.total)}টি অর্ডার · সর্বমোট বিক্রি{' '}
-        {formatBDT(stats.totalSales)}
-      </p>
+      <div className="lg:flex lg:items-end lg:justify-between lg:gap-4">
+        <div>
+          <h1 className="text-[28px] font-extrabold leading-tight text-gray-900 sm:text-3xl">
+            অর্ডার
+          </h1>
+          <p className="mt-1.5 text-[15px] text-gray-500">
+            মোট {formatCountBn(stats.total)}টি অর্ডার · সর্বমোট বিক্রি{' '}
+            {formatBDT(stats.totalSales)}
+          </p>
+        </div>
+        <button
+          type="button"
+          onClick={() => downloadOrdersCsv(filtered, productNameById)}
+          disabled={filtered.length === 0}
+          className="mt-5 inline-flex shrink-0 items-center gap-2 rounded-2xl border border-gray-200 bg-white px-4 py-2.5 text-sm font-bold shadow-sm disabled:opacity-50 lg:mt-0"
+        >
+          <IconDownload className="h-4 w-4" />
+          CSV ডাউনলোড
+        </button>
+      </div>
 
-      <button
-        type="button"
-        onClick={() => downloadOrdersCsv(filtered, productNameById)}
-        disabled={filtered.length === 0}
-        className="mt-5 inline-flex items-center gap-2 rounded-2xl border border-gray-200 bg-white px-4 py-2.5 text-sm font-bold shadow-sm disabled:opacity-50"
-      >
-        <IconDownload className="h-4 w-4" />
-        CSV ডাউনলোড
-      </button>
-
-      <div className="mt-5 grid grid-cols-2 gap-3 lg:grid-cols-3">
+      <div className="mt-5 grid grid-cols-2 gap-3 md:grid-cols-3 xl:grid-cols-6">
         {statCards.map((card) => {
           const isActive = filters.status === card.status
           return (
@@ -616,8 +654,8 @@ export default function Orders() {
         </p>
       ) : (
         <>
-          <div className="mt-6 space-y-3 rounded-[24px] border border-gray-200 bg-white p-4 shadow-sm">
-            <div className="relative">
+          <div className="mt-6 space-y-3 rounded-[24px] border border-gray-200 bg-white p-4 shadow-sm lg:flex lg:items-end lg:gap-3 lg:space-y-0">
+            <div className="relative lg:min-w-0 lg:flex-1">
               <span className="pointer-events-none absolute left-4 top-1/2 -translate-y-1/2 text-gray-400">
                 <IconSearch className="h-5 w-5" />
               </span>
@@ -629,11 +667,11 @@ export default function Orders() {
                 className="w-full rounded-2xl border border-gray-300 py-3 pl-11 pr-4 text-[15px] placeholder:text-gray-400 outline-none transition focus:border-brand focus:ring-2 focus:ring-brand/20"
               />
             </div>
-            <div className="grid grid-cols-2 gap-3 lg:grid-cols-3">
+            <div className="grid grid-cols-2 gap-3 lg:flex lg:shrink-0 lg:gap-3">
               <select
                 value={filters.productId}
                 onChange={(e) => setFilter({ productId: e.target.value })}
-                className="rounded-2xl border border-gray-300 bg-white px-3 py-2.5 text-sm outline-none"
+                className="rounded-2xl border border-gray-300 bg-white px-3 py-2.5 text-sm outline-none lg:w-48"
               >
                 <option value="all">সব প্রোডাক্ট</option>
                 {products.map((p) => (
@@ -642,7 +680,7 @@ export default function Orders() {
                   </option>
                 ))}
               </select>
-              <label className="block">
+              <label className="block lg:w-40">
                 <span className="text-xs text-gray-500">তারিখ থেকে</span>
                 <input
                   type="date"
@@ -651,7 +689,7 @@ export default function Orders() {
                   className="mt-0.5 w-full rounded-2xl border border-gray-300 px-3 py-2.5 text-sm outline-none"
                 />
               </label>
-              <label className="block">
+              <label className="block lg:w-40">
                 <span className="text-xs text-gray-500">তারিখ পর্যন্ত</span>
                 <input
                   type="date"
@@ -669,7 +707,13 @@ export default function Orders() {
             </p>
           ) : (
             <>
-              {/* ডেস্কটপ টেবিল */}
+              {inlineError ? (
+                <p className="mt-6 rounded-2xl bg-red-50 px-4 py-3 text-sm font-medium text-red-700">
+                  {inlineError}
+                </p>
+              ) : null}
+              {/* ডেস্কটপ টেবিল — ইনলাইন কাজসহ: পরের ধাপ, কল, কপি।
+                  বিস্তারিত (নোট/ইতিহাস/বাতিল) এখনো সারিতে ক্লিক করলে খোলে। */}
               <div className="mt-6 hidden overflow-x-auto rounded-[24px] border border-gray-200 bg-white shadow-sm md:block">
                 <table className="w-full text-left text-sm">
                   <thead>
@@ -678,13 +722,17 @@ export default function Orders() {
                       <th className="px-4 py-3">কাস্টমার</th>
                       <th className="px-4 py-3">ফোন</th>
                       <th className="px-4 py-3">পণ্য</th>
+                      <th className="px-4 py-3">পরিমাণ</th>
                       <th className="px-4 py-3">মোট</th>
                       <th className="px-4 py-3">স্ট্যাটাস</th>
                       <th className="px-4 py-3">তারিখ</th>
+                      <th className="px-4 py-3">দ্রুত কাজ</th>
                     </tr>
                   </thead>
                   <tbody>
-                    {pageOrders.map((o) => (
+                    {pageOrders.map((o) => {
+                      const next = NEXT_STATUS[o.status as OrderStatus]
+                      return (
                       <tr
                         key={o.id}
                         onClick={() => setSelected(o)}
@@ -700,6 +748,9 @@ export default function Orders() {
                             ? (productNameById.get(o.product_id) ?? '—')
                             : '—'}
                         </td>
+                        <td className="px-4 py-3">
+                          {toBnDigits(o.quantity)}টি
+                        </td>
                         <td className="px-4 py-3 font-extrabold">
                           {formatBDT(Number(o.total))}
                         </td>
@@ -709,8 +760,43 @@ export default function Orders() {
                         <td className="px-4 py-3 text-gray-500">
                           {formatDateTime(o.created_at)}
                         </td>
+                        <td
+                          className="px-4 py-3"
+                          onClick={(e) => e.stopPropagation()}
+                        >
+                          <span className="flex items-center gap-1.5">
+                            {next ? (
+                              <button
+                                type="button"
+                                disabled={inlineBusyId === o.id}
+                                onClick={() => void advanceInline(o)}
+                                className="whitespace-nowrap rounded-lg bg-gradient-to-r from-brand-dark to-brand px-2.5 py-1.5 text-xs font-bold text-white disabled:opacity-50"
+                                title="পরের ধাপে নিন"
+                              >
+                                → {STATUS_BN[next] ?? next}
+                              </button>
+                            ) : null}
+                            <a
+                              href={`tel:${o.customer_phone}`}
+                              className="flex h-8 w-8 items-center justify-center rounded-lg border border-gray-300 bg-white text-brand-dark"
+                              title="কল করুন"
+                              aria-label="কল করুন"
+                            >
+                              <IconPhone className="h-4 w-4" />
+                            </a>
+                            <button
+                              type="button"
+                              onClick={() => copyPhoneInline(o)}
+                              className="whitespace-nowrap rounded-lg border border-gray-300 bg-white px-2.5 py-1.5 text-xs font-bold"
+                              title="ফোন নম্বর কপি করুন"
+                            >
+                              {copiedId === o.id ? 'কপি হয়েছে ✓' : 'কপি'}
+                            </button>
+                          </span>
+                        </td>
                       </tr>
-                    ))}
+                      )
+                    })}
                   </tbody>
                 </table>
               </div>

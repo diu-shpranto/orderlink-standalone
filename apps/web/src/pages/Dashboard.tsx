@@ -387,8 +387,13 @@ export function DashboardOverview() {
             ))}
           </div>
 
+          {/* ডেস্কটপে দুই কলামের ওয়ার্কস্পেস: বামে বিক্রি + পেজ, ডানে
+              সাম্প্রতিক অর্ডার + Sheet + দ্রুত কাজ। ফোনে আগের মতো এক কলামে
+              একটার পর একটা। */}
+          <div className="mt-5 grid gap-5 xl:grid-cols-[minmax(0,1fr)_360px] xl:items-start">
+            <div className="min-w-0 space-y-5">
           {/* বিক্রি ওভারভিউ */}
-          <div className="mt-5 rounded-[24px] border border-gray-200 bg-white p-5 shadow-sm">
+          <div className="rounded-[24px] border border-gray-200 bg-white p-5 shadow-sm">
             <div className="flex flex-wrap items-center justify-between gap-3">
               <h2 className="flex items-center gap-2.5 text-lg font-extrabold">
                 <span className="flex h-10 w-10 items-center justify-center rounded-2xl bg-brand-mint text-brand-dark">
@@ -437,7 +442,7 @@ export function DashboardOverview() {
           </div>
 
           {/* আমার ল্যান্ডিং পেজ */}
-          <div className="mt-5 rounded-[24px] border border-gray-200 bg-white p-5 shadow-sm">
+          <div className="rounded-[24px] border border-gray-200 bg-white p-5 shadow-sm">
             <div className="flex items-center justify-between gap-3">
               <h2 className="text-lg font-extrabold">আমার ল্যান্ডিং পেজ</h2>
               <button
@@ -510,7 +515,8 @@ export function DashboardOverview() {
             </button>
           </div>
 
-          <div className="mt-5 grid gap-5 lg:grid-cols-2">
+            </div>
+            <div className="min-w-0 space-y-5 xl:sticky xl:top-20">
             <div className="rounded-[24px] border border-gray-200 bg-white p-5 shadow-sm">
               <h2 className="text-base font-extrabold">সাম্প্রতিক অর্ডার</h2>
               {!stats || stats.recentOrders.length === 0 ? (
@@ -545,7 +551,6 @@ export function DashboardOverview() {
                 সব অর্ডার দেখুন →
               </button>
             </div>
-            <div className="space-y-5">
               <SheetStatusCard />
               <div className="rounded-[24px] border border-gray-200 bg-white p-5 shadow-sm">
                 <h2 className="text-base font-extrabold">দ্রুত কাজ</h2>
@@ -840,8 +845,8 @@ export function SettingsPage() {
       ) : null}
 
       <div className="mt-5 grid gap-5 lg:grid-cols-[340px_1fr] lg:items-start">
-        {/* ক্যাটাগরির তালিকা */}
-        <div className="overflow-hidden rounded-[28px] border border-gray-200 bg-white shadow-sm">
+        {/* ক্যাটাগরির তালিকা — ডেস্কটপে স্ক্রলেও চোখের সামনে থাকে */}
+        <div className="overflow-hidden rounded-[28px] border border-gray-200 bg-white shadow-sm lg:sticky lg:top-20">
           {SETTINGS_CATEGORIES.map((cat, i) => {
             const isActive = category === cat.id
             return (
