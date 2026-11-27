@@ -3826,6 +3826,156 @@ const footer = (
     )
   }
 
+  // Signature Pro (Template 18) — ফ্ল্যাগশিপ: সেরা পেশাদার লুক।
+  // উষ্ণ আইভরি কাগজ, গাঢ় পাইন সবুজ অ্যাকসেন্ট, পরিমিত টাইপোগ্রাফি,
+  // হিরো কার্ডে পাইন টপ-রুল, দুই কলামের চওড়া হিরো, মোবাইলে স্ট্যাকড
+  // + নিজের পাইন স্টিকি বার। অর্ডার সেকশন lightAccent-এ পাইন রঙে মেলে।
+  if (page.template === 'signature-pro') {
+    const L = (bn: string, en: string) =>
+      page.page_lang === 'en' ? en : bn
+    const savings =
+      product.old_price && product.old_price > product.price
+        ? product.old_price - product.price
+        : 0
+    return (
+      <div className="min-h-screen bg-[#FAF8F3] text-stone-900">
+        {discount > 0 ? (
+          <div className="bg-[#14532D] px-4 py-2 text-center text-sm font-semibold text-white">
+            {t.discountRunning(discount)}
+          </div>
+        ) : null}
+        <header className="border-b border-[#E7E1D4] bg-white">
+          <div className="mx-auto flex max-w-6xl items-center justify-between px-4 py-3">
+            <span className="flex items-center gap-2.5">
+              {shop.logo_url ? (
+                <img
+                  src={shop.logo_url}
+                  alt=""
+                  className="h-9 w-9 rounded-full object-cover"
+                />
+              ) : (
+                <span className="flex h-9 w-9 items-center justify-center rounded-full bg-[#14532D] text-base font-extrabold text-white">
+                  {shop.name.charAt(0)}
+                </span>
+              )}
+              <span className="text-base font-extrabold tracking-wide text-stone-900">
+                {shop.name}
+              </span>
+            </span>
+            <div className="flex items-center gap-3">
+              <span className="hidden text-xs text-stone-500 sm:block">
+                {t.shopPage}
+              </span>
+              <a
+                href="#order"
+                className="hidden rounded-full bg-[#14532D] px-4 py-2 text-sm font-bold text-white sm:block"
+              >
+                {t.orderNow}
+              </a>
+            </div>
+          </div>
+        </header>
+        <main className="mx-auto max-w-6xl px-4 py-6 pb-24 lg:py-12 lg:pb-12">
+          <div className="rounded-[2rem] border border-[#E7E1D4] border-t-4 border-t-[#14532D] bg-white p-5 shadow-sm lg:p-10">
+            <div className="grid gap-8 lg:grid-cols-2 lg:items-start lg:gap-12">
+              <div>
+                {showGallery ? (
+                  <Gallery
+                    images={images}
+                    productName={product.name}
+                    thumbActiveClass="border-[#14532D]"
+                  />
+                ) : null}
+              </div>
+              <div>
+                {product.category ? (
+                  <p className="inline-block rounded-full bg-[#E7EFE7] px-3 py-1 text-xs font-bold tracking-wide text-[#14532D]">
+                    {product.category}
+                  </p>
+                ) : null}
+                <h1 className="mt-3 text-2xl font-extrabold leading-snug tracking-tight text-stone-900 lg:text-[2.75rem] lg:leading-[1.15]">
+                  {product.name}
+                </h1>
+                <div className="mt-2">
+                  <RatingSummary data={data} t={t} />
+                </div>
+                <div className="mt-4">
+                  <PriceRow data={data} dark={false} />
+                </div>
+                {savings > 0 ? (
+                  <p className="mt-3 inline-block rounded-full bg-[#E7EFE7] px-3 py-1 text-xs font-bold text-[#14532D]">
+                    {L('সাশ্রয়', 'You save')}: {formatBDT(savings)}
+                  </p>
+                ) : null}
+                {heroCopy ? (
+                  <p className="mt-4 text-sm leading-relaxed text-stone-600 lg:text-[1.05rem] lg:leading-relaxed">
+                    {heroCopy}
+                  </p>
+                ) : null}
+                <a
+                  href="#order"
+                  className="mt-6 block rounded-xl bg-[#14532D] px-4 py-3.5 text-center font-bold text-white shadow-sm hover:bg-[#0F3D21]"
+                >
+                  {t.orderNow}
+                </a>
+                <div className="mt-5 rounded-2xl border border-[#E7E1D4] bg-[#FAF8F3] px-4 py-3.5">
+                  <p className="text-xs font-bold tracking-wide text-[#14532D]">
+                    {L('আস্থা ও নিশ্চয়তা', 'Trust & assurance')}
+                  </p>
+                  <div className="mt-2 flex flex-wrap gap-x-4 gap-y-1 text-xs font-semibold text-stone-700">
+                    <span>✓ {L('ক্যাশ অন ডেলিভারি', 'Cash on Delivery')}</span>
+                    <span>
+                      ✓ {L('সারা দেশে হোম ডেলিভারি', 'Home delivery across the country')}
+                    </span>
+                    <span>
+                      ✓ {L('অর্ডার কনফার্ম করে পাঠানো হয়', 'Order confirmed before dispatch')}
+                    </span>
+                    <span>
+                      ✓{' '}
+                      {L(
+                        `সরাসরি ${shop.name} থেকে অর্ডার`,
+                        `Order directly from ${shop.name}`,
+                      )}
+                    </span>
+                  </div>
+                </div>
+              </div>
+            </div>
+          </div>
+          <div className="mt-12">{sections}</div>
+          <div className="mt-10">
+            <OrderSection
+              data={data}
+              t={t}
+              placed={placed}
+              preview={preview}
+              onPlaced={setPlaced}
+              onOrderAgain={() => setPlaced(null)}
+              accent="#14532D"
+              accentText="#FFFFFF"
+              lightAccent="#14532D"
+            />
+          </div>
+        </main>
+        {footer}
+        <div className="fixed inset-x-0 bottom-0 z-40 flex items-center justify-between gap-3 border-t border-[#E7E1D4] bg-white px-4 py-3 shadow-lg lg:hidden">
+          <div className="min-w-0">
+            <p className="truncate text-xs text-stone-500">{product.name}</p>
+            <p className="text-lg font-extrabold text-[#14532D]">
+              {formatBDT(product.price)}
+            </p>
+          </div>
+          <a
+            href="#order"
+            className="shrink-0 rounded-xl bg-[#14532D] px-5 py-2.5 text-sm font-extrabold text-white"
+          >
+            {t.orderNow}
+          </a>
+        </div>
+      </div>
+    )
+  }
+
   // minimal-white (ডিফল্ট)
   return (
     <div className={`min-h-screen ${pageShell}`}>

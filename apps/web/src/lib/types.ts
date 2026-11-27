@@ -70,6 +70,7 @@ export type TemplateId =
   | 'emerald-trust'
   | 'midnight-premium'
   | 'sunset-offer'
+  | 'signature-pro'
 
 export interface PageRow {
   id: string
