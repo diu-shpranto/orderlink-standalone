@@ -77,7 +77,7 @@ function SalesChart({
   const max = Math.max(1, ...data)
   return (
     <div>
-      <div className="flex h-44 items-end gap-1.5">
+      <div className="flex h-36 items-end gap-1.5">
         {data.map((v, i) => (
           <div
             key={i}
@@ -92,7 +92,7 @@ function SalesChart({
             )}
             <div
               className="w-full max-w-10 rounded-t-lg bg-[#a7c9b8]"
-              style={{ height: `${Math.max(0, (v / max) * 120)}px` }}
+              style={{ height: `${Math.max(0, (v / max) * 96)}px` }}
             />
           </div>
         ))}
@@ -139,8 +139,8 @@ function SheetStatusCard() {
   }, [seller])
 
   return (
-    <div className="rounded-[24px] border border-gray-200 bg-white p-5 shadow-sm">
-      <h2 className="text-base font-extrabold">Google Sheet সংযোগ</h2>
+    <div className="rounded-2xl border border-gray-200 bg-white p-4 shadow-sm">
+      <h2 className="text-[15px] font-extrabold">Google Sheet সংযোগ</h2>
       {loading ? (
         <p className="mt-2 text-sm text-gray-500">লোড হচ্ছে…</p>
       ) : !connection ? (
@@ -275,44 +275,44 @@ export function DashboardOverview() {
       label: 'আজকের অর্ডার',
       value: formatCountBn(stats?.todayOrders ?? 0),
       sub: `মোট অর্ডার ${formatCountBn(stats?.totalOrders ?? 0)}টি`,
-      icon: <IconDoc className="h-5 w-5" />,
+      icon: <IconDoc className="h-4 w-4" />,
     },
     {
       label: 'নতুন অর্ডার',
       value: formatCountBn(stats?.newOrders ?? 0),
       sub: 'কনফার্ম করা বাকি আছে',
-      icon: <IconBell className="h-5 w-5" />,
+      icon: <IconBell className="h-4 w-4" />,
     },
     {
       label: 'আজকের বিক্রি',
       value: formatBDT(stats?.todaySales ?? 0),
       sub: `এই মাসের বিক্রি ${formatBDT(stats?.monthSales ?? 0)}`,
-      icon: <IconChart className="h-5 w-5" />,
+      icon: <IconChart className="h-4 w-4" />,
     },
     {
       label: 'সক্রিয় ল্যান্ডিং পেজ',
       value: formatCountBn(stats?.activePages ?? 0),
       sub: `মোট ${formatCountBn(stats?.totalPages ?? 0)}টি পেজ · ড্রাফট ${formatCountBn(stats?.draftPages ?? 0)}টি`,
-      icon: <IconStore className="h-5 w-5" />,
+      icon: <IconStore className="h-4 w-4" />,
     },
   ]
 
   return (
     <SellerShell active="dashboard">
-      <h1 className="text-[28px] font-extrabold leading-tight text-gray-900 sm:text-3xl">
+      <h1 className="text-xl font-extrabold leading-tight text-gray-900 sm:text-2xl">
         স্বাগতম{seller?.shop_name ? `, ${seller.shop_name}` : ''}
       </h1>
-      <p className="mt-1.5 text-[15px] text-gray-500">{todayBnLong()}</p>
+      <p className="mt-1 text-sm text-gray-500">{todayBnLong()}</p>
       {/* বর্তমান প্ল্যান — সার্ভারের লাইভ সাবস্ক্রিপশন থেকে। */}
-      <span className="mt-4 inline-flex items-center gap-2 rounded-full border border-gray-200 bg-white px-3.5 py-2 text-sm font-bold text-gray-700 shadow-sm">
-        <span className="h-2.5 w-2.5 rounded-full bg-brand" />
+      <span className="mt-3 inline-flex items-center gap-2 rounded-full border border-gray-200 bg-white px-3 py-1.5 text-[13px] font-bold text-gray-700 shadow-sm">
+        <span className="h-2 w-2 rounded-full bg-brand" />
         {mySub?.plan ? `${mySub.plan.name} প্ল্যান` : 'ফ্রি প্ল্যান'} ·
         দোকান সক্রিয়
       </span>
 
       {/* মেয়াদের সতর্কতা — আসল ডাটা থেকে। */}
       {mySub?.state === 'expiring' ? (
-        <div className="mt-4 flex flex-wrap items-center justify-between gap-3 rounded-2xl border border-amber-300 bg-amber-50 px-4 py-3">
+        <div className="mt-3 flex flex-wrap items-center justify-between gap-3 rounded-2xl border border-amber-300 bg-amber-50 px-3.5 py-2.5">
           <p className="text-sm font-bold text-amber-800">
             আপনার {mySub.plan?.name} প্যাকেজের মেয়াদ{' '}
             {toBnDigits(mySub.daysLeft)} দিন পর শেষ হবে।
@@ -327,7 +327,7 @@ export function DashboardOverview() {
         </div>
       ) : null}
       {mySub?.state === 'grace' ? (
-        <div className="mt-4 flex flex-wrap items-center justify-between gap-3 rounded-2xl border border-amber-300 bg-amber-50 px-4 py-3">
+        <div className="mt-3 flex flex-wrap items-center justify-between gap-3 rounded-2xl border border-amber-300 bg-amber-50 px-3.5 py-2.5">
           <p className="text-sm font-bold text-amber-800">
             মেয়াদ শেষ হয়েছে — {toBnDigits(mySub.daysLeft)} দিনের গ্রেস
             চলছে। এর মধ্যে নবায়ন করলে সব পেজ চালু থাকবে।
@@ -342,7 +342,7 @@ export function DashboardOverview() {
         </div>
       ) : null}
       {mySub?.state === 'expired' ? (
-        <div className="mt-4 flex flex-wrap items-center justify-between gap-3 rounded-2xl border border-red-200 bg-red-50 px-4 py-3">
+        <div className="mt-3 flex flex-wrap items-center justify-between gap-3 rounded-2xl border border-red-200 bg-red-50 px-3.5 py-2.5">
           <p className="text-sm font-bold text-red-700">
             মেয়াদ শেষ — ফ্রি সার্ভিসে আছেন। শুধু ১টি পেজ চালু আছে, বাকিগুলো
             সাসপেন্ডেড।
@@ -365,24 +365,26 @@ export function DashboardOverview() {
         </p>
       ) : (
         <>
-          <div className="mt-5 grid grid-cols-2 gap-3 lg:grid-cols-4">
+          <div className="mt-4 grid grid-cols-2 gap-2.5 lg:grid-cols-4">
             {statCards.map((card) => (
               <div
                 key={card.label}
-                className="rounded-[24px] border border-gray-200 bg-white p-4 shadow-sm sm:p-5"
+                className="rounded-2xl border border-gray-200 bg-white p-3.5 shadow-sm sm:p-4"
               >
-                <div className="flex items-start justify-between gap-2">
-                  <p className="text-[15px] font-bold leading-snug text-gray-700">
-                    {card.label}
+                <p className="whitespace-nowrap text-[13px] font-semibold leading-tight text-gray-500">
+                  {card.label}
+                </p>
+                <div className="mt-1.5 flex items-end justify-between gap-2">
+                  <p className="text-2xl font-extrabold leading-none text-gray-900">
+                    {card.value}
                   </p>
-                  <span className="flex h-10 w-10 shrink-0 items-center justify-center rounded-2xl bg-brand-mint text-brand-dark">
+                  <span className="flex h-7 w-7 shrink-0 items-center justify-center rounded-lg bg-brand-mint text-brand-dark">
                     {card.icon}
                   </span>
                 </div>
-                <p className="mt-3 text-4xl font-extrabold text-gray-900">
-                  {card.value}
+                <p className="mt-1 text-[11px] leading-snug text-gray-500">
+                  {card.sub}
                 </p>
-                <p className="mt-1.5 text-sm text-gray-500">{card.sub}</p>
               </div>
             ))}
           </div>
@@ -390,14 +392,14 @@ export function DashboardOverview() {
           {/* ডেস্কটপে দুই কলামের ওয়ার্কস্পেস: বামে বিক্রি + পেজ, ডানে
               সাম্প্রতিক অর্ডার + Sheet + দ্রুত কাজ। ফোনে আগের মতো এক কলামে
               একটার পর একটা। */}
-          <div className="mt-5 grid gap-5 xl:grid-cols-[minmax(0,1fr)_360px] xl:items-start">
-            <div className="min-w-0 space-y-5">
+          <div className="mt-4 grid gap-4 xl:grid-cols-[minmax(0,1fr)_360px] xl:items-start">
+            <div className="min-w-0 space-y-4">
           {/* বিক্রি ওভারভিউ */}
-          <div className="rounded-[24px] border border-gray-200 bg-white p-5 shadow-sm">
+          <div className="rounded-2xl border border-gray-200 bg-white p-4 shadow-sm">
             <div className="flex flex-wrap items-center justify-between gap-3">
-              <h2 className="flex items-center gap-2.5 text-lg font-extrabold">
-                <span className="flex h-10 w-10 items-center justify-center rounded-2xl bg-brand-mint text-brand-dark">
-                  <IconChart className="h-5 w-5" />
+              <h2 className="flex items-center gap-2 text-[15px] font-extrabold">
+                <span className="flex h-8 w-8 items-center justify-center rounded-xl bg-brand-mint text-brand-dark">
+                  <IconChart className="h-4 w-4" />
                 </span>
                 বিক্রি ওভারভিউ
               </h2>
@@ -407,7 +409,7 @@ export function DashboardOverview() {
                     key={r}
                     type="button"
                     onClick={() => setRange(r)}
-                    className={`rounded-full px-3.5 py-1.5 text-sm font-bold transition ${
+                    className={`rounded-full px-3 py-1 text-[13px] font-bold transition ${
                       range === r
                         ? 'bg-white text-gray-900 shadow'
                         : 'text-gray-500'
@@ -418,21 +420,21 @@ export function DashboardOverview() {
                 ))}
               </div>
             </div>
-            <div className="mt-5 grid grid-cols-2 gap-4">
+            <div className="mt-4 grid grid-cols-2 gap-3">
               <div>
-                <p className="text-sm text-gray-500">আজকের বিক্রি</p>
-                <p className="mt-1 text-2xl font-extrabold">
+                <p className="text-xs text-gray-500">আজকের বিক্রি</p>
+                <p className="mt-0.5 text-xl font-extrabold">
                   {formatBDT(stats?.todaySales ?? 0)}
                 </p>
               </div>
               <div>
-                <p className="text-sm text-gray-500">{rangeSalesLabel}</p>
-                <p className="mt-1 text-2xl font-extrabold">
+                <p className="text-xs text-gray-500">{rangeSalesLabel}</p>
+                <p className="mt-0.5 text-xl font-extrabold">
                   {formatBDT(rangeSales)}
                 </p>
               </div>
             </div>
-            <div className="mt-4">
+            <div className="mt-3">
               <SalesChart
                 data={chartData}
                 labels={chartLabels}
@@ -442,9 +444,9 @@ export function DashboardOverview() {
           </div>
 
           {/* আমার ল্যান্ডিং পেজ */}
-          <div className="rounded-[24px] border border-gray-200 bg-white p-5 shadow-sm">
+          <div className="rounded-2xl border border-gray-200 bg-white p-4 shadow-sm">
             <div className="flex items-center justify-between gap-3">
-              <h2 className="text-lg font-extrabold">আমার ল্যান্ডিং পেজ</h2>
+              <h2 className="text-[15px] font-extrabold">আমার ল্যান্ডিং পেজ</h2>
               <button
                 type="button"
                 onClick={() => navigate('/dashboard/products')}
@@ -458,7 +460,7 @@ export function DashboardOverview() {
                 এখনো কোনো ল্যান্ডিং পেজ নেই — প্রথম প্রোডাক্ট যোগ করে বানান।
               </p>
             ) : (
-              <div className="mt-4 grid gap-3 sm:grid-cols-2">
+              <div className="mt-3 grid gap-3 sm:grid-cols-2">
                 {products.slice(0, 4).map((item) => (
                   <button
                     key={item.product.id}
@@ -466,21 +468,21 @@ export function DashboardOverview() {
                     onClick={() =>
                       navigate(`/dashboard/products/${item.product.id}`)
                     }
-                    className="flex items-center gap-3 rounded-2xl border border-gray-200 p-3 text-left transition hover:border-brand/40"
+                    className="flex items-center gap-3 rounded-2xl border border-gray-200 p-2.5 text-left transition hover:border-brand/40"
                   >
                     {item.imageUrl ? (
                       <img
                         src={item.imageUrl}
                         alt=""
-                        className="h-14 w-14 shrink-0 rounded-xl object-cover"
+                        className="h-12 w-12 shrink-0 rounded-xl object-cover"
                       />
                     ) : (
-                      <span className="flex h-14 w-14 shrink-0 items-center justify-center rounded-xl bg-gray-100 text-gray-400">
+                      <span className="flex h-12 w-12 shrink-0 items-center justify-center rounded-xl bg-gray-100 text-gray-400">
                         <IconBox className="h-6 w-6" />
                       </span>
                     )}
                     <span className="min-w-0 flex-1">
-                      <span className="block truncate text-[15px] font-bold">
+                      <span className="block truncate text-sm font-bold">
                         {item.product.name}
                       </span>
                       <span className="mt-0.5 block text-sm font-bold text-brand-dark">
@@ -509,16 +511,16 @@ export function DashboardOverview() {
             <button
               type="button"
               onClick={() => navigate('/dashboard/products/new')}
-              className="mt-4 w-full rounded-2xl bg-gradient-to-r from-brand-dark via-brand to-brand px-4 py-3 text-sm font-bold text-white shadow-lg shadow-brand/25"
+              className="mt-3 w-full rounded-2xl bg-gradient-to-r from-brand-dark via-brand to-brand px-4 py-2.5 text-sm font-bold text-white shadow-lg shadow-brand/25"
             >
               + নতুন ল্যান্ডিং পেজ তৈরি করুন
             </button>
           </div>
 
             </div>
-            <div className="min-w-0 space-y-5 xl:sticky xl:top-20">
-            <div className="rounded-[24px] border border-gray-200 bg-white p-5 shadow-sm">
-              <h2 className="text-base font-extrabold">সাম্প্রতিক অর্ডার</h2>
+            <div className="min-w-0 space-y-4 xl:sticky xl:top-20">
+            <div className="rounded-2xl border border-gray-200 bg-white p-4 shadow-sm">
+              <h2 className="text-[15px] font-extrabold">সাম্প্রতিক অর্ডার</h2>
               {!stats || stats.recentOrders.length === 0 ? (
                 <p className="mt-3 text-sm text-gray-500">
                   এখনো কোনো অর্ডার আসেনি।
@@ -528,7 +530,7 @@ export function DashboardOverview() {
                   {stats.recentOrders.map((o) => (
                     <li
                       key={o.id}
-                      className="flex justify-between gap-3 py-2.5 text-sm"
+                      className="flex justify-between gap-3 py-2 text-sm"
                     >
                       <span>
                         <span className="font-bold">{o.order_code}</span>
@@ -546,26 +548,26 @@ export function DashboardOverview() {
               <button
                 type="button"
                 onClick={() => navigate('/dashboard/orders')}
-                className="mt-4 text-sm font-bold text-brand-dark"
+                className="mt-3 text-sm font-bold text-brand-dark"
               >
                 সব অর্ডার দেখুন →
               </button>
             </div>
               <SheetStatusCard />
-              <div className="rounded-[24px] border border-gray-200 bg-white p-5 shadow-sm">
-                <h2 className="text-base font-extrabold">দ্রুত কাজ</h2>
+              <div className="rounded-2xl border border-gray-200 bg-white p-4 shadow-sm">
+                <h2 className="text-[15px] font-extrabold">দ্রুত কাজ</h2>
                 <div className="mt-3 flex flex-wrap gap-2">
                   <button
                     type="button"
                     onClick={() => navigate('/dashboard/products/new')}
-                    className="rounded-2xl bg-gradient-to-r from-brand-dark via-brand to-brand px-4 py-2.5 text-sm font-bold text-white shadow"
+                    className="rounded-2xl bg-gradient-to-r from-brand-dark via-brand to-brand px-4 py-2 text-sm font-bold text-white shadow"
                   >
                     নতুন প্রোডাক্ট যোগ করুন
                   </button>
                   <button
                     type="button"
                     onClick={() => navigate('/dashboard/settings')}
-                    className="rounded-2xl border border-gray-300 bg-white px-4 py-2.5 text-sm font-bold"
+                    className="rounded-2xl border border-gray-300 bg-white px-4 py-2 text-sm font-bold"
                   >
                     দোকানের তথ্য বদলান
                   </button>

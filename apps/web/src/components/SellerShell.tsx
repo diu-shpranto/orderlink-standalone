@@ -155,7 +155,7 @@ export default function SellerShell({
           setBellOpen((open) => !open)
           setMenuOpen(false)
         }}
-        className="relative flex h-11 w-11 items-center justify-center rounded-full border border-gray-200 bg-white text-gray-700 shadow-sm"
+        className="relative flex h-10 w-10 items-center justify-center rounded-full border border-gray-200 bg-white text-gray-700 shadow-sm"
         aria-label="নোটিফিকেশন"
       >
         <IconBell className="h-5 w-5" />
@@ -210,7 +210,7 @@ export default function SellerShell({
           setMenuOpen((open) => !open)
           setBellOpen(false)
         }}
-        className="flex h-11 w-11 items-center justify-center rounded-full bg-brand text-lg font-extrabold text-white shadow-md"
+        className="flex h-10 w-10 items-center justify-center rounded-full bg-brand text-lg font-extrabold text-white shadow-md"
         aria-label="প্রোফাইল"
       >
         {shopName.charAt(0)}
@@ -396,15 +396,15 @@ export default function SellerShell({
       <div className="min-w-0 flex-1">
         {/* ফোনের ওপরের হেডার */}
         <header className="sticky top-0 z-40 border-b border-gray-200/70 bg-cream/95 backdrop-blur lg:hidden">
-          <div className="flex items-center justify-between px-4 py-3">
+          <div className="flex items-center justify-between px-4 py-2.5">
             <button
               type="button"
               onClick={() => navigate('/dashboard')}
               className="flex items-center gap-2.5"
               aria-label="ড্যাশবোর্ড"
             >
-              <LogoTile size={40} />
-              <span className="max-w-44 truncate text-lg font-extrabold">
+              <LogoTile size={36} />
+              <span className="max-w-44 truncate text-[17px] font-extrabold">
                 {shopName}
               </span>
             </button>
@@ -431,7 +431,7 @@ export default function SellerShell({
         </header>
 
         {/* ডেস্কটপে চওড়া ওয়ার্কস্পেস (সর্বোচ্চ ১৬০০px), ফোনে আগের মতো */}
-        <main className="mx-auto w-full max-w-5xl px-4 pb-28 pt-5 lg:mx-0 lg:max-w-[1600px] lg:px-10 lg:pb-10 lg:pt-6 xl:px-12">
+        <main className="mx-auto w-full max-w-5xl px-4 pb-28 pt-4 lg:mx-0 lg:max-w-[1600px] lg:px-10 lg:pb-10 lg:pt-6 xl:px-12">
           {children}
         </main>
 
