@@ -5,6 +5,7 @@
 import { useEffect, useRef, useState } from 'react'
 import type { FormEvent } from 'react'
 import { useAuth } from '../lib/auth.tsx'
+import { navigate } from '../lib/router.ts'
 import {
   anonKeyHeader,
   functionsUrl,
@@ -93,9 +94,14 @@ export default function Auth({
             'অ্যাকাউন্ট তৈরি হয়েছে — ইমেইল চেক করে নিশ্চিত করুন, তারপর লগইন করুন।',
           )
           setMode('signin')
+        } else {
+          // সেশন তৈরি হয়ে গেছে — AuthRoute-এর effect-এর অপেক্ষা না করে
+          // এখনই ড্যাশবোর্ডে যান (সেখানে SellerGate উইজার্ড/ড্যাশবোর্ড ঠিক করবে)।
+          navigate('/dashboard')
         }
       } else {
         await signIn(email.trim(), password)
+        navigate('/dashboard')
       }
     } catch (err) {
       setError(friendlyError(err instanceof Error ? err.message : ''))

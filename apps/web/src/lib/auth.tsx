@@ -36,13 +36,19 @@ export function AuthProvider({ children }: { children: ReactNode }) {
   const user = session?.user ?? null
 
   async function loadSeller(userId: string) {
-    const client = requireSupabase()
-    const { data } = await client
-      .from('sellers')
-      .select('id, email, owner_name, shop_name, whatsapp')
-      .eq('id', userId)
-      .maybeSingle()
-    setSeller((data as SellerRow | null) ?? null)
+    // sellers সারি পড়তে না পারলে (নেটওয়ার্ক/অন্য ভুল) লগইন আটকাবে না —
+    // seller null থাকবে, আর /dashboard-এর SellerGate উইজার্ড দেখাবে।
+    try {
+      const client = requireSupabase()
+      const { data } = await client
+        .from('sellers')
+        .select('id, email, owner_name, shop_name, whatsapp')
+        .eq('id', userId)
+        .maybeSingle()
+      setSeller((data as SellerRow | null) ?? null)
+    } catch {
+      setSeller(null)
+    }
   }
 
   useEffect(() => {

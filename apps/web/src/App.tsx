@@ -139,11 +139,16 @@ function LegacyProductRedirect({ slug }: { slug: string }) {
 }
 
 function AuthRoute({ mode }: { mode: 'signin' | 'signup' }) {
-  const { loading, user, seller } = useAuth()
+  const { loading, user } = useAuth()
+  // সেশন থাকলেই /dashboard-এ যান — seller সারি এখানে শর্ত নয়।
+  // নতুন সেলারের sellers সারি থাকে না (সেটা SetupWizard বানায়),
+  // তাই seller-এর অপেক্ষা করলে সাইনআপ/লগইনের পর রিডাইরেক্ট
+  // কোনোদিনই হতো না — ফর্ম নীরবে ফিরে আসত, যদিও সেশন তৈরি হয়ে যেত।
+  // /dashboard-এ SellerGate-ই ঠিক করে উইজার্ড দেখাবে নাকি ড্যাশবোর্ড।
   useEffect(() => {
-    if (!loading && user && seller) navigate('/dashboard')
-  }, [loading, user, seller])
-  if (loading || (user && seller)) {
+    if (!loading && user) navigate('/dashboard')
+  }, [loading, user])
+  if (loading || user) {
     return (
       <Centered>
         <p className="text-gray-600">লোড হচ্ছে…</p>
