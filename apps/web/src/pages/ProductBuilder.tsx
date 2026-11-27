@@ -902,6 +902,29 @@ export default function ProductBuilder({
                   নামের নিচে এক লাইনে দেখানো হবে
                 </span>
               </label>
+              <label className="block">
+                <span className={labelClass}>ক্যাটাগরি</span>
+                <input
+                  type="text"
+                  value={category}
+                  onChange={(e) => setCategory(e.target.value)}
+                  className={inputClass}
+                  placeholder="যেমন: ফ্যাশন"
+                />
+                <span className={hintClass}>
+                  ঐচ্ছিক — পেজে ছোট লেবেল হিসেবে দেখাবে
+                </span>
+              </label>
+              <label className="block">
+                <span className={labelClass}>বিস্তারিত বিবরণ</span>
+                <textarea
+                  rows={4}
+                  value={description}
+                  onChange={(e) => setDescription(e.target.value)}
+                  className={inputClass}
+                  placeholder="পণ্যটা সম্পর্কে বিস্তারিত লিখুন"
+                />
+              </label>
               <div className="grid gap-4 sm:grid-cols-2">
                 <label className="block">
                   <span className={labelClass}>দাম (৳) *</span>
@@ -933,29 +956,6 @@ export default function ProductBuilder({
                   আগে {formatBDT(oldPriceNum ?? 0)})
                 </p>
               ) : null}
-              <label className="block">
-                <span className={labelClass}>ক্যাটাগরি</span>
-                <input
-                  type="text"
-                  value={category}
-                  onChange={(e) => setCategory(e.target.value)}
-                  className={inputClass}
-                  placeholder="যেমন: ফ্যাশন"
-                />
-                <span className={hintClass}>
-                  ঐচ্ছিক — পেজে ছোট লেবেল হিসেবে দেখাবে
-                </span>
-              </label>
-              <label className="block">
-                <span className={labelClass}>বিস্তারিত বিবরণ</span>
-                <textarea
-                  rows={4}
-                  value={description}
-                  onChange={(e) => setDescription(e.target.value)}
-                  className={inputClass}
-                  placeholder="পণ্যটা সম্পর্কে বিস্তারিত লিখুন"
-                />
-              </label>
               <div>
                 <span className={labelClass}>সুবিধা</span>
                 <div className="mt-1 flex gap-2">

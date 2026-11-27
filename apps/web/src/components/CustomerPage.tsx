@@ -76,62 +76,6 @@ function Gallery({
   )
 }
 
-/** হিরোর পরিমাণ সিলেক্টর — ফর্মের পরিমাণের সাথে সিঙ্ক হয়। */
-function HeroQuantity({
-  value,
-  onChange,
-  label,
-  dark = false,
-}: {
-  value: number
-  onChange: (delta: number) => void
-  label: string
-  dark?: boolean
-}) {
-  return (
-    <div className="mt-5 flex items-center justify-between gap-3">
-      <span
-        className={`text-sm font-semibold ${
-          dark ? 'text-[#B8B8B8]' : 'text-gray-700'
-        }`}
-      >
-        {label}
-      </span>
-      <span className="flex items-center gap-3">
-        <button
-          type="button"
-          onClick={() => onChange(-1)}
-          disabled={value <= 1}
-          className={`flex h-10 w-10 items-center justify-center rounded-lg border text-lg font-bold disabled:opacity-40 ${
-            dark ? 'border-[#34343A] text-white' : 'border-gray-300 text-gray-900'
-          }`}
-          aria-label="কম"
-        >
-          −
-        </button>
-        <span
-          className={`w-8 text-center text-lg font-bold ${
-            dark ? 'text-white' : 'text-gray-900'
-          }`}
-        >
-          {toBnDigits(value)}
-        </span>
-        <button
-          type="button"
-          onClick={() => onChange(1)}
-          disabled={value >= 99}
-          className={`flex h-10 w-10 items-center justify-center rounded-lg border text-lg font-bold disabled:opacity-40 ${
-            dark ? 'border-[#34343A] text-white' : 'border-gray-300 text-gray-900'
-          }`}
-          aria-label="বেশি"
-        >
-          +
-        </button>
-      </span>
-    </div>
-  )
-}
-
 function PriceRow({
   data,
   dark,
@@ -197,8 +141,6 @@ function OrderSection({
   accent = '#D6B36A',
   accentText = '#0B0B0D',
   lightAccent,
-  quantity,
-  onQuantityChange,
 }: {
   data: CustomerPageData
   t: StringsType
@@ -213,10 +155,6 @@ function OrderSection({
   accentText?: string
   /** হালকা থিমে ফর্মের CTA-র রং (শুধু Beauty টেমপ্লেট দেয়)। */
   lightAccent?: string
-  /** হিরোর পরিমাণ সিলেক্টরের সাথে সিঙ্ক করা পরিমাণ (না দিলে ফর্ম নিজে রাখে)। */
-  quantity?: number
-  /** নিয়ন্ত্রিত পরিমাণ বদলালে কল হয়। */
-  onQuantityChange?: (quantity: number) => void
 }) {
   const { shop, sellerWhatsapp, product } = data
   if (placed) {
@@ -360,8 +298,6 @@ function OrderSection({
             accent={accent}
             accentText={accentText}
             lightAccent={lightAccent}
-            quantity={quantity}
-            onQuantityChange={onQuantityChange}
           />
         </div>
       )}
@@ -427,14 +363,6 @@ export default function CustomerPage({
     : null
   const heroCopy = shortDesc ?? product.description
   const [placed, setPlaced] = useState<PlacedOrder | null>(null)
-  // হিরোর পরিমাণ — ফর্মের পরিমাণের সাথে সিঙ্ক হয় (সব টেমপ্লেটে একই মান)।
-  const [heroQty, setHeroQty] = useState(1)
-  function changeHeroQty(delta: number) {
-    setHeroQty((q) => Math.min(99, Math.max(1, q + delta)))
-  }
-  // পেজের ভাষা অনুযায়ী ছোট লেবেল (শেয়ার করা সেকশনগুলোর জন্য)।
-  const loc = (bn: string, en: string) =>
-    page.page_lang === 'en' ? en : bn
   // পণ্য-ভিত্তিক SEO/OG মেটা — শুধু লাইভ পেজে; বিল্ডার প্রিভিউতে নয়।
   // সীমা: ফেসবুকের ক্রলার জাভাস্ক্রিপ্ট চালায় না, তাই ক্লায়েন্ট-সাইডে
   // বসানো এই মেটা শেয়ার প্রিভিউতে নাও দেখাতে পারে — সেজন্য প্রিরেন্ডার
@@ -495,9 +423,6 @@ export default function CustomerPage({
   const discount = discountPercent(product.price, product.old_price)
   const showGallery =
     page.sections['gallery'] !== false && images.length > 0
-
-  // Social Proof-এ রিভিউ সবার আগে (হাইলাইটসের আগে) — টেমপ্লেটের পরিচয়।
-  const reviewsFirst = page.template === 'social-proof'
 
   const headingClass = dark
     ? 'text-lg font-bold text-white'
@@ -633,185 +558,60 @@ export default function CustomerPage({
     ? 'rounded-2xl border border-gray-700 bg-gray-800 p-5'
     : 'rounded-2xl border border-gray-200 bg-white p-5'
 
-  // B — প্রোডাক্ট হিরো: ডেস্কটপে দুই কলাম (গ্যালারি + তথ্য), মোবাইলে
-  // ছবি আগে, তথ্য নিচে। পরিমাণ সিলেক্টর ফর্মের সাথে সিঙ্ক হয়।
+  // B — প্রোডাক্ট হিরো: ছবি পুরো চওড়ায় উপরে, তথ্য নিচে (লাইভ অ্যাপের
+  // মতো — সব টেমপ্লেটে একই 4:3 ফ্রেম)। পরিমাণ শুধু অর্ডার ফর্মে থাকে।
   const hero = (
-    <div className="grid gap-6 md:grid-cols-2 md:items-start">
+    <>
       {showGallery ? (
         <Gallery images={images} productName={product.name} />
       ) : null}
-      <div>
-        <h1
-          className={`text-2xl font-extrabold leading-snug md:text-3xl ${
-            dark ? 'text-white' : 'text-gray-900'
-          }`}
-        >
-          {product.name}
-        </h1>
-        {product.category ? (
-          <p className={`mt-1 text-xs font-bold ${bodyClass}`}>
-            {product.category}
-          </p>
-        ) : null}
-        <div className="mt-2">
-          <RatingSummary data={data} t={t} />
-        </div>
-        <div className="mt-3">
-          <PriceRow data={data} dark={dark} />
-        </div>
-        {heroCopy ? (
-          <p className={`mt-3 text-sm leading-relaxed ${bodyClass}`}>
-            {heroCopy}
-          </p>
-        ) : null}
-        <HeroQuantity
-          value={heroQty}
-          onChange={changeHeroQty}
-          label={t.quantity}
-          dark={dark}
-        />
-        <a
-          href="#order"
-          className="mt-5 block rounded-lg bg-accent px-4 py-3 text-center font-semibold text-white"
-        >
-          {t.orderNow}
-        </a>
-        <p
-          className={`mt-3 text-center text-xs ${
-            dark ? 'text-gray-400' : 'text-gray-500'
-          }`}
-        >
-          {t.deliveryInside}:{' '}
-          {shop.delivery_inside_charge > 0
-            ? formatBDT(shop.delivery_inside_charge)
-            : t.freeDelivery}
-          {' · '}
-          {t.deliveryOutside}:{' '}
-          {shop.delivery_outside_charge > 0
-            ? formatBDT(shop.delivery_outside_charge)
-            : t.freeDelivery}
+      <h1
+        className={`mt-5 text-2xl font-extrabold leading-snug md:text-3xl ${
+          dark ? 'text-white' : 'text-gray-900'
+        }`}
+      >
+        {product.name}
+      </h1>
+      {product.category ? (
+        <p className={`mt-1 text-xs font-bold ${bodyClass}`}>
+          {product.category}
         </p>
+      ) : null}
+      <div className="mt-2">
+        <RatingSummary data={data} t={t} />
       </div>
-    </div>
+      <div className="mt-3">
+        <PriceRow data={data} dark={dark} />
+      </div>
+      {heroCopy ? (
+        <p className={`mt-3 text-sm leading-relaxed ${bodyClass}`}>
+          {heroCopy}
+        </p>
+      ) : null}
+      <a
+        href="#order"
+        className="mt-5 block rounded-lg bg-accent px-4 py-3 text-center font-semibold text-white"
+      >
+        {t.orderNow}
+      </a>
+    </>
   )
 
-  // শেয়ার করা পেজের মূল অংশ — নির্দিষ্ট ক্রমে: C বিবরণ → D হাইলাইটস →
-  // রিভিউ → E ডেলিভারি তথ্য → (অর্ডার ফর্ম) → জিজ্ঞাসা। প্রতিটা সেকশন
-  // বিল্ডারের চালু/বন্ধ সেটিং মানে; ক্রমটা নতুন প্রিমিয়াম কাঠামোর।
-  const specEntries = Object.entries(product.specs)
-  const showDetailsDesc =
-    !!product.description && product.description !== heroCopy
-  const showSpecsSec =
-    page.sections['specs'] !== false && specEntries.length > 0
-  const videoEmbedId =
-    page.sections['video'] !== false && page.video_url
-      ? youtubeEmbedId(page.video_url)
-      : null
-  const showBenefitsSec =
-    page.sections['benefits'] !== false && product.benefits.length > 0
-  const showReviewsSec = page.sections['reviews'] !== false
-  const showFaqSec = page.sections['faq'] !== false && page.faqs.length > 0
-  const freeThreshold =
-    shop.free_delivery_threshold !== null &&
-    shop.free_delivery_threshold > 0
-      ? Number(shop.free_delivery_threshold)
-      : null
+  // সেকশনের ক্রম — বিল্ডারের ক্রমেই দেখায় (গ্যালারি হিরোতে থাকে, তাই
+  // ক্রমে থাকলেও এখানে আসে না); বন্ধ করা সেকশন আসে না। Social Proof-এ
+  // রিভিউ সবার আগে (চালু থাকলে)।
+  let sectionOrder = page.section_order.filter(
+    (id) => id !== 'gallery' && page.sections[id] !== false,
+  )
+  if (page.template === 'social-proof' && sectionOrder.includes('reviews')) {
+    sectionOrder = [
+      'reviews',
+      ...sectionOrder.filter((id) => id !== 'reviews'),
+    ]
+  }
 
   const sections = (
-    <div className="space-y-10">
-      {showDetailsDesc || showSpecsSec || videoEmbedId ? (
-        <section>
-          <h2 className={headingClass}>
-            {loc('পণ্যের বিবরণ', 'Product Details')}
-          </h2>
-          {showDetailsDesc ? (
-            <p className={`mt-3 text-sm leading-relaxed ${bodyClass}`}>
-              {product.description}
-            </p>
-          ) : null}
-          {showSpecsSec ? (
-            <div className="mt-4">{renderSection('specs')}</div>
-          ) : null}
-          {videoEmbedId ? (
-            <div className="mt-4">{renderSection('video')}</div>
-          ) : null}
-        </section>
-      ) : null}
-      {showReviewsSec && reviewsFirst ? renderSection('reviews') : null}
-      {showBenefitsSec ? (
-        <section>
-          <h2 className={headingClass}>{t.benefits}</h2>
-          <div className="mt-3 grid grid-cols-2 gap-3">
-            {product.benefits.map((b, i) => (
-              <div
-                key={i}
-                className={`flex items-start gap-2.5 rounded-xl border p-3 ${
-                  dark
-                    ? 'border-gray-700 bg-gray-800'
-                    : 'border-gray-200 bg-white'
-                }`}
-              >
-                <span className="flex h-6 w-6 shrink-0 items-center justify-center rounded-full bg-brand text-xs font-extrabold text-white">
-                  ✓
-                </span>
-                <span
-                  className={`text-sm font-semibold leading-snug ${
-                    dark ? 'text-gray-100' : 'text-gray-800'
-                  }`}
-                >
-                  {b}
-                </span>
-              </div>
-            ))}
-          </div>
-        </section>
-      ) : null}
-      {showReviewsSec && !reviewsFirst ? renderSection('reviews') : null}
-      <section>
-        <h2 className={headingClass}>
-          {loc('ডেলিভারি তথ্য', 'Delivery Information')}
-        </h2>
-        <div
-          className={`mt-3 space-y-2 rounded-xl border p-4 text-sm ${
-            dark
-              ? 'border-gray-700 bg-gray-800'
-              : 'border-gray-200 bg-white'
-          }`}
-        >
-          <p className="flex justify-between gap-4">
-            <span className="text-gray-500">{t.deliveryInside}</span>
-            <span
-              className={`font-semibold ${dark ? 'text-gray-100' : 'text-gray-900'}`}
-            >
-              {shop.delivery_inside_charge > 0
-                ? formatBDT(shop.delivery_inside_charge)
-                : t.freeDelivery}
-            </span>
-          </p>
-          <p className="flex justify-between gap-4">
-            <span className="text-gray-500">{t.deliveryOutside}</span>
-            <span
-              className={`font-semibold ${dark ? 'text-gray-100' : 'text-gray-900'}`}
-            >
-              {shop.delivery_outside_charge > 0
-                ? formatBDT(shop.delivery_outside_charge)
-                : t.freeDelivery}
-            </span>
-          </p>
-          {freeThreshold ? (
-            <p className="font-semibold text-brand">
-              {t.freeDeliveryAbove(formatBDT(freeThreshold))}
-            </p>
-          ) : null}
-          {data.page.delivery_info ? (
-            <p className={`leading-relaxed ${bodyClass}`}>
-              {data.page.delivery_info}
-            </p>
-          ) : null}
-        </div>
-      </section>
-      {showFaqSec ? renderSection('faq') : null}
-    </div>
+    <div className="space-y-8">{sectionOrder.map((id) => renderSection(id))}</div>
   )
 
   const shopHeader = (
@@ -836,30 +636,12 @@ export default function CustomerPage({
           {shop.name}
         </span>
       </span>
-      <span className="flex items-center gap-2">
-        <span
-          className={`text-xs ${
-            page.template === 'modern-premium'
-              ? 'text-white/80'
-              : 'text-gray-500'
-          }`}
-        >
-          {t.shopPage}
-        </span>
-        {sellerWhatsapp ? (
-          <a
-            href={`https://wa.me/${sellerWhatsapp}`}
-            target="_blank"
-            rel="noreferrer"
-            className={`rounded-full px-3 py-1.5 text-xs font-bold ${
-              page.template === 'modern-premium'
-                ? 'bg-white text-brand'
-                : 'bg-[#25d366] text-white'
-            }`}
-          >
-            WhatsApp
-          </a>
-        ) : null}
+      <span
+        className={`text-xs ${
+          page.template === 'modern-premium' ? 'text-white/80' : 'text-gray-500'
+        }`}
+      >
+        {t.shopPage}
       </span>
     </header>
   )
@@ -880,8 +662,6 @@ export default function CustomerPage({
         preview={preview}
         onPlaced={setPlaced}
         onOrderAgain={() => setPlaced(null)}
-        quantity={heroQty}
-        onQuantityChange={setHeroQty}
       />
     </div>
   )
@@ -960,9 +740,13 @@ const footer = (
   </>
   )
 
-  // স্টিকি মোবাইল অর্ডার বার — শেয়ার করা সব টেমপ্লেটে (মোবাইল-ফার্স্ট)।
-  // নিজের বার আছে এমন টেমপ্লেট (fashion/tech/bd/luxury) এটা ব্যবহার করে না।
-  const sticky = <StickyOrderBar data={data} t={t} />
+  // স্টিকি মোবাইল অর্ডার বার — শুধু Aura/Nova/Social Proof-এ (লাইভ
+  // অ্যাপের মতো; রেজিস্ট্রির stickyBar দেখে বসে)। Luxury-র নিজের
+  // সোনালি বার, fashion/tech/beauty/bd-র নিজের বার — এটা তারা
+  // ব্যবহার করে না।
+  const sticky = meta.stickyBar ? (
+    <StickyOrderBar data={data} t={t} />
+  ) : null
 
   // ---- Luxury Premium (Template 01) — কালো-সোনালি বিলাসবহুল ডার্ক থিম ----
   // ব্রিফের ১৫ সেকশন: ঘোষণা, হেডার, হিরো, গ্যালারি, আস্থা, কেন বেছে নেবেন,
@@ -1104,12 +888,6 @@ const footer = (
                   {heroCopy}
                 </p>
               ) : null}
-              <HeroQuantity
-                value={heroQty}
-                onChange={changeHeroQty}
-                label={t.quantity}
-                dark
-              />
               <a
                 href="#order"
                 className="mt-6 block rounded-xl bg-[#D6B36A] px-4 py-3.5 text-center font-bold text-[#0B0B0D]"
@@ -1319,8 +1097,6 @@ const footer = (
               onPlaced={setPlaced}
               onOrderAgain={() => setPlaced(null)}
               dark
-              quantity={heroQty}
-              onQuantityChange={setHeroQty}
             />
           </div>
 
@@ -1412,7 +1188,7 @@ const footer = (
       <div className={`min-h-screen ${pageShell}`}>
         {announcement}
         {shopHeader}
-        <main className="mx-auto max-w-5xl px-4 py-6 pb-24 md:pb-6">
+        <main className="mx-auto max-w-5xl px-4 py-6">
           <div className="grid gap-6 md:grid-cols-2">
             <div>{showGallery ? <Gallery images={images} productName={product.name} /> : null}</div>
             <div>
@@ -1435,11 +1211,6 @@ const footer = (
                   {heroCopy}
                 </p>
               ) : null}
-              <HeroQuantity
-                value={heroQty}
-                onChange={changeHeroQty}
-                label={t.quantity}
-              />
               <a
                 href="#order"
                 className="mt-5 block rounded-lg bg-accent px-4 py-3 text-center font-semibold text-white"
@@ -1468,7 +1239,7 @@ const footer = (
           </p>
         </div>
         {shopHeader}
-        <main className="mx-auto max-w-2xl px-4 py-6 pb-24 md:pb-6">
+        <main className="mx-auto max-w-2xl px-4 py-6">
           {hero}
           <div className="mt-8">{sections}</div>
           {orderBox}
@@ -1525,18 +1296,13 @@ const footer = (
               {heroCopy}
             </p>
           ) : null}
-          <HeroQuantity
-            value={heroQty}
-            onChange={changeHeroQty}
-            label={t.quantity}
-          />
           <a
             href="#order"
             className="mt-6 block rounded-lg bg-gray-900 px-4 py-3 text-center font-semibold text-white"
           >
             {t.orderNow}
           </a>
-          <div className="mt-10">{sections}</div>
+          <div className="mt-10 space-y-10">{sectionOrder.map((id) => renderSection(id))}</div>
           {orderBox}
         </main>
         {footer}
@@ -1550,7 +1316,7 @@ const footer = (
       <div className={`min-h-screen ${pageShell}`}>
         {announcement}
         {shopHeader}
-        <main className="mx-auto max-w-2xl px-4 py-6 pb-24 md:pb-6">
+        <main className="mx-auto max-w-2xl px-4 py-6">
           <div className={cardClass}>{hero}</div>
           <div className="mt-8">{sections}</div>
           {orderBox}
@@ -1566,7 +1332,7 @@ const footer = (
       <div className={`min-h-screen ${pageShell}`}>
         {announcement}
         {shopHeader}
-        <main className="mx-auto max-w-2xl px-4 py-6 pb-24 md:pb-6">
+        <main className="mx-auto max-w-2xl px-4 py-6">
           {hero}
           <div className="mt-8">{sections}</div>
           {orderBox}
@@ -1654,16 +1420,6 @@ const footer = (
               >
                 {L('এখনই অর্ডার করুন', 'Order Now')}
               </a>
-              {sellerWhatsapp ? (
-                <a
-                  href={`https://wa.me/${sellerWhatsapp}`}
-                  target="_blank"
-                  rel="noreferrer"
-                  className="rounded-full border border-[#1D7658] px-3 py-2 text-xs font-bold text-[#1D7658]"
-                >
-                  WhatsApp
-                </a>
-              ) : null}
               <button
                 type="button"
                 onClick={() => setFashionMenuOpen((v) => !v)}
@@ -1738,11 +1494,6 @@ const footer = (
                   {heroCopy}
                 </p>
               ) : null}
-              <HeroQuantity
-                value={heroQty}
-                onChange={changeHeroQty}
-                label={L('পরিমাণ', 'Quantity')}
-              />
               <a
                 href="#order"
                 className="mt-6 block rounded-full bg-[#1D7658] px-4 py-3.5 text-center font-bold text-white"
@@ -2073,16 +1824,6 @@ const footer = (
               >
                 {L('এখনই অর্ডার করুন', 'Order Now')}
               </a>
-              {sellerWhatsapp ? (
-                <a
-                  href={`https://wa.me/${sellerWhatsapp}`}
-                  target="_blank"
-                  rel="noreferrer"
-                  className="rounded-full border border-[#D86F91] px-3 py-2 text-xs font-bold text-[#D86F91]"
-                >
-                  WhatsApp
-                </a>
-              ) : null}
               <button
                 type="button"
                 onClick={() => setBeautyMenuOpen((v) => !v)}
@@ -2158,11 +1899,6 @@ const footer = (
                   {heroCopy}
                 </p>
               ) : null}
-              <HeroQuantity
-                value={heroQty}
-                onChange={changeHeroQty}
-                label={L('পরিমাণ', 'Quantity')}
-              />
               <a
                 href="#order"
                 className="mt-6 block rounded-full bg-[#D86F91] px-4 py-3.5 text-center font-bold text-white shadow-sm"
@@ -2382,8 +2118,6 @@ const footer = (
                 accent="#D86F91"
                 accentText="#FFFFFF"
                 lightAccent="#D86F91"
-                quantity={heroQty}
-                onQuantityChange={setHeroQty}
               />
             </div>
           </div>
@@ -2595,27 +2329,15 @@ const footer = (
                 {shop.name}
               </span>
             </span>
-            <div className="flex items-center gap-1">
-              {sellerWhatsapp ? (
-                <a
-                  href={`https://wa.me/${sellerWhatsapp}`}
-                  target="_blank"
-                  rel="noreferrer"
-                  className="rounded-full border border-[#19C8F0] px-3 py-2 text-xs font-bold text-[#19C8F0]"
-                >
-                  WhatsApp
-                </a>
-              ) : null}
-              <button
-                type="button"
-                onClick={() => setTechMenuOpen((v) => !v)}
-                className="flex h-10 w-10 items-center justify-center rounded-full text-xl text-white"
-                aria-label="মেনু"
-                aria-expanded={techMenuOpen}
-              >
-                ☰
-              </button>
-            </div>
+            <button
+              type="button"
+              onClick={() => setTechMenuOpen((v) => !v)}
+              className="flex h-10 w-10 items-center justify-center rounded-full text-xl text-white"
+              aria-label="মেনু"
+              aria-expanded={techMenuOpen}
+            >
+              ☰
+            </button>
           </div>
           {techMenuOpen ? (
             <nav className="absolute inset-x-4 top-full z-50 rounded-2xl border border-[#283A54] bg-[#101A2B] p-2 shadow-lg">
@@ -2694,12 +2416,6 @@ const footer = (
                   {heroCopy}
                 </p>
               ) : null}
-              <HeroQuantity
-                value={heroQty}
-                onChange={changeHeroQty}
-                label={t.quantity}
-                dark
-              />
               <a
                 href="#order"
                 className="mt-6 block rounded-xl bg-gradient-to-r from-[#19C8F0] to-[#477BFF] px-4 py-3.5 text-center font-bold text-white shadow-[0_0_28px_rgba(25,200,240,0.35)]"
@@ -2951,8 +2667,6 @@ const footer = (
               dark
               accent="#19C8F0"
               accentText="#080D18"
-              quantity={heroQty}
-              onQuantityChange={setHeroQty}
             />
           </div>
 
@@ -3240,11 +2954,6 @@ const footer = (
                   {heroCopy}
                 </p>
               ) : null}
-              <HeroQuantity
-                value={heroQty}
-                onChange={changeHeroQty}
-                label={L('পরিমাণ', 'Quantity')}
-              />
               <a
                 href="#order"
                 className="mt-6 block rounded-xl bg-[#E11D2E] px-4 py-4 text-center text-lg font-extrabold text-white shadow-sm"
@@ -3470,8 +3179,6 @@ const footer = (
                 accent="#16A34A"
                 accentText="#FFFFFF"
                 lightAccent="#16A34A"
-                quantity={heroQty}
-                onQuantityChange={setHeroQty}
               />
             </div>
           </div>
@@ -3591,7 +3298,7 @@ const footer = (
     <div className={`min-h-screen ${pageShell}`}>
       {announcement}
       {shopHeader}
-      <main className="mx-auto max-w-2xl px-4 py-6 pb-24 md:pb-6">
+      <main className="mx-auto max-w-2xl px-4 py-6">
         {hero}
         <div className="mt-8">{sections}</div>
         {orderBox}
