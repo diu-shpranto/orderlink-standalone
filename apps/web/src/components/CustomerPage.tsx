@@ -22,15 +22,186 @@ import {
 import { templateById } from '../lib/templates.ts'
 import type {
   CustomerPageData,
+  PageRow,
   ProductImageRow,
+  VideoItem,
 } from '../lib/types.ts'
 import type { CustomerStrings as StringsType } from '../lib/i18n.ts'
 
-function youtubeEmbedId(url: string): string | null {
+export function youtubeEmbedId(url: string): string | null {
   const m = url.match(
     /(?:youtu\.be\/|youtube\.com\/(?:watch\?v=|embed\/|shorts\/))([A-Za-z0-9_-]{6,})/,
   )
   return m ? m[1] : null
+}
+
+/**
+ * পেজের ভিডিওর তালিকা — নতুন video_urls আগে, না থাকলে পুরনো এক
+ * ভিডিও (video_url) ফলব্যাক। খালি লিংক বাদ যায়।
+ */
+function pageVideos(page: PageRow): VideoItem[] {
+  const list = (page.video_urls ?? []).filter(
+    (v) => v && typeof v.url === 'string' && v.url.trim() !== '',
+  )
+  if (list.length > 0) {
+    return list.map((v) => ({
+      url: v.url.trim(),
+      label: v.label?.trim() ? v.label.trim() : undefined,
+    }))
+  }
+  return page.video_url?.trim() ? [{ url: page.video_url.trim() }] : []
+}
+
+/**
+ * একাধিক ভিডিওর প্লেয়ার — মূল ভিডিও + নিচে থাম্বনেইলের তালিকা
+ * (থাম্বনেইলে ক্লিক করলে ভিডিও বদলায়)। একটাই ভিডিও থাকলে
+ * থাম্বনেইল দেখায় না; চালানোর মতো ভিডিও না থাকলে কিছু দেখায় না।
+ * YouTube-এর বাইরের লিংক বাদ যায় (বিল্ডারে আগেই যাচাই হয়)।
+ */
+function VideoPlayer({
+  videos,
+  productName,
+  frameClass,
+  thumbActiveClass = 'border-brand',
+}: {
+  videos: VideoItem[]
+  productName: string
+  frameClass: string
+  thumbActiveClass?: string
+}) {
+  const playable = videos
+    .map((v) => ({ ...v, id: youtubeEmbedId(v.url) }))
+    .filter(
+      (v): v is VideoItem & { id: string } => v.id !== null,
+    )
+  const [active, setActive] = useState(0)
+  if (playable.length === 0) return null
+  const current = playable[Math.min(active, playable.length - 1)]
+  return (
+    <div>
+      <div className={frameClass}>
+        <iframe
+          src={`https://www.youtube.com/embed/${current.id}`}
+          title={
+            current.label
+              ? `${productName} — ${current.label}`
+              : productName
+          }
+          className="h-full w-full"
+          allowFullScreen
+        />
+      </div>
+      {playable.length > 1 ? (
+        <div className="mt-2 flex gap-2 overflow-x-auto pb-1">
+          {playable.map((v, i) => (
+            <button
+              key={i}
+              type="button"
+              onClick={() => setActive(i)}
+              className={`relative w-32 shrink-0 overflow-hidden rounded-lg border-2 ${
+                i === active ? thumbActiveClass : 'border-transparent'
+              }`}
+              aria-label={v.label ?? `ভিডিও ${toBnDigits(i + 1)}`}
+            >
+              <img
+                src={`https://i.ytimg.com/vi/${v.id}/mqdefault.jpg`}
+                alt=""
+                className="aspect-video w-full object-cover"
+              />
+              {v.label ? (
+                <span className="absolute inset-x-0 bottom-0 truncate bg-black/60 px-1.5 py-0.5 text-[11px] font-semibold text-white">
+                  {v.label}
+                </span>
+              ) : null}
+            </button>
+          ))}
+        </div>
+      ) : null}
+    </div>
+  )
+}
+
+/** রিভিউর কাস্টমারের ছবি — ছবি থাকলে সেটা, না থাকলে নামের অক্ষর। */
+function ReviewAvatar({
+  photoUrl,
+  name,
+}: {
+  photoUrl?: string
+  name: string
+}) {
+  if (photoUrl) {
+    return (
+      <img
+        src={photoUrl}
+        alt={name}
+        className="h-10 w-10 shrink-0 rounded-full object-cover"
+      />
+    )
+  }
+  return (
+    <span
+      className="flex h-10 w-10 shrink-0 items-center justify-center rounded-full bg-brand-light text-base font-extrabold text-brand-dark"
+      aria-hidden="true"
+    >
+      {name.charAt(0)}
+    </span>
+  )
+}
+
+/**
+ * রিভিউর স্ক্রিনশট — ছোট থাম্বনেইল; ক্লিক করলে আসল আকারে
+ * (ক্রপ না-করা) ফুলস্ক্রিনে দেখায়। বন্ধ: ✕, পেছনে ক্লিক, বা Esc।
+ */
+function ReviewScreenshot({ url, alt }: { url: string; alt: string }) {
+  const [open, setOpen] = useState(false)
+  useEffect(() => {
+    if (!open) return
+    const onKey = (e: KeyboardEvent) => {
+      if (e.key === 'Escape') setOpen(false)
+    }
+    window.addEventListener('keydown', onKey)
+    const prevOverflow = document.body.style.overflow
+    document.body.style.overflow = 'hidden'
+    return () => {
+      window.removeEventListener('keydown', onKey)
+      document.body.style.overflow = prevOverflow
+    }
+  }, [open])
+  return (
+    <>
+      <button
+        type="button"
+        onClick={() => setOpen(true)}
+        className="mt-3 block overflow-hidden rounded-lg border border-gray-200"
+        aria-label="স্ক্রিনশট বড় করে দেখুন"
+      >
+        <img src={url} alt={alt} className="max-h-36 w-auto" />
+      </button>
+      {open ? (
+        <div
+          className="fixed inset-0 z-[100] flex items-center justify-center bg-black/90 p-4"
+          role="dialog"
+          aria-modal="true"
+          onClick={() => setOpen(false)}
+        >
+          <button
+            type="button"
+            onClick={() => setOpen(false)}
+            aria-label="বন্ধ করুন"
+            className="absolute right-4 top-4 flex h-10 w-10 items-center justify-center rounded-full bg-white/15 text-2xl font-bold leading-none text-white hover:bg-white/30"
+          >
+            ×
+          </button>
+          <img
+            src={url}
+            alt={alt}
+            className="max-h-[90vh] max-w-full object-contain"
+            onClick={(e) => e.stopPropagation()}
+          />
+        </div>
+      ) : null}
+    </>
+  )
 }
 
 /**
@@ -573,6 +744,44 @@ export default function CustomerPage({
 
   function renderSection(id: string) {
     switch (id) {
+      case 'description': {
+        const desc = product.description?.trim()
+        if (!desc) return null
+        return (
+          <section key="description">
+            <h2 className={headingClass}>{t.description}</h2>
+            <p
+              className={`mt-3 whitespace-pre-line text-sm leading-relaxed ${bodyClass}`}
+            >
+              {desc}
+            </p>
+          </section>
+        )
+      }
+      case 'delivery': {
+        const info = page.delivery_info?.trim()
+        if (!info) return null
+        return (
+          <section key="delivery">
+            <h2 className={headingClass}>{t.deliveryInfo}</h2>
+            <div className={`mt-3 space-y-1 text-sm ${bodyClass}`}>
+              <p>
+                {t.deliveryInside}:{' '}
+                {shop.delivery_inside_charge > 0
+                  ? formatBDT(shop.delivery_inside_charge)
+                  : t.freeDelivery}
+              </p>
+              <p>
+                {t.deliveryOutside}:{' '}
+                {shop.delivery_outside_charge > 0
+                  ? formatBDT(shop.delivery_outside_charge)
+                  : t.freeDelivery}
+              </p>
+              <p className="pt-1 leading-relaxed">{info}</p>
+            </div>
+          </section>
+        )
+      }
       case 'benefits':
         if (product.benefits.length === 0) return null
         return (
@@ -617,21 +826,16 @@ export default function CustomerPage({
         )
       }
       case 'video': {
-        const embedId = page.video_url
-          ? youtubeEmbedId(page.video_url)
-          : null
-        if (!embedId) return null
+        const videos = pageVideos(page)
+        if (!videos.some((v) => youtubeEmbedId(v.url))) return null
         return (
           <section key="video">
             <h2 className={headingClass}>{t.video}</h2>
-            <div className="mt-3 aspect-video w-full overflow-hidden rounded-xl">
-              <iframe
-                src={`https://www.youtube.com/embed/${embedId}`}
-                title={product.name}
-                className="h-full w-full"
-                allowFullScreen
-              />
-            </div>
+            <VideoPlayer
+              videos={videos}
+              productName={product.name}
+              frameClass="mt-3 aspect-video w-full overflow-hidden rounded-xl"
+            />
           </section>
         )
       }
@@ -653,15 +857,28 @@ export default function CustomerPage({
                         : 'border-gray-200 bg-white'
                     }`}
                   >
-                    <p className={`font-semibold ${dark ? 'text-white' : 'text-gray-900'}`}>
-                      {r.name}
-                    </p>
-                    {typeof r.rating === 'number' && r.rating > 0 ? (
-                      <p className="text-sm font-bold text-amber-500">
-                        {'★'.repeat(Math.round(r.rating))}
-                      </p>
+                    <div className="flex items-center gap-3">
+                      <ReviewAvatar photoUrl={r.photo_url} name={r.name} />
+                      <div>
+                        <p
+                          className={`font-semibold ${dark ? 'text-white' : 'text-gray-900'}`}
+                        >
+                          {r.name}
+                        </p>
+                        {typeof r.rating === 'number' && r.rating > 0 ? (
+                          <p className="text-sm font-bold text-amber-500">
+                            {'★'.repeat(Math.round(r.rating))}
+                          </p>
+                        ) : null}
+                      </div>
+                    </div>
+                    <p className={`mt-2 text-sm ${bodyClass}`}>{r.text}</p>
+                    {r.screenshot_url ? (
+                      <ReviewScreenshot
+                        url={r.screenshot_url}
+                        alt={`${r.name} — রিভিউর স্ক্রিনশট`}
+                      />
                     ) : null}
-                    <p className={`mt-1 text-sm ${bodyClass}`}>{r.text}</p>
                   </article>
                 ))}
               </div>
@@ -902,10 +1119,10 @@ const footer = (
     const specEntries = Object.entries(product.specs)
     const showSpecs =
       page.sections['specs'] !== false && specEntries.length > 0
-    const videoEmbedId =
-      page.sections['video'] !== false && page.video_url
-        ? youtubeEmbedId(page.video_url)
-        : null
+    const videos = pageVideos(page)
+    const showVideo =
+      page.sections['video'] !== false &&
+      videos.some((v) => youtubeEmbedId(v.url))
     const showReviews = page.sections['reviews'] !== false
     const showFaq = page.sections['faq'] !== false && page.faqs.length > 0
     const freeThreshold =
@@ -1146,18 +1363,16 @@ const footer = (
           ) : null}
 
           {/* ভিডিও — বিল্ডারে চালু থাকলে ও লিংক থাকলে */}
-          {videoEmbedId ? (
+          {showVideo ? (
             <section className="mt-12">
               <h2 className={luxH2}>{t.video}</h2>
               <span className="mt-3 block h-px w-12 bg-[#D6B36A]" />
-              <div className="mt-5 aspect-video w-full overflow-hidden rounded-2xl border border-[#34343A]">
-                <iframe
-                  src={`https://www.youtube.com/embed/${videoEmbedId}`}
-                  title={product.name}
-                  className="h-full w-full"
-                  allowFullScreen
-                />
-              </div>
+              <VideoPlayer
+                videos={videos}
+                productName={product.name}
+                frameClass="mt-5 aspect-video w-full overflow-hidden rounded-2xl border border-[#34343A]"
+                thumbActiveClass="border-[#D6B36A]"
+              />
             </section>
           ) : null}
 
@@ -1184,15 +1399,26 @@ const footer = (
                       key={i}
                       className="rounded-2xl border border-[#34343A] bg-[#1D1D21] p-4"
                     >
-                      <p className="font-semibold text-white">{r.name}</p>
-                      {typeof r.rating === 'number' && r.rating > 0 ? (
-                        <p className="text-sm font-bold text-[#D6B36A]">
-                          {'★'.repeat(Math.round(r.rating))}
-                        </p>
-                      ) : null}
-                      <p className="mt-1 text-sm leading-relaxed text-[#B8B8B8]">
+                      <div className="flex items-center gap-3">
+                        <ReviewAvatar photoUrl={r.photo_url} name={r.name} />
+                        <div>
+                          <p className="font-semibold text-white">{r.name}</p>
+                          {typeof r.rating === 'number' && r.rating > 0 ? (
+                            <p className="text-sm font-bold text-[#D6B36A]">
+                              {'★'.repeat(Math.round(r.rating))}
+                            </p>
+                          ) : null}
+                        </div>
+                      </div>
+                      <p className="mt-2 text-sm leading-relaxed text-[#B8B8B8]">
                         {r.text}
                       </p>
+                      {r.screenshot_url ? (
+                        <ReviewScreenshot
+                          url={r.screenshot_url}
+                          alt={`${r.name} — রিভিউর স্ক্রিনশট`}
+                        />
+                      ) : null}
                     </article>
                   ))}
                 </div>
@@ -1514,9 +1740,10 @@ const footer = (
       page.sections['benefits'] !== false && product.benefits.length > 0
     const showSpecs =
       page.sections['specs'] !== false && specEntries.length > 0
-    const videoEmbedId = page.video_url ? youtubeEmbedId(page.video_url) : null
+    const videos = pageVideos(page)
     const showVideo =
-      page.sections['video'] !== false && videoEmbedId !== null
+      page.sections['video'] !== false &&
+      videos.some((v) => youtubeEmbedId(v.url))
     const showReviews = page.sections['reviews'] !== false
     const showFaq =
       page.sections['faq'] !== false && page.faqs.length > 0
@@ -1753,17 +1980,15 @@ const footer = (
             </section>
           ) : null}
 
-          {showVideo && videoEmbedId ? (
+          {showVideo ? (
             <section className="mt-12">
               <h2 className="font-serif text-2xl font-bold">{t.video}</h2>
-              <div className="mt-4 aspect-video w-full overflow-hidden rounded-2xl">
-                <iframe
-                  src={`https://www.youtube.com/embed/${videoEmbedId}`}
-                  title={product.name}
-                  className="h-full w-full"
-                  allowFullScreen
-                />
-              </div>
+              <VideoPlayer
+                videos={videos}
+                productName={product.name}
+                frameClass="mt-4 aspect-video w-full overflow-hidden rounded-2xl"
+                thumbActiveClass="border-[#1D7658]"
+              />
             </section>
           ) : null}
 
@@ -1785,15 +2010,26 @@ const footer = (
                       key={i}
                       className="rounded-2xl border border-[#EAE8E2] bg-white p-4"
                     >
-                      <p className="font-semibold">{r.name}</p>
-                      {typeof r.rating === 'number' && r.rating > 0 ? (
-                        <p className="text-sm font-bold text-amber-500">
-                          {'★'.repeat(Math.round(r.rating))}
-                        </p>
-                      ) : null}
-                      <p className="mt-1 text-sm leading-relaxed text-[#555555]">
+                      <div className="flex items-center gap-3">
+                        <ReviewAvatar photoUrl={r.photo_url} name={r.name} />
+                        <div>
+                          <p className="font-semibold">{r.name}</p>
+                          {typeof r.rating === 'number' && r.rating > 0 ? (
+                            <p className="text-sm font-bold text-amber-500">
+                              {'★'.repeat(Math.round(r.rating))}
+                            </p>
+                          ) : null}
+                        </div>
+                      </div>
+                      <p className="mt-2 text-sm leading-relaxed text-[#555555]">
                         {r.text}
                       </p>
+                      {r.screenshot_url ? (
+                        <ReviewScreenshot
+                          url={r.screenshot_url}
+                          alt={`${r.name} — রিভিউর স্ক্রিনশট`}
+                        />
+                      ) : null}
                     </article>
                   ))}
                 </div>
@@ -1916,9 +2152,10 @@ const footer = (
       page.sections['benefits'] !== false && product.benefits.length > 0
     const showSpecs =
       page.sections['specs'] !== false && specEntries.length > 0
-    const videoEmbedId = page.video_url ? youtubeEmbedId(page.video_url) : null
+    const videos = pageVideos(page)
     const showVideo =
-      page.sections['video'] !== false && videoEmbedId !== null
+      page.sections['video'] !== false &&
+      videos.some((v) => youtubeEmbedId(v.url))
     const showReviews = page.sections['reviews'] !== false
     const showFaq =
       page.sections['faq'] !== false && page.faqs.length > 0
@@ -2192,17 +2429,15 @@ const footer = (
             </section>
           ) : null}
 
-          {showVideo && videoEmbedId ? (
+          {showVideo ? (
             <section className="mt-12">
               <h2 className="font-serif text-2xl font-bold">{t.video}</h2>
-              <div className="mt-4 aspect-video w-full overflow-hidden rounded-2xl">
-                <iframe
-                  src={`https://www.youtube.com/embed/${videoEmbedId}`}
-                  title={product.name}
-                  className="h-full w-full"
-                  allowFullScreen
-                />
-              </div>
+              <VideoPlayer
+                videos={videos}
+                productName={product.name}
+                frameClass="mt-4 aspect-video w-full overflow-hidden rounded-2xl"
+                thumbActiveClass="border-[#D86F91]"
+              />
             </section>
           ) : null}
 
@@ -2225,15 +2460,26 @@ const footer = (
                       key={i}
                       className="rounded-2xl border border-[#F1E4E7] bg-white p-4"
                     >
-                      <p className="font-semibold">{r.name}</p>
-                      {typeof r.rating === 'number' && r.rating > 0 ? (
-                        <p className="text-sm font-bold text-amber-500">
-                          {'★'.repeat(Math.round(r.rating))}
-                        </p>
-                      ) : null}
-                      <p className="mt-1 text-sm leading-relaxed text-[#5c4a52]">
+                      <div className="flex items-center gap-3">
+                        <ReviewAvatar photoUrl={r.photo_url} name={r.name} />
+                        <div>
+                          <p className="font-semibold">{r.name}</p>
+                          {typeof r.rating === 'number' && r.rating > 0 ? (
+                            <p className="text-sm font-bold text-amber-500">
+                              {'★'.repeat(Math.round(r.rating))}
+                            </p>
+                          ) : null}
+                        </div>
+                      </div>
+                      <p className="mt-2 text-sm leading-relaxed text-[#5c4a52]">
                         {r.text}
                       </p>
+                      {r.screenshot_url ? (
+                        <ReviewScreenshot
+                          url={r.screenshot_url}
+                          alt={`${r.name} — রিভিউর স্ক্রিনশট`}
+                        />
+                      ) : null}
                     </article>
                   ))}
                 </div>
@@ -2386,10 +2632,10 @@ const footer = (
       page.sections['benefits'] !== false && product.benefits.length > 0
     const showSpecs =
       page.sections['specs'] !== false && specEntries.length > 0
-    const videoEmbedId =
-      page.sections['video'] !== false && page.video_url
-        ? youtubeEmbedId(page.video_url)
-        : null
+    const videos = pageVideos(page)
+    const showVideo =
+      page.sections['video'] !== false &&
+      videos.some((v) => youtubeEmbedId(v.url))
     const showReviews = page.sections['reviews'] !== false
     const showFaq =
       page.sections['faq'] !== false && page.faqs.length > 0
@@ -2713,18 +2959,16 @@ const footer = (
           ) : null}
 
           {/* ভিডিও — বিল্ডারে চালু থাকলে ও লিংক থাকলে */}
-          {videoEmbedId ? (
+          {showVideo ? (
             <section className="mt-12">
               <h2 className={techH2}>{t.video}</h2>
               <span className="mt-3 block h-px w-12 bg-[#19C8F0]" />
-              <div className="mt-5 aspect-video w-full overflow-hidden rounded-2xl border border-[#283A54]">
-                <iframe
-                  src={`https://www.youtube.com/embed/${videoEmbedId}`}
-                  title={product.name}
-                  className="h-full w-full"
-                  allowFullScreen
-                />
-              </div>
+              <VideoPlayer
+                videos={videos}
+                productName={product.name}
+                frameClass="mt-5 aspect-video w-full overflow-hidden rounded-2xl border border-[#283A54]"
+                thumbActiveClass="border-[#19C8F0]"
+              />
             </section>
           ) : null}
 
@@ -2752,15 +2996,26 @@ const footer = (
                       key={i}
                       className="rounded-2xl border border-[#283A54] bg-[#17243A] p-4"
                     >
-                      <p className="font-semibold text-white">{r.name}</p>
-                      {typeof r.rating === 'number' && r.rating > 0 ? (
-                        <p className="text-sm font-bold text-amber-400">
-                          {'★'.repeat(Math.round(r.rating))}
-                        </p>
-                      ) : null}
-                      <p className="mt-1 text-sm leading-relaxed text-[#A8B5C8]">
+                      <div className="flex items-center gap-3">
+                        <ReviewAvatar photoUrl={r.photo_url} name={r.name} />
+                        <div>
+                          <p className="font-semibold text-white">{r.name}</p>
+                          {typeof r.rating === 'number' && r.rating > 0 ? (
+                            <p className="text-sm font-bold text-amber-400">
+                              {'★'.repeat(Math.round(r.rating))}
+                            </p>
+                          ) : null}
+                        </div>
+                      </div>
+                      <p className="mt-2 text-sm leading-relaxed text-[#A8B5C8]">
                         {r.text}
                       </p>
+                      {r.screenshot_url ? (
+                        <ReviewScreenshot
+                          url={r.screenshot_url}
+                          alt={`${r.name} — রিভিউর স্ক্রিনশট`}
+                        />
+                      ) : null}
                     </article>
                   ))}
                 </div>
@@ -2956,10 +3211,10 @@ const footer = (
       page.sections['benefits'] !== false && product.benefits.length > 0
     const showSpecs =
       page.sections['specs'] !== false && specEntries.length > 0
-    const videoEmbedId =
-      page.sections['video'] !== false && page.video_url
-        ? youtubeEmbedId(page.video_url)
-        : null
+    const videos = pageVideos(page)
+    const showVideo =
+      page.sections['video'] !== false &&
+      videos.some((v) => youtubeEmbedId(v.url))
     const showReviews = page.sections['reviews'] !== false
     const showFaq =
       page.sections['faq'] !== false && page.faqs.length > 0
@@ -3207,19 +3462,17 @@ const footer = (
           ) : null}
 
           {/* ভিডিও — বিল্ডারে চালু থাকলে ও লিংক থাকলে */}
-          {videoEmbedId ? (
+          {showVideo ? (
             <section className="mt-12">
               <p className={bdEyebrow}>{L('ভিডিও', 'Video')}</p>
               <h2 className={`${bdH2} mt-1`}>{t.video}</h2>
               <span className="mt-3 block h-1 w-12 rounded bg-[#E11D2E]" />
-              <div className="mt-5 aspect-video w-full overflow-hidden rounded-2xl border border-gray-200">
-                <iframe
-                  src={`https://www.youtube.com/embed/${videoEmbedId}`}
-                  title={product.name}
-                  className="h-full w-full"
-                  allowFullScreen
-                />
-              </div>
+              <VideoPlayer
+                videos={videos}
+                productName={product.name}
+                frameClass="mt-5 aspect-video w-full overflow-hidden rounded-2xl border border-gray-200"
+                thumbActiveClass="border-[#E11D2E]"
+              />
             </section>
           ) : null}
 
@@ -3247,15 +3500,26 @@ const footer = (
                       key={i}
                       className="rounded-2xl border border-gray-200 bg-white p-4 shadow-sm"
                     >
-                      <p className="font-bold text-gray-900">{r.name}</p>
-                      {typeof r.rating === 'number' && r.rating > 0 ? (
-                        <p className="text-sm font-bold text-amber-500">
-                          {'★'.repeat(Math.round(r.rating))}
-                        </p>
-                      ) : null}
-                      <p className="mt-1 text-sm leading-relaxed text-gray-700">
+                      <div className="flex items-center gap-3">
+                        <ReviewAvatar photoUrl={r.photo_url} name={r.name} />
+                        <div>
+                          <p className="font-bold text-gray-900">{r.name}</p>
+                          {typeof r.rating === 'number' && r.rating > 0 ? (
+                            <p className="text-sm font-bold text-amber-500">
+                              {'★'.repeat(Math.round(r.rating))}
+                            </p>
+                          ) : null}
+                        </div>
+                      </div>
+                      <p className="mt-2 text-sm leading-relaxed text-gray-700">
                         {r.text}
                       </p>
+                      {r.screenshot_url ? (
+                        <ReviewScreenshot
+                          url={r.screenshot_url}
+                          alt={`${r.name} — রিভিউর স্ক্রিনশট`}
+                        />
+                      ) : null}
                     </article>
                   ))}
                 </div>

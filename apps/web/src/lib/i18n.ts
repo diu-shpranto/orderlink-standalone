@@ -17,6 +17,7 @@ export type CustomerStrings = {
   deliveryCharge: string
   freeDelivery: string
   description: string
+  deliveryInfo: string
   discountRunning: (pct: number) => string
   off: string
   whatsappOrder: string
@@ -89,6 +90,7 @@ const BN: CustomerStrings = {
   deliveryCharge: 'ডেলিভারি চার্জ',
   freeDelivery: 'ফ্রি ডেলিভারি',
   description: 'বিবরণ',
+  deliveryInfo: 'ডেলিভারি তথ্য',
   discountRunning: (pct) => `এই পণ্যে ${pct}% ছাড় চলছে`,
   off: 'ছাড়',
   whatsappOrder: 'WhatsApp-এ অর্ডার করুন',
@@ -162,6 +164,7 @@ const EN: CustomerStrings = {
   deliveryCharge: 'Delivery charge',
   freeDelivery: 'Free delivery',
   description: 'Description',
+  deliveryInfo: 'Delivery Information',
   discountRunning: (pct) => `${pct}% off on this product`,
   off: 'off',
   whatsappOrder: 'Order on WhatsApp',

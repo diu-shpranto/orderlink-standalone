@@ -4,7 +4,7 @@
 // আপলোড হয় সেভের সময়। পেজের ভাষা বানানোর সময় বাছাই হয়।
 // লাইভ প্রিভিউ আসল কাস্টমার পেজের কম্পোনেন্ট দিয়েই দেখায়।
 import { useEffect, useState } from 'react'
-import CustomerPage from '../components/CustomerPage.tsx'
+import CustomerPage, { youtubeEmbedId } from '../components/CustomerPage.tsx'
 import SellerShell from '../components/SellerShell.tsx'
 import { useAuth } from '../lib/auth.tsx'
 import {
@@ -42,7 +42,29 @@ import type {
   ReviewItem,
   ShopRow,
   TemplateId,
+  VideoItem,
 } from '../lib/types.ts'
+
+/** বিল্ডারের খসড়া রিভিউ — সেভ করা ReviewItem + আপলোডের আগের ফাইল। */
+interface ReviewDraft extends ReviewItem {
+  photoFile?: File
+  photoPreview?: string
+  screenshotFile?: File
+  screenshotPreview?: string
+}
+
+const MAX_VIDEOS = 5
+
+/** তালিকার একটি আইটেম from থেকে to-তে সরায় (ড্র্যাগ-ড্রপের জন্য)। */
+function reorder<T>(arr: T[], from: number, to: number): T[] {
+  if (from === to || from < 0 || to < 0 || from >= arr.length || to >= arr.length) {
+    return arr
+  }
+  const next = [...arr]
+  const [moved] = next.splice(from, 1)
+  next.splice(to, 0, moved)
+  return next
+}
 
 interface ImageItem {
   id?: string
@@ -264,13 +286,23 @@ export default function ProductBuilder({
 
   // ধাপ ৩-৪ — ছবি ও ভিডিও
   const [images, setImages] = useState<ImageItem[]>([])
-  const [videoUrl, setVideoUrl] = useState('')
+  const [videos, setVideos] = useState<VideoItem[]>([])
+  const [videoError, setVideoError] = useState('')
+  const [dragImage, setDragImage] = useState<number | null>(null)
+  const [dragOverImage, setDragOverImage] = useState<number | null>(null)
+  const [dropZoneOver, setDropZoneOver] = useState(false)
+  const [dragSection, setDragSection] = useState<number | null>(null)
+  const [dragOverSection, setDragOverSection] = useState<number | null>(null)
 
   // ধাপ ৫-৬ — রিভিউ ও জিজ্ঞাসা
-  const [reviews, setReviews] = useState<ReviewItem[]>([])
+  const [reviews, setReviews] = useState<ReviewDraft[]>([])
   const [reviewName, setReviewName] = useState('')
   const [reviewText, setReviewText] = useState('')
   const [reviewRating, setReviewRating] = useState('')
+  const [reviewPhotoFile, setReviewPhotoFile] = useState<File | null>(null)
+  const [reviewPhotoPreview, setReviewPhotoPreview] = useState('')
+  const [reviewScreenshotFile, setReviewScreenshotFile] = useState<File | null>(null)
+  const [reviewScreenshotPreview, setReviewScreenshotPreview] = useState('')
   const [faqs, setFaqs] = useState<FaqItem[]>([])
   const [faqQ, setFaqQ] = useState('')
   const [faqA, setFaqA] = useState('')
@@ -324,9 +356,29 @@ export default function ProductBuilder({
             setSlugTouched(true)
             setTemplate(existing.page.template)
             setSections({ ...DEFAULT_SECTIONS, ...existing.page.sections })
-            setSectionOrder(existing.page.section_order)
-            setVideoUrl(existing.page.video_url ?? '')
-            setReviews(existing.page.reviews)
+            // নতুন সেকশন (বিবরণ/ডেলিভারি) পুরনো পেজের সেভ করা ক্রমে
+            // নেই — ডিফল্ট ক্রমে শেষে যোগ হয় (চালু অবস্থায়, উপরের
+            // sections-মার্জের মতোই — অনুপস্থিত মানেই চালু)। লাইভ
+            // পেজ সেভ না করা পর্যন্ত বদলায় না; সেলার চাইলে ধাপ ১-এ
+            // আনচেক করে দিতে পারে।
+            setSectionOrder((() => {
+              const loaded = [...existing.page.section_order]
+              for (const id of DEFAULT_SECTION_ORDER) {
+                if (!loaded.includes(id)) loaded.push(id)
+              }
+              return loaded
+            })())
+            setVideos(
+              (existing.page.video_urls ?? []).length > 0
+                ? (existing.page.video_urls ?? []).map((v) => ({
+                    url: v.url,
+                    label: v.label,
+                  }))
+                : existing.page.video_url
+                  ? [{ url: existing.page.video_url }]
+                  : [],
+            )
+            setReviews(existing.page.reviews.map((r) => ({ ...r })))
             setFaqs(existing.page.faqs)
             setDeliveryInfo(existing.page.delivery_info ?? '')
             setPageLang(existing.page.page_lang)
@@ -367,6 +419,16 @@ export default function ProductBuilder({
       (!Number.isFinite(oldPriceNum) || (oldPriceNum ?? 0) < 0)
     ) {
       return 'পুরনো দামে সঠিক সংখ্যা দিন।'
+    }
+    return ''
+  }
+
+  function validateVideos(): string {
+    for (const v of videos) {
+      const url = v.url.trim()
+      if (url && !youtubeEmbedId(url)) {
+        return 'সঠিক YouTube লিংক দিন (youtube.com বা youtu.be) — অন্য লিংক পেজে দেখাবে না।'
+      }
     }
     return ''
   }
@@ -441,6 +503,53 @@ export default function ProductBuilder({
     })
   }
 
+  /** ছবি টেনে from থেকে to-তে সাজানো (↑/↓ বোতামের মতোই ক্রম বদলায়)। */
+  function moveImageTo(from: number, to: number) {
+    setImages((prev) =>
+      reorder(prev, from, to).map((img, i) => ({ ...img, sortOrder: i })),
+    )
+  }
+
+  /** সেকশন টেনে from থেকে to-তে সাজানো। */
+  function moveSectionTo(from: number, to: number) {
+    setSectionOrder((prev) => reorder(prev, from, to))
+  }
+
+  /** একটি ছবি বদলানো — নতুন ফাইল ৪:৩-এ কেটে বসে; পুরনো ফাইল
+      সেভের সময় স্টোরেজ থেকে মুছে যাবে। */
+  async function replaceImage(index: number, file: File | null) {
+    if (!file || !file.type.startsWith('image/')) return
+    const cropped = await cropImageTo43(file)
+    setImages((prev) =>
+      prev.map((img, i) => {
+        if (i !== index) return img
+        if (img.file) URL.revokeObjectURL(img.previewUrl)
+        return {
+          ...img,
+          file: cropped,
+          previewUrl: URL.createObjectURL(cropped),
+        }
+      }),
+    )
+  }
+
+  /** রিভিউর কাস্টমারের ছবি — পণ্যের ছবির মতো ৪:৩-এ কেটে নেওয়া হয়। */
+  async function pickReviewPhoto(file: File | null) {
+    if (!file || !file.type.startsWith('image/')) return
+    const cropped = await cropImageTo43(file)
+    if (reviewPhotoPreview) URL.revokeObjectURL(reviewPhotoPreview)
+    setReviewPhotoFile(cropped)
+    setReviewPhotoPreview(URL.createObjectURL(cropped))
+  }
+
+  /** রিভিউর স্ক্রিনশট — আসল আকারেই থাকে, কাটা হয় না। */
+  function pickReviewScreenshot(file: File | null) {
+    if (!file || !file.type.startsWith('image/')) return
+    if (reviewScreenshotPreview) URL.revokeObjectURL(reviewScreenshotPreview)
+    setReviewScreenshotFile(file)
+    setReviewScreenshotPreview(URL.createObjectURL(file))
+  }
+
   async function handleSave(publish: boolean) {
     setError('')
     setNotice('')
@@ -456,6 +565,12 @@ export default function ProductBuilder({
       setStep(7)
       return
     }
+    const videoErr = validateVideos()
+    if (videoErr) {
+      setError(videoErr)
+      setStep(4)
+      return
+    }
     if (!seller || !shop) {
       setError('দোকানের তথ্য পাওয়া যায়নি — আবার লগইন করুন।')
       return
@@ -464,10 +579,18 @@ export default function ProductBuilder({
     try {
       // নতুন ছবির মোট সাইজ স্টোরেজের সীমার মধ্যে আছে কি — সীমা
       // ছাড়ালে আপলোডের আগেই বাংলায় ভুল দেখাবে।
-      const newBytes = images.reduce(
-        (sum, img) => sum + (img.file ? img.file.size : 0),
-        0,
-      )
+      const newBytes =
+        images.reduce(
+          (sum, img) => sum + (img.file ? img.file.size : 0),
+          0,
+        ) +
+        reviews.reduce(
+          (sum, r) =>
+            sum +
+            (r.photoFile ? r.photoFile.size : 0) +
+            (r.screenshotFile ? r.screenshotFile.size : 0),
+          0,
+        )
       if (newBytes > 0) {
         await checkStorageBeforeUpload(seller.id, newBytes)
       }
@@ -503,6 +626,33 @@ export default function ProductBuilder({
       for (const s of specs) {
         if (s.key.trim()) specsRecord[s.key.trim()] = s.value.trim()
       }
+      // রিভিউর ছবি/স্ক্রিনশট আপলোড — ছবি ৪:৩-এ কেটে (পণ্যের ছবির
+      // মতো), স্ক্রিনশট আসল আকারেই যায় (ক্রপ হয় না)।
+      const resolvedReviews: ReviewItem[] = []
+      for (const r of reviews) {
+        let photoUrl = r.photo_url
+        let screenshotUrl = r.screenshot_url
+        if (r.photoFile) {
+          const up = await uploadProductImage(r.photoFile, seller.id)
+          photoUrl = up.url
+          if (r.photoPreview) URL.revokeObjectURL(r.photoPreview)
+        }
+        if (r.screenshotFile) {
+          const up = await uploadProductImage(r.screenshotFile, seller.id, {
+            crop: false,
+          })
+          screenshotUrl = up.url
+          if (r.screenshotPreview)
+            URL.revokeObjectURL(r.screenshotPreview)
+        }
+        resolvedReviews.push({
+          name: r.name,
+          text: r.text,
+          ...(typeof r.rating === 'number' ? { rating: r.rating } : {}),
+          ...(photoUrl ? { photo_url: photoUrl } : {}),
+          ...(screenshotUrl ? { screenshot_url: screenshotUrl } : {}),
+        })
+      }
       // নতুন ফিল্ডসহ সেভ; মাইগ্রেশন 0006 এখনো লাইভে না চললে ডাটাবেস
       // কলাম চিনবে না — তখন শুধু নতুন ফিল্ড বাদ দিয়ে আবার সেভ হবে,
       // বাকি সব ঠিকঠাক সেভ হবে (সেভ ভাঙবে না)।
@@ -527,15 +677,23 @@ export default function ProductBuilder({
           template,
           sections,
           sectionOrder,
-          videoUrl: videoUrl.trim(),
-          reviews,
+          videoUrl: videos[0]?.url.trim() ?? '',
+          videoUrls: videos.map((v) => ({
+            url: v.url.trim(),
+            ...(v.label?.trim() ? { label: v.label.trim() } : {}),
+          })),
+          reviews: resolvedReviews,
           faqs,
           ...(withNewFields ? { deliveryInfo } : {}),
           pageLang,
           isPublished: publish,
         },
       })
-      let saved: { productId: string; pageId: string }
+      let saved: {
+        productId: string
+        pageId: string
+        videoUrlsDropped?: boolean
+      }
       try {
         saved = await saveProductAndPage(saveArgs(true))
       } catch (err) {
@@ -549,6 +707,9 @@ export default function ProductBuilder({
       }
       const { productId: savedId, pageId: savedPageId } = saved
       await syncProductImages(savedId, seller.id, resolved)
+      // আপলোড হওয়া রিভিউর ছবির URL-ই এখন খসড়ায় থাকবে — ফাইল আর
+      // নয়, তাই দ্বিতীয়বার সেভ করলে আবার আপলোড হবে না।
+      setReviews(resolvedReviews.map((r) => ({ ...r })))
       // ব্যবহারের হিসাব তাজা করা (স্টোরেজের পরিমাণ) — ব্যর্থ হলেও
       // সেভ আটকাবে না।
       void fetchUsage(seller.id).catch(() => undefined)
@@ -561,6 +722,9 @@ export default function ProductBuilder({
           : 'সেভ হয়েছে — খসড়া হিসেবে আছে, প্রকাশ করলে লিংকটা কাজ করবে।') +
           (newFieldsDropped
             ? ' তবে ছোট বিবরণ, ক্যাটাগরি ও ডেলিভারি তথ্য সেভ হয়নি — ডাটাবেস আপডেট বাকি আছে।'
+            : '') +
+          (saved.videoUrlsDropped
+            ? ' ভিডিওর তালিকা সেভ হয়নি — ডাটাবেস আপডেট বাকি আছে (শুধু প্রথম ভিডিওটা সেভ হয়েছে)।'
             : ''),
       )
     } catch (err) {
@@ -611,8 +775,19 @@ export default function ProductBuilder({
             template,
             sections,
             section_order: sectionOrder,
-            video_url: videoUrl.trim() || null,
-            reviews,
+            video_url: videos[0]?.url.trim() || null,
+            video_urls: videos.map((v) => ({
+              url: v.url.trim(),
+              ...(v.label?.trim() ? { label: v.label.trim() } : {}),
+            })),
+            // খসড়া রিভিউর ছবি/স্ক্রিনশট (এখনো আপলোড হয়নি) প্রিভিউতে
+            // দেখাতে অস্থায়ী preview URL-ই photo/screenshot হিসেবে
+            // যায় — সেভের পর আসল Storage URL বসে।
+            reviews: reviews.map((r) => ({
+              ...r,
+              photo_url: r.photoPreview ?? r.photo_url,
+              screenshot_url: r.screenshotPreview ?? r.screenshot_url,
+            })),
             faqs,
             delivery_info: deliveryInfo.trim() || null,
             page_lang: pageLang,
@@ -652,13 +827,21 @@ export default function ProductBuilder({
     imageCount: images.length,
     reviewCount: reviews.length,
     faqCount: faqs.length,
-    hasVideo: videoUrl.trim() !== '',
+    hasVideo: videos.some((v) => v.url.trim() !== ''),
     isPublished,
   }
 
   const goNext = () => {
     if (step === 2) {
       const err = validateInfo()
+      if (err) {
+        setError(err)
+        return
+      }
+      setError('')
+    }
+    if (step === 4) {
+      const err = validateVideos()
       if (err) {
         setError(err)
         return
@@ -786,6 +969,9 @@ export default function ProductBuilder({
 
             <div className="rounded-2xl border border-gray-200 bg-white p-5">
               <h2 className="font-bold text-gray-900">সেকশন চালু/বন্ধ ও ক্রম</h2>
+              <p className="mt-0.5 text-sm text-gray-500">
+                সারি টেনে ক্রম বদলান — টাচে ↑ ↓ বোতাম ব্যবহার করুন
+              </p>
               <ul className="mt-3 space-y-2">
                 {sectionOrder.map((sectionId, i) => {
                   const def = SECTION_DEFS.find((d) => d.id === sectionId)
@@ -793,21 +979,57 @@ export default function ProductBuilder({
                   return (
                     <li
                       key={sectionId}
-                      className="flex items-center justify-between gap-3 rounded-lg bg-gray-50 px-3 py-2"
+                      draggable
+                      onDragStart={(e) => {
+                        e.dataTransfer.setData('text/plain', String(i))
+                        e.dataTransfer.effectAllowed = 'move'
+                        setDragSection(i)
+                      }}
+                      onDragOver={(e) => {
+                        e.preventDefault()
+                        e.dataTransfer.dropEffect = 'move'
+                        if (dragOverSection !== i) setDragOverSection(i)
+                      }}
+                      onDrop={(e) => {
+                        e.preventDefault()
+                        const from = Number(
+                          e.dataTransfer.getData('text/plain'),
+                        )
+                        if (Number.isFinite(from)) moveSectionTo(from, i)
+                        setDragSection(null)
+                        setDragOverSection(null)
+                      }}
+                      onDragEnd={() => {
+                        setDragSection(null)
+                        setDragOverSection(null)
+                      }}
+                      className={`flex cursor-grab items-center justify-between gap-3 rounded-lg bg-gray-50 px-3 py-2 active:cursor-grabbing ${
+                        dragOverSection === i
+                          ? 'ring-2 ring-brand'
+                          : ''
+                      } ${dragSection === i ? 'opacity-50' : ''}`}
                     >
-                      <label className="flex items-center gap-2 text-sm font-medium">
-                        <input
-                          type="checkbox"
-                          checked={sections[sectionId] !== false}
-                          onChange={(e) =>
-                            setSections((prev) => ({
-                              ...prev,
-                              [sectionId]: e.target.checked,
-                            }))
-                          }
-                        />
-                        {def.labelBn}
-                      </label>
+                      <span className="flex items-center gap-2 text-sm font-medium">
+                        <span
+                          className="cursor-grab select-none text-gray-400"
+                          aria-hidden="true"
+                        >
+                          ⋮⋮
+                        </span>
+                        <label className="flex items-center gap-2">
+                          <input
+                            type="checkbox"
+                            checked={sections[sectionId] !== false}
+                            onChange={(e) =>
+                              setSections((prev) => ({
+                                ...prev,
+                                [sectionId]: e.target.checked,
+                              }))
+                            }
+                          />
+                          {def.labelBn}
+                        </label>
+                      </span>
                       <span className="flex gap-1">
                         <button
                           type="button"
@@ -1096,8 +1318,25 @@ export default function ProductBuilder({
               title="ছবি"
               subtitle={`পণ্যের ছবি যোগ করুন — সর্বোচ্চ ${toBnDigits(MAX_IMAGES_PER_PRODUCT)}টি · ছবি নিজে থেকে ৪:৩ আকারে কেটে নেওয়া হবে`}
             >
-              <label className="block cursor-pointer rounded-2xl border-2 border-dashed border-gray-300 px-4 py-6 text-center text-sm text-gray-600">
-                ছবি বাছুন (একসাথে একাধিক)
+              <label
+                className={`block cursor-pointer rounded-2xl border-2 border-dashed px-4 py-6 text-center text-sm text-gray-600 ${
+                  dropZoneOver
+                    ? 'border-brand bg-brand-light'
+                    : 'border-gray-300'
+                }`}
+                onDragOver={(e) => {
+                  e.preventDefault()
+                  e.dataTransfer.dropEffect = 'copy'
+                  setDropZoneOver(true)
+                }}
+                onDragLeave={() => setDropZoneOver(false)}
+                onDrop={(e) => {
+                  e.preventDefault()
+                  setDropZoneOver(false)
+                  void addFiles(e.dataTransfer.files)
+                }}
+              >
+                ছবি বাছুন বা এখানে টেনে ছাড়ুন (একসাথে একাধিক)
                 <input
                   type="file"
                   accept="image/*"
@@ -1114,8 +1353,34 @@ export default function ProductBuilder({
                   {images.map((img, i) => (
                     <div
                       key={img.id ?? `new-${i}`}
-                      className={`relative overflow-hidden rounded-xl border-2 ${
+                      draggable
+                      onDragStart={(e) => {
+                        e.dataTransfer.setData('text/plain', String(i))
+                        e.dataTransfer.effectAllowed = 'move'
+                        setDragImage(i)
+                      }}
+                      onDragOver={(e) => {
+                        e.preventDefault()
+                        e.dataTransfer.dropEffect = 'move'
+                        if (dragOverImage !== i) setDragOverImage(i)
+                      }}
+                      onDrop={(e) => {
+                        e.preventDefault()
+                        const from = Number(
+                          e.dataTransfer.getData('text/plain'),
+                        )
+                        if (Number.isFinite(from)) moveImageTo(from, i)
+                        setDragImage(null)
+                        setDragOverImage(null)
+                      }}
+                      onDragEnd={() => {
+                        setDragImage(null)
+                        setDragOverImage(null)
+                      }}
+                      className={`relative cursor-grab overflow-hidden rounded-xl border-2 active:cursor-grabbing ${
                         img.isMain ? 'border-brand' : 'border-gray-200'
+                      } ${dragOverImage === i ? 'ring-2 ring-brand' : ''} ${
+                        dragImage === i ? 'opacity-50' : ''
                       }`}
                     >
                       <img
@@ -1158,6 +1423,21 @@ export default function ProductBuilder({
                         >
                           ↓
                         </button>
+                        <label className="cursor-pointer rounded bg-gray-100 px-2 py-1 font-semibold">
+                          বদলান
+                          <input
+                            type="file"
+                            accept="image/*"
+                            className="hidden"
+                            onChange={(e) => {
+                              void replaceImage(
+                                i,
+                                e.target.files?.[0] ?? null,
+                              )
+                              e.target.value = ''
+                            }}
+                          />
+                        </label>
                         <button
                           type="button"
                           onClick={() => removeImage(i)}
@@ -1202,20 +1482,135 @@ export default function ProductBuilder({
       {step === 4 && (
         <div className="mt-6 grid gap-5 xl:grid-cols-[minmax(0,1fr)_340px] xl:items-start">
           <div className="min-w-0 space-y-5">
-            <StepCard n={4} title="ভিডিও" subtitle="পণ্যের ভিডিও থাকলে লিংক দিন">
-              <label className="block">
-                <span className={labelClass}>YouTube ভিডিওর লিংক (যদি থাকে)</span>
-                <input
-                  type="url"
-                  value={videoUrl}
-                  onChange={(e) => setVideoUrl(e.target.value)}
-                  className={inputClass}
-                  placeholder="https://www.youtube.com/watch?v=…"
-                />
-                <span className={hintClass}>
-                  লিংক দিলে পেজে ভিডিও দেখানো হবে
-                </span>
-              </label>
+            <StepCard
+              n={4}
+              title="ভিডিও"
+              subtitle="পণ্যের ভিডিও থাকলে লিংক দিন — ডেমো, টিউটোরিয়াল আলাদা করে"
+            >
+              {videos.length === 0 ? (
+                <p className="text-sm text-gray-500">
+                  এখনো ভিডিও যোগ করা হয়নি — ভিডিও ছাড়াও পেজ সেভ করা যাবে।
+                </p>
+              ) : null}
+              <div className="space-y-3">
+                {videos.map((v, i) => {
+                  const invalid =
+                    v.url.trim() !== '' && !youtubeEmbedId(v.url.trim())
+                  return (
+                    <div
+                      key={i}
+                      className="rounded-2xl border border-gray-200 bg-gray-50 p-3"
+                    >
+                      <div className="flex gap-2">
+                        <input
+                          type="url"
+                          value={v.url}
+                          onChange={(e) => {
+                            const url = e.target.value
+                            setVideos((prev) =>
+                              prev.map((item, j) =>
+                                j === i ? { ...item, url } : item,
+                              ),
+                            )
+                            if (url.trim() && !youtubeEmbedId(url.trim())) {
+                              setVideoError(
+                                'সঠিক YouTube লিংক দিন (youtube.com বা youtu.be) — অন্য লিংক পেজে দেখাবে না।',
+                              )
+                            } else if (videoError) {
+                              setVideoError('')
+                            }
+                          }}
+                          className="min-w-0 flex-1 rounded-xl border border-gray-300 bg-white px-3 py-2.5 text-sm"
+                          placeholder="https://www.youtube.com/watch?v=…"
+                          aria-label={`ভিডিও ${toBnDigits(i + 1)}-এর লিংক`}
+                        />
+                        <input
+                          type="text"
+                          value={v.label ?? ''}
+                          onChange={(e) => {
+                            const label = e.target.value
+                            setVideos((prev) =>
+                              prev.map((item, j) =>
+                                j === i ? { ...item, label } : item,
+                              ),
+                            )
+                          }}
+                          className="w-28 shrink-0 rounded-xl border border-gray-300 bg-white px-3 py-2.5 text-sm"
+                          placeholder="ডেমো / টিউটোরিয়াল"
+                          aria-label="ভিডিওর লেবেল (ঐচ্ছিক)"
+                        />
+                      </div>
+                      {invalid ? (
+                        <p className="mt-2 text-sm font-medium text-red-600">
+                          সঠিক YouTube লিংক দিন (youtube.com বা youtu.be) —
+                          অন্য লিংক পেজে দেখাবে না।
+                        </p>
+                      ) : null}
+                      <div className="mt-2 flex gap-1">
+                        <button
+                          type="button"
+                          onClick={() =>
+                            setVideos((prev) =>
+                              reorder(prev, i, i - 1),
+                            )
+                          }
+                          disabled={i === 0}
+                          className="rounded bg-white px-2 py-1 text-sm disabled:opacity-40"
+                        >
+                          ↑
+                        </button>
+                        <button
+                          type="button"
+                          onClick={() =>
+                            setVideos((prev) =>
+                              reorder(prev, i, i + 1),
+                            )
+                          }
+                          disabled={i === videos.length - 1}
+                          className="rounded bg-white px-2 py-1 text-sm disabled:opacity-40"
+                        >
+                          ↓
+                        </button>
+                        <button
+                          type="button"
+                          onClick={() =>
+                            setVideos((prev) =>
+                              prev.filter((_, j) => j !== i),
+                            )
+                          }
+                          className="rounded bg-red-50 px-2 py-1 text-sm font-semibold text-red-600"
+                        >
+                          মুছুন
+                        </button>
+                      </div>
+                    </div>
+                  )
+                })}
+              </div>
+              {videoError ? (
+                <p className="rounded-xl bg-red-50 px-3 py-2 text-sm font-medium text-red-700">
+                  {videoError}
+                </p>
+              ) : null}
+              {videos.length < MAX_VIDEOS ? (
+                <button
+                  type="button"
+                  onClick={() =>
+                    setVideos((prev) => [...prev, { url: '' }])
+                  }
+                  className="text-sm font-bold text-brand-dark"
+                >
+                  + আরেকটি ভিডিও
+                </button>
+              ) : (
+                <p className="text-sm text-gray-500">
+                  সর্বোচ্চ {toBnDigits(MAX_VIDEOS)}টি ভিডিও যোগ করা যাবে।
+                </p>
+              )}
+              <span className={hintClass}>
+                লিংক দিলে পেজে ভিডিও দেখানো হবে — একাধিক ভিডিও থাকলে
+                কাস্টমার থাম্বনেইলে ক্লিক করে বদলাতে পারবে
+              </span>
             </StepCard>
 
             <div className="flex justify-between">
@@ -1290,11 +1685,28 @@ export default function ProductBuilder({
                             rating: reviewRating
                               ? Number(reviewRating)
                               : undefined,
+                            ...(reviewPhotoFile
+                              ? {
+                                  photoFile: reviewPhotoFile,
+                                  photoPreview: reviewPhotoPreview,
+                                }
+                              : {}),
+                            ...(reviewScreenshotFile
+                              ? {
+                                  screenshotFile: reviewScreenshotFile,
+                                  screenshotPreview:
+                                    reviewScreenshotPreview,
+                                }
+                              : {}),
                           },
                         ])
                         setReviewName('')
                         setReviewText('')
                         setReviewRating('')
+                        setReviewPhotoFile(null)
+                        setReviewPhotoPreview('')
+                        setReviewScreenshotFile(null)
+                        setReviewScreenshotPreview('')
                       }
                     }}
                     className="rounded-xl bg-brand px-4 py-2 text-sm font-semibold text-white"
@@ -1302,6 +1714,49 @@ export default function ProductBuilder({
                     যোগ করুন
                   </button>
                 </div>
+                <div className="flex flex-wrap gap-2">
+                  <label className="flex cursor-pointer items-center gap-2 rounded-xl border border-gray-300 bg-white px-3 py-2 text-sm">
+                    {reviewPhotoPreview ? (
+                      <img
+                        src={reviewPhotoPreview}
+                        alt=""
+                        className="h-8 w-8 rounded-full object-cover"
+                      />
+                    ) : null}
+                    কাস্টমারের ছবি (ঐচ্ছিক)
+                    <input
+                      type="file"
+                      accept="image/*"
+                      className="hidden"
+                      onChange={(e) => {
+                        void pickReviewPhoto(e.target.files?.[0] ?? null)
+                        e.target.value = ''
+                      }}
+                    />
+                  </label>
+                  <label className="flex cursor-pointer items-center gap-2 rounded-xl border border-gray-300 bg-white px-3 py-2 text-sm">
+                    {reviewScreenshotPreview ? (
+                      <img
+                        src={reviewScreenshotPreview}
+                        alt=""
+                        className="h-8 w-12 rounded object-cover"
+                      />
+                    ) : null}
+                    রিভিউর স্ক্রিনশট (ঐচ্ছিক)
+                    <input
+                      type="file"
+                      accept="image/*"
+                      className="hidden"
+                      onChange={(e) => {
+                        pickReviewScreenshot(e.target.files?.[0] ?? null)
+                        e.target.value = ''
+                      }}
+                    />
+                  </label>
+                </div>
+                <span className={hintClass}>
+                  ছবি ৪:৩-এ কেটে নেওয়া হবে; স্ক্রিনশট আসল আকারেই থাকবে
+                </span>
               </div>
               <ul className="space-y-1">
                 {reviews.map((r, i) => (
@@ -1309,10 +1764,24 @@ export default function ProductBuilder({
                     key={i}
                     className="flex items-center justify-between rounded-lg bg-gray-50 px-3 py-2 text-sm"
                   >
-                    <span>
-                      {r.name}
-                      {r.rating ? ` — ${toBnDigits(r.rating)} তারা` : ''}:{' '}
-                      {r.text}
+                    <span className="flex min-w-0 items-center gap-2">
+                      {r.photoPreview || r.photo_url ? (
+                        <img
+                          src={r.photoPreview ?? r.photo_url}
+                          alt=""
+                          className="h-8 w-8 shrink-0 rounded-full object-cover"
+                        />
+                      ) : null}
+                      <span className="min-w-0">
+                        {r.name}
+                        {r.rating ? ` — ${toBnDigits(r.rating)} তারা` : ''}:{' '}
+                        {r.text}
+                        {r.screenshotPreview || r.screenshot_url ? (
+                          <span className="ml-2 rounded-full bg-gray-200 px-2 py-0.5 text-xs font-semibold text-gray-600">
+                            📷 স্ক্রিনশট
+                          </span>
+                        ) : null}
+                      </span>
                     </span>
                     <button
                       type="button"

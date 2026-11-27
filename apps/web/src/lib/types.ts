@@ -43,6 +43,17 @@ export interface ReviewItem {
   name: string
   text: string
   rating?: number
+  /** কাস্টমারের ছবি (Storage-এর পাবলিক URL) — ঐচ্ছিক। */
+  photo_url?: string
+  /** রিভিউর স্ক্রিনশট (Storage-এর পাবলিক URL) — ঐচ্ছিক, আসল আকারেই থাকে। */
+  screenshot_url?: string
+}
+
+/** একাধিক ভিডিও — pages.video_urls (JSONB) এর একটি এন্ট্রি। */
+export interface VideoItem {
+  url: string
+  /** লেবেল — যেমন "ডেমো" / "টিউটোরিয়াল" (ঐচ্ছিক)। */
+  label?: string
 }
 
 export interface FaqItem {
@@ -82,6 +93,9 @@ export interface PageRow {
   sections: Record<string, boolean>
   section_order: string[]
   video_url: string | null
+  /** একাধিক ভিডিও — [{url, label?}] (মাইগ্রেশন 0008)। না থাকলে
+      পুরনো video_url-ই ব্যবহার হয় (ফলব্যাক)। */
+  video_urls: VideoItem[] | null
   reviews: ReviewItem[]
   faqs: FaqItem[]
   /** ডেলিভারি তথ্য — ডেলিভারি/অর্ডার সেকশনে দেখানো হয় (ঐচ্ছিক)। */

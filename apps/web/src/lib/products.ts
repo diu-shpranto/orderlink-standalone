@@ -12,6 +12,7 @@ import type {
   ReviewItem,
   ShopRow,
   TemplateId,
+  VideoItem,
 } from './types.ts'
 import type { PageLang } from './types.ts'
 import { daysAgoDhaka, slugify, todayDhaka } from './pricing.ts'
@@ -330,6 +331,8 @@ export interface PageInput {
   sections: Record<string, boolean>
   sectionOrder: string[]
   videoUrl: string
+  /** একাধিক ভিডিও — [{url, label?}] (মাইগ্রেশন 0008)। */
+  videoUrls: VideoItem[]
   reviews: ReviewItem[]
   faqs: FaqItem[]
   /** ডেলিভারি তথ্য — undefined মানে এই ফিল্ডটা ছোঁয়া হবে না। */
@@ -344,7 +347,12 @@ export async function saveProductAndPage(input: {
   productId?: string
   product: ProductInput
   page: PageInput
-}): Promise<{ productId: string; pageId: string }> {
+}): Promise<{
+  productId: string
+  pageId: string
+  /** মাইগ্রেশন 0008 এখনো লাইভে না চললে video_urls বাদ দিয়ে সেভ হয়। */
+  videoUrlsDropped?: boolean
+}> {
   const client = requireSupabase()
   let productId = input.productId
   // বিল্ডারের নতুন ফিল্ড — শুধু পাঠানো হলে সেভ হবে (ডুপ্লিকেটে পাঠানো
@@ -407,6 +415,8 @@ export async function saveProductAndPage(input: {
     sections: input.page.sections,
     section_order: input.page.sectionOrder,
     video_url: input.page.videoUrl || null,
+    // মাইগ্রেশন 0008-এর কলাম — না থাকলে নিচের ফলব্যাক বাদ দিয়ে সেভ করে।
+    video_urls: input.page.videoUrls,
     reviews: input.page.reviews,
     faqs: input.page.faqs,
     ...(input.page.deliveryInfo !== undefined
@@ -438,18 +448,41 @@ export async function saveProductAndPage(input: {
       }
     }
   }
-  const { data: pageData, error: pageError } = await client
-    .from('pages')
-    .upsert(pagePayload, { onConflict: 'product_id' })
-    .select('id')
-    .single()
+  // মাইগ্রেশন 0008 এখনো লাইভে না চললে video_urls কলাম চিনবে না —
+  // তখন শুধু ভিডিওর তালিকা বাদ দিয়ে আবার সেভ হবে, বাকি সব ঠিকঠাক
+  // সেভ হবে (সেভ ভাঙবে না)। কলার জানবে videoUrlsDropped দিয়ে।
+  let videoUrlsDropped = false
+  const upsertPage = async (
+    payload: typeof pagePayload | Omit<typeof pagePayload, 'video_urls'>,
+  ) => {
+    const { data, error } = await client
+      .from('pages')
+      .upsert(payload, { onConflict: 'product_id' })
+      .select('id')
+      .single()
+    return { data, error }
+  }
+  let { data: pageData, error: pageError } = await upsertPage(pagePayload)
+  if (pageError) {
+    const msg = pageError.message ?? ''
+    const code = (pageError as { code?: string }).code
+    if (code === 'PGRST204' || /video_urls/.test(msg)) {
+      videoUrlsDropped = true
+      const { video_urls: _dropped, ...withoutVideos } = pagePayload
+      ;({ data: pageData, error: pageError } = await upsertPage(withoutVideos))
+    }
+  }
   if (pageError) {
     if (pageError.code === '23505') {
       throw new Error('এই দোকানে এই লিংকের নামটা আগেই ব্যবহার হয়েছে — অন্য নাম দিন।')
     }
     throw pageError
   }
-  return { productId, pageId: (pageData as { id: string }).id }
+  return {
+    productId,
+    pageId: (pageData as { id: string }).id,
+    videoUrlsDropped,
+  }
 }
 
 export interface ImageDraft {
@@ -483,13 +516,33 @@ export async function syncProductImages(
       .from(PRODUCT_IMAGES_BUCKET)
       .remove([row.storage_path])
   }
+  const existingById = new Map(
+    (((existing ?? []) as { id: string; storage_path: string }[]).map(
+      (row) => [row.id, row.storage_path] as const,
+    )),
+  )
   for (const img of images) {
     if (img.id) {
+      // বদলানো ছবি (বিল্ডারে "বদলান") — নতুন ফাইল উঠলে পুরনো
+      // স্টোরেজ অবজেক্ট মুছে পথ + URL-ও আপডেট হয়; না বদলালে শুধু
+      // প্রধান/ক্রম আপডেট হয় (আগের মতো)।
+      const oldPath = existingById.get(img.id)
+      const replaced = Boolean(
+        img.storagePath && oldPath && img.storagePath !== oldPath,
+      )
+      if (replaced && oldPath) {
+        await client.storage
+          .from(PRODUCT_IMAGES_BUCKET)
+          .remove([oldPath])
+      }
       const { error } = await client
         .from('product_images')
         .update({
           is_main: img.isMain,
           sort_order: img.sortOrder,
+          ...(replaced
+            ? { storage_path: img.storagePath, url: img.url }
+            : {}),
         })
         .eq('id', img.id)
       if (error) throw error
@@ -560,11 +613,13 @@ export async function cropImageTo43(file: File): Promise<File> {
 export async function uploadProductImage(
   file: File,
   sellerId: string,
+  opts?: { crop?: boolean },
 ): Promise<{ storagePath: string; url: string }> {
   const client = requireSupabase()
   // আপলোডের আগেই ৪:৩-এ অটো ক্রপ — স্টোরেজে সবসময় সঠিক
   // ফরম্যাটের ছবিই যায়, যে রুটেই আপলোড হোক না কেন।
-  const cropped = await cropImageTo43(file)
+  // crop: false দিলে আসল আকারেই যায় (রিভিউর স্ক্রিনশট)।
+  const cropped = opts?.crop === false ? file : await cropImageTo43(file)
   const safeName = cropped.name.replace(/[^a-zA-Z0-9._-]/g, '_').slice(0, 60)
   const storagePath = `${sellerId}/${crypto.randomUUID()}-${safeName}`
   const { error } = await client.storage
@@ -639,6 +694,7 @@ export async function duplicateProduct(
       sections: page?.sections ?? {},
       sectionOrder: page?.section_order ?? [],
       videoUrl: page?.video_url ?? '',
+      videoUrls: page?.video_urls ?? [],
       reviews: page?.reviews ?? [],
       faqs: page?.faqs ?? [],
       pageLang: page?.page_lang ?? 'bn',

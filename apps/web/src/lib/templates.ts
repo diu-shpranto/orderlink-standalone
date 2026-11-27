@@ -186,27 +186,33 @@ export interface SectionDef {
 
 export const SECTION_DEFS: SectionDef[] = [
   { id: 'gallery', labelBn: 'ছবির গ্যালারি' },
+  { id: 'description', labelBn: 'পণ্যের বিবরণ' },
   { id: 'benefits', labelBn: 'সুবিধা' },
   { id: 'specs', labelBn: 'স্পেসিফিকেশন' },
   { id: 'video', labelBn: 'ভিডিও' },
   { id: 'reviews', labelBn: 'রিভিউ' },
   { id: 'faq', labelBn: 'জিজ্ঞাসা' },
+  { id: 'delivery', labelBn: 'ডেলিভারি তথ্য' },
 ]
 
 export const DEFAULT_SECTIONS: Record<string, boolean> = {
   gallery: true,
+  description: true,
   benefits: true,
   specs: true,
   video: true,
   reviews: true,
   faq: true,
+  delivery: true,
 }
 
 export const DEFAULT_SECTION_ORDER: string[] = [
   'gallery',
+  'description',
   'benefits',
   'specs',
   'video',
   'reviews',
   'faq',
+  'delivery',
 ]
