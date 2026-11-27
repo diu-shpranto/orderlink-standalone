@@ -49,13 +49,44 @@ export async function fetchShopBySlug(slug: string): Promise<ShopRow | null> {
   return data ? asShop(data) : null
 }
 
-export async function fetchCustomerPage(
+// সেলারের WhatsApp নম্বর — পাবলিক পেজে দেখানোর জন্য। sellers
+// টেবিল সরাসরি পড়া লগইন ছাড়া RLS-এ আটকায় (sellers_owner_select),
+// তাই মাইগ্রেশন 0007-এর get_seller_whatsapp ফাংশন ব্যবহার হয় —
+// ওটা শুধু নম্বরটাই ফেরত দেয়, সেলারের আর কোনো তথ্য নয়। ফাংশন
+// এখনো লাইভে না থাকলে পুরনো পথে চেষ্টা (লগইন করা সেলারের
+// প্রিভিউতে এটা চলে; লগইন ছাড়া আগের মতোই null আসে)।
+// কখনো throw করে না — না পেলে null।
+async function fetchSellerWhatsapp(
+  client: ReturnType<typeof requireSupabase>,
+  shopSlug: string,
+  sellerId?: string,
+): Promise<string | null> {
+  const { data: whatsappData, error: whatsappError } = await client.rpc(
+    'get_seller_whatsapp',
+    { p_shop_slug: shopSlug },
+  )
+  if (!whatsappError) {
+    return typeof whatsappData === 'string' ? whatsappData : null
+  }
+  if (!sellerId) return null
+  const { data: sellerData } = await client
+    .from('sellers')
+    .select('whatsapp')
+    .eq('id', sellerId)
+    .maybeSingle()
+  return (sellerData as { whatsapp: string | null } | null)?.whatsapp ?? null
+}
+
+// আগের পরপর-পড়া পথ (দোকান → পেজ → প্রোডাক্ট → ছবি → WhatsApp) —
+// এমবেডেড কোয়েরি কোনো কারণে না চললে ফলব্যাক হিসেবে রাখা আছে;
+// ফলাফল হুবহু একই, শুধু ধীর।
+async function fetchCustomerPageSequential(
+  client: ReturnType<typeof requireSupabase>,
   shopSlug: string,
   productSlug: string,
 ): Promise<CustomerPageData | null> {
   const shop = await fetchShopBySlug(shopSlug)
   if (!shop) return null
-  const client = requireSupabase()
   const { data: pageData, error: pageError } = await client
     .from('pages')
     .select('*')
@@ -78,35 +109,66 @@ export async function fetchCustomerPage(
     .eq('product_id', page.product_id)
     .order('sort_order', { ascending: true })
   if (imageError) throw imageError
-  // সেলারের WhatsApp নম্বর — পাবলিক পেজে দেখানোর জন্য। sellers
-  // টেবিল সরাসরি পড়া লগইন ছাড়া RLS-এ আটকায় (sellers_owner_select),
-  // তাই মাইগ্রেশন 0007-এর get_seller_whatsapp ফাংশন ব্যবহার হয় —
-  // ওটা শুধু নম্বরটাই ফেরত দেয়, সেলারের আর কোনো তথ্য নয়। ফাংশন
-  // এখনো লাইভে না থাকলে পুরনো পথে চেষ্টা (লগইন করা সেলারের
-  // প্রিভিউতে এটা চলে; লগইন ছাড়া আগের মতোই null আসে)।
-  let sellerWhatsapp: string | null = null
-  const { data: whatsappData, error: whatsappError } = await client.rpc(
-    'get_seller_whatsapp',
-    { p_shop_slug: shopSlug },
+  const sellerWhatsapp = await fetchSellerWhatsapp(
+    client,
+    shopSlug,
+    shop.seller_id,
   )
-  if (!whatsappError) {
-    sellerWhatsapp =
-      typeof whatsappData === 'string' ? whatsappData : null
-  } else {
-    const { data: sellerData } = await client
-      .from('sellers')
-      .select('whatsapp')
-      .eq('id', shop.seller_id)
-      .maybeSingle()
-    sellerWhatsapp =
-      (sellerData as { whatsapp: string | null } | null)?.whatsapp ?? null
-  }
   return {
     shop,
     product: asProduct(productData),
     images: (imageData ?? []).map(asImage),
     page,
     sellerWhatsapp,
+  }
+}
+
+export async function fetchCustomerPage(
+  shopSlug: string,
+  productSlug: string,
+): Promise<CustomerPageData | null> {
+  const client = requireSupabase()
+  // WhatsApp নম্বর শুধু দোকানের slug দিয়েই আনা যায়, তাই ডাটা
+  // কোয়েরির সাথে সমান্তরালে চালানো হয় (আগে এটা চেইনের শেষে বসত)।
+  const whatsappPromise = fetchSellerWhatsapp(client, shopSlug)
+  try {
+    // একটাই কোয়েরি: পেজ + দোকান + প্রোডাক্ট + ছবি — PostgREST
+    // এমবেডিং। আগে এগুলো ৫টা আলাদা রাউন্ড-ট্রিপে পরপর আসত
+    // (প্রতিটা ২৫০–১৫০০ মিলিসেকেন্ড) — সেটাই "লোড হচ্ছে…"-র মূল
+    // কারণ ছিল। ফলাফলের আকৃতি আগের মতোই রাখা হয়েছে।
+    const { data, error } = await client
+      .from('pages')
+      .select(
+        '*,shop:shops!inner(*),product:products(*,images:product_images(*))',
+      )
+      .eq('shop.slug', shopSlug)
+      .eq('slug', productSlug)
+      .maybeSingle()
+    if (error) throw error
+    if (!data) return null
+    const row = data as unknown as PageRow & {
+      shop: ShopRow
+      product:
+        | (ProductRow & { images?: ProductImageRow[] })
+        | null
+    }
+    if (!row.product) return null
+    const sellerWhatsapp = await whatsappPromise
+    const { images: embeddedImages, ...productRest } = row.product
+    const images = [...(embeddedImages ?? [])]
+      .sort((a, b) => (a.sort_order ?? 0) - (b.sort_order ?? 0))
+      .map(asImage)
+    const { shop, product: _product, ...pageRest } = row
+    return {
+      shop: asShop(shop),
+      product: asProduct(productRest),
+      images,
+      page: asPage(pageRest),
+      sellerWhatsapp,
+    }
+  } catch {
+    // এমবেডেড কোয়েরি না চললে আগের পথে ফিরে যাওয়া।
+    return fetchCustomerPageSequential(client, shopSlug, productSlug)
   }
 }
 
@@ -454,7 +516,7 @@ export async function uploadProductImage(
   const storagePath = `${sellerId}/${crypto.randomUUID()}-${safeName}`
   const { error } = await client.storage
     .from(PRODUCT_IMAGES_BUCKET)
-    .upload(storagePath, file, { cacheControl: '3600', upsert: false })
+    .upload(storagePath, file, { cacheControl: '31536000', upsert: false })
   if (error) throw error
   const { data } = client.storage
     .from(PRODUCT_IMAGES_BUCKET)
