@@ -2,8 +2,9 @@
 // হোম পেজের গ্যালারিতে শুধু ৪টি দেখানো হয় (নিচে INTRO_TEMPLATES)।
 // নিয়ম: ভুয়া রিভিউ/রেটিং/ছাড়/কাউন্টডাউন নেই — শুধু আসল সেভ করা ডাটা।
 // স্টিকি মোবাইল অর্ডার বার: aura/nova/social-proof/luxury-premium-এ
-// শেয়ার করা বার; fashion-store-এ নিজের সবুজ বার (রেজিস্ট্রিতে
-// stickyBar: false — শেয়ার করা লাল বার যাতে না বসে)।
+// শেয়ার করা বার; fashion-store-এ নিজের সবুজ বার, tech-gadget-এ নিজের
+// সায়ান বার (রেজিস্ট্রিতে stickyBar: false — শেয়ার করা লাল বার যাতে
+// না বসে)।
 
 import type { TemplateId } from './types.ts'
 
@@ -96,6 +97,22 @@ export const TEMPLATES: TemplateMeta[] = [
     dark: false,
     stickyBar: false,
     accentClass: 'bg-[#EAF3ED] text-[#1D7658]',
+  },
+  {
+    id: 'tech-gadget',
+    nameBn: 'Tech & Gadget',
+    taglineBn: 'ফিউচারিস্টিক টেক লুক, গাঢ় নেভি-সায়ান থিম',
+    dark: true,
+    stickyBar: false,
+    accentClass: 'bg-[#19C8F0] text-[#080D18]',
+  },
+  {
+    id: 'beauty-cosmetics',
+    nameBn: 'Beauty & Cosmetics',
+    taglineBn: 'নরম গোলাপি বিউটি লুক, ম্যাগাজিন স্টাইল',
+    dark: false,
+    stickyBar: false,
+    accentClass: 'bg-[#FCECEF] text-[#D86F91]',
   },
 ]
 

@@ -59,6 +59,8 @@ export type TemplateId =
   | 'social-proof'
   | 'luxury-premium'
   | 'fashion-store'
+  | 'beauty-cosmetics'
+  | 'tech-gadget'
 
 export interface PageRow {
   id: string

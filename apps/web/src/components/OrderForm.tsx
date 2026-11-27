@@ -32,12 +32,20 @@ export default function OrderForm({
   t,
   onPlaced,
   dark = false,
+  accent = '#D6B36A',
+  accentText = '#0B0B0D',
+  lightAccent,
 }: {
   data: CustomerPageData
   t: StringsType
   onPlaced: (placed: PlacedOrder) => void
   /** Luxury Premium টেমপ্লেটের গাঢ় সোনালি রূপ — অন্য টেমপ্লেটে বদলায় না। */
   dark?: boolean
+  /** গাঢ় রূপে CTA ও বাছাই করা ডেলিভারি এলাকার রং (ডিফল্ট সোনালি)। */
+  accent?: string
+  accentText?: string
+  /** হালকা থিমে CTA ও বাছাই করা ডেলিভারি এলাকার রং (শুধু Beauty টেমপ্লেট দেয়)। */
+  lightAccent?: string
 }) {
   const { shop, product } = data
   // গাঢ় থিমের ইনপুট/লেবেল — হালকা থিমের ক্লাস একদম আগের মতো।
@@ -292,12 +300,21 @@ export default function OrderForm({
               className={`flex-1 rounded-lg border px-3 py-2 text-sm font-semibold ${
                 area === value
                   ? dark
-                    ? 'border-[#D6B36A] bg-[#D6B36A] text-[#0B0B0D]'
-                    : 'border-brand bg-brand text-white'
+                    ? 'border-transparent'
+                    : lightAccent
+                      ? 'border-transparent text-white'
+                      : 'border-brand bg-brand text-white'
                   : dark
                     ? 'border-[#34343A] bg-[#151518] text-white'
                     : 'border-gray-300 bg-white text-gray-700'
               }`}
+              style={
+                area === value && dark
+                  ? { backgroundColor: accent, color: accentText, borderColor: accent }
+                  : area === value && lightAccent
+                    ? { backgroundColor: lightAccent, color: '#FFFFFF', borderColor: lightAccent }
+                    : undefined
+              }
             >
               {label}
               <span className="block text-xs font-normal opacity-80">
@@ -369,7 +386,10 @@ export default function OrderForm({
           </span>
         </p>
         {freeThreshold !== null && deliveryCharge === 0 ? (
-          <p className="text-xs font-semibold text-brand">
+          <p
+            className="text-xs font-semibold text-brand"
+            style={lightAccent ? { color: lightAccent } : undefined}
+          >
             {t.freeDeliveryApplies}
           </p>
         ) : null}
@@ -392,10 +412,15 @@ export default function OrderForm({
         type="submit"
         disabled={busy}
         className={`w-full rounded-lg px-4 py-3 font-semibold disabled:opacity-50 ${
-          dark
-            ? 'bg-[#D6B36A] text-[#0B0B0D]'
-            : 'bg-accent text-white'
+          dark ? '' : lightAccent ? '' : 'bg-accent text-white'
         }`}
+        style={
+          dark
+            ? { backgroundColor: accent, color: accentText }
+            : lightAccent
+              ? { backgroundColor: lightAccent, color: '#FFFFFF' }
+              : undefined
+        }
       >
         {busy ? t.placingOrder : `${t.placeOrder} — ${formatBDT(total)}`}
       </button>
