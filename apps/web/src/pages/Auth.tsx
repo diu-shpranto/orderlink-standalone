@@ -168,10 +168,10 @@ function normalizeWhatsApp(raw: string): string | null {
 }
 
 const inputClass =
-  'w-full rounded-2xl border border-gray-300 bg-white px-4 py-3 text-[15px] placeholder:text-gray-400 outline-none transition focus:border-brand focus:ring-2 focus:ring-brand/20'
-const labelClass = 'mb-1.5 block text-sm font-bold text-gray-800'
+  'w-full rounded-2xl border border-gray-300 bg-white px-3.5 py-2 text-sm placeholder:text-gray-400 outline-none transition focus:border-brand focus:ring-2 focus:ring-brand/20 sm:px-4 sm:py-3 sm:text-[15px]'
+const labelClass = 'mb-1 block text-[13px] font-bold text-gray-800 sm:mb-1.5 sm:text-sm'
 const submitClass =
-  'w-full rounded-2xl bg-gradient-to-r from-brand-dark via-brand to-brand px-4 py-3.5 text-base font-bold text-white shadow-lg shadow-brand/30 transition hover:opacity-95 disabled:opacity-50'
+  'w-full max-w-[280px] rounded-2xl bg-gradient-to-r from-brand-dark via-brand to-brand px-4 py-3 text-base font-bold text-white shadow-lg shadow-brand/30 transition hover:opacity-95 disabled:opacity-50 sm:py-3.5 lg:max-w-none'
 
 export default function Auth({
   initialMode = 'signin',
@@ -453,7 +453,7 @@ export default function Auth({
         </aside>
 
         {/* ফর্ম কলাম */}
-        <div className="flex w-full flex-1 flex-col px-5 py-6 sm:px-8 lg:justify-center lg:py-0">
+        <div className="flex w-full flex-1 flex-col px-4 py-3 sm:px-8 sm:py-6 lg:justify-center lg:py-0">
           <div className="mx-auto w-full max-w-md">
             {/* লগইন / রিসেট: ফিরুন লিংক + ভাষা টগল */}
             {mode !== 'signup' ? (
@@ -495,8 +495,8 @@ export default function Auth({
 
             {/* লগইন: লোগো টাইল + নিরাপদ লগইন ব্যাজ */}
             {mode === 'signin' ? (
-              <div className="mt-8 flex flex-wrap items-center gap-3">
-                <div className="inline-flex rounded-2xl border border-gray-200 bg-white px-4 py-3 shadow-sm">
+              <div className="mt-4 flex flex-wrap items-center gap-3 sm:mt-6 lg:mt-8">
+                <div className="inline-flex rounded-2xl border border-gray-200 bg-white px-3 py-2 shadow-sm sm:px-4 sm:py-3">
                   <LogoWordmark size={30} />
                 </div>
                 <span className="inline-flex items-center gap-1.5 rounded-full border border-gray-200 bg-white px-3 py-1.5 text-sm font-bold text-gray-700 shadow-sm">
@@ -507,8 +507,8 @@ export default function Auth({
             ) : null}
 
             <h1
-              className={`text-[28px] font-extrabold leading-tight text-gray-900 sm:text-3xl ${
-                mode === 'signin' ? 'mt-6' : 'mt-2'
+              className={`text-[22px] font-extrabold leading-tight text-gray-900 sm:text-3xl ${
+                mode === 'signin' ? 'mt-4 sm:mt-6' : 'mt-2'
               }`}
             >
               {headline}
@@ -516,11 +516,11 @@ export default function Auth({
 
             {/* সাইনআপ / লগইন পিল টগল */}
             {isAuthMode ? (
-              <div className="mt-5 inline-flex rounded-full border border-gray-200 bg-white p-1 shadow-sm">
+              <div className="mt-3 inline-flex rounded-full border border-gray-200 bg-white p-1 shadow-sm sm:mt-5">
                 <button
                   type="button"
                   onClick={() => switchMode('signup')}
-                  className={`rounded-full px-5 py-2.5 text-sm font-bold transition ${
+                  className={`rounded-full px-4 py-1.5 text-sm font-bold transition sm:px-5 sm:py-2.5 ${
                     mode === 'signup'
                       ? 'bg-gradient-to-r from-brand-dark to-brand text-white shadow'
                       : 'text-gray-600'
@@ -531,7 +531,7 @@ export default function Auth({
                 <button
                   type="button"
                   onClick={() => switchMode('signin')}
-                  className={`rounded-full px-5 py-2.5 text-sm font-bold transition ${
+                  className={`rounded-full px-4 py-1.5 text-sm font-bold transition sm:px-5 sm:py-2.5 ${
                     mode === 'signin'
                       ? 'bg-gradient-to-r from-brand-dark to-brand text-white shadow'
                       : 'text-gray-600'
@@ -543,25 +543,25 @@ export default function Auth({
             ) : null}
 
             {notice ? (
-              <p className="mt-5 rounded-2xl bg-brand-light px-4 py-3 text-sm font-medium text-brand-dark">
+              <p className="mt-3 rounded-2xl bg-brand-light px-4 py-3 text-sm font-medium text-brand-dark sm:mt-5">
                 {notice}
               </p>
             ) : null}
             {error ? (
-              <p className="mt-5 rounded-2xl bg-red-50 px-4 py-3 text-sm font-medium text-red-700">
+              <p className="mt-3 rounded-2xl bg-red-50 px-4 py-3 text-sm font-medium text-red-700 sm:mt-5">
                 {error}
               </p>
             ) : null}
 
             {/* সাদা কার্ড */}
-            <div className="mt-5 rounded-[28px] border border-gray-200 bg-white p-5 shadow-[0_10px_40px_rgba(0,0,0,0.06)] sm:p-6">
+            <div className="mt-3 rounded-[28px] border border-gray-200 bg-white px-4 py-3 shadow-[0_10px_40px_rgba(0,0,0,0.06)] sm:mt-5 sm:p-6">
               {isAuthMode ? (
                 <>
                   <button
                     type="button"
                     onClick={() => void handleGoogle()}
                     disabled={busy}
-                    className="flex w-full items-center justify-center gap-3 rounded-2xl border border-gray-300 bg-white px-4 py-3.5 text-[15px] font-bold text-gray-800 transition hover:bg-gray-50 disabled:opacity-50"
+                    className="flex w-full items-center justify-center gap-3 rounded-2xl border border-gray-300 bg-white px-4 py-2.5 text-sm font-bold text-gray-800 transition hover:bg-gray-50 disabled:opacity-50 sm:py-3.5 sm:text-[15px]"
                   >
                     <GoogleG className="h-5 w-5" />
                     {t.google}
@@ -571,18 +571,18 @@ export default function Auth({
                     type="button"
                     onClick={() => void handleDemoLogin()}
                     disabled={busy}
-                    className="mt-3 flex w-full items-center justify-center gap-2 rounded-2xl bg-brand-light px-4 py-3.5 text-[15px] font-bold text-brand-dark transition hover:bg-brand-light/70 disabled:opacity-50"
+                    className="mt-2 flex w-full items-center justify-center gap-2 rounded-2xl bg-brand-light px-4 py-2.5 text-sm font-bold text-brand-dark transition hover:bg-brand-light/70 disabled:opacity-50 sm:mt-3 sm:py-3.5 sm:text-[15px]"
                   >
                     {t.demo}
                   </button>
 
-                  <div className="my-5 flex items-center gap-3 text-sm text-gray-400">
+                  <div className="my-3 flex items-center gap-3 text-sm text-gray-400 sm:my-5">
                     <span className="h-px flex-1 bg-gray-200" />
                     {t.or}
                     <span className="h-px flex-1 bg-gray-200" />
                   </div>
 
-                  <form onSubmit={handleAuthSubmit} className="space-y-4">
+                  <form onSubmit={handleAuthSubmit} className="space-y-2 sm:space-y-4">
                     {mode === 'signup' ? (
                       <>
                         <label className="block">
@@ -607,7 +607,7 @@ export default function Auth({
                             placeholder={t.shopPh}
                           />
                         </label>
-                        <div className="grid grid-cols-2 gap-3">
+                        <div className="grid grid-cols-2 gap-2.5 sm:gap-3">
                           <label className="block">
                             <span className={labelClass}>{t.whatsapp}</span>
                             <input
@@ -682,23 +682,25 @@ export default function Auth({
                         </button>
                       </div>
                     ) : null}
-                    <button
-                      type="submit"
-                      disabled={busy}
-                      className={submitClass}
-                    >
-                      {busy
-                        ? 'অপেক্ষা করুন…'
-                        : mode === 'signup'
-                          ? t.signupSubmit
-                          : t.loginSubmit}
-                    </button>
+                    <div className="flex justify-center">
+                      <button
+                        type="submit"
+                        disabled={busy}
+                        className={submitClass}
+                      >
+                        {busy
+                          ? 'অপেক্ষা করুন…'
+                          : mode === 'signup'
+                            ? t.signupSubmit
+                            : t.loginSubmit}
+                      </button>
+                    </div>
                   </form>
                 </>
               ) : null}
 
               {mode === 'reset-request' ? (
-                <form onSubmit={handleResetRequest} className="space-y-4">
+                <form onSubmit={handleResetRequest} className="space-y-2 sm:space-y-4">
                   <label className="block">
                     <span className={labelClass}>{t.accountEmail}</span>
                     <input
@@ -710,9 +712,11 @@ export default function Auth({
                       placeholder={t.emailPh}
                     />
                   </label>
-                  <button type="submit" disabled={busy} className={submitClass}>
-                    {busy ? 'পাঠানো হচ্ছে…' : t.sendCode}
-                  </button>
+                  <div className="flex justify-center">
+                    <button type="submit" disabled={busy} className={submitClass}>
+                      {busy ? 'পাঠানো হচ্ছে…' : t.sendCode}
+                    </button>
+                  </div>
                   <button
                     type="button"
                     onClick={() => switchMode('signin')}
@@ -724,7 +728,7 @@ export default function Auth({
               ) : null}
 
               {mode === 'reset-code' ? (
-                <form onSubmit={handleResetVerify} className="space-y-4">
+                <form onSubmit={handleResetVerify} className="space-y-2 sm:space-y-4">
                   <p className="text-sm text-gray-600">
                     {email} ঠিকানায় ৬ সংখ্যার কোড পাঠানো হয়েছে।
                   </p>
@@ -773,9 +777,11 @@ export default function Auth({
                       </button>
                     </span>
                   </label>
-                  <button type="submit" disabled={busy} className={submitClass}>
-                    {busy ? 'যাচাই হচ্ছে…' : t.changePassword}
-                  </button>
+                  <div className="flex justify-center">
+                    <button type="submit" disabled={busy} className={submitClass}>
+                      {busy ? 'যাচাই হচ্ছে…' : t.changePassword}
+                    </button>
+                  </div>
                   <button
                     type="button"
                     disabled={busy || cooldown > 0}
@@ -791,7 +797,7 @@ export default function Auth({
             </div>
 
             {mode === 'signin' ? (
-              <p className="mt-5 text-center text-sm text-gray-500">
+              <p className="mt-3 text-center text-sm text-gray-500 sm:mt-5">
                 {t.footerNote}
               </p>
             ) : null}
