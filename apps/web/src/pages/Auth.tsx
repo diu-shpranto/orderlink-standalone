@@ -32,9 +32,13 @@ function friendlyError(message: string): string {
   return message || 'কিছু একটা ভুল হয়েছে — আবার চেষ্টা করুন।'
 }
 
-export default function Auth() {
+export default function Auth({
+  initialMode = 'signin',
+}: {
+  initialMode?: 'signin' | 'signup'
+}) {
   const { signIn, signUp, signInWithGoogle } = useAuth()
-  const [mode, setMode] = useState<Mode>('signin')
+  const [mode, setMode] = useState<Mode>(initialMode)
   const [email, setEmail] = useState('')
   const [password, setPassword] = useState('')
   const [code, setCode] = useState('')

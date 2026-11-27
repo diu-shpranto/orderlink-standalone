@@ -105,3 +105,15 @@ supabase functions deploy verify-reset-code --no-verify-jwt
 4. Supabase Dashboard → Table Editor-এ দেখুন: sellers/shops সারি
    তৈরি হয়েছে; দ্বিতীয় সেলার প্রথমজনের কোনো ডাটা দেখতে পারে না
    (RLS যাচাই — আলাদা অ্যাকাউন্টে লগইন করে চেক করুন)।
+
+## Phase 2 — প্রোডাক্ট ও পেজ (27 Nov 2026)
+
+- **মাইগ্রেশন চালান:** Supabase Dashboard → SQL Editor-এ
+  `supabase/migrations/0002_product_pages.sql`-এর পুরো কনটেন্ট পেস্ট করে
+  Run করুন। এতে `product_images` + `pages` টেবিল, `product-images`
+  Storage বাকেট (পাবলিক পড়া, মালিকের লেখা) ও RLS পলিসি বসবে।
+  0001 আবার চালাতে হবে না।
+- নতুন env ভেরিয়েবল লাগে না — একই `VITE_SUPABASE_URL` /
+  `VITE_SUPABASE_ANON_KEY`।
+- গ্রহণের পরীক্ষা: প্রোডাক্ট বানিয়ে প্রকাশ করলে `/<shop>/<product>`
+  লিংকটা নতুন ট্যাবে সরাসরি খুলে ঠিক সেই প্রোডাক্টই দেখাবে।
