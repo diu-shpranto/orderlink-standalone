@@ -7,7 +7,7 @@
 // ৮৮০px গ্রেডিয়েন্ট CTA কার্ড, প্রিমিয়াম ফুটার।
 // কোনো ভুয়া পরিসংখ্যান নেই — সংখ্যা শুধু প্যাকেজের দাম/সীমা।
 import { useEffect, useState } from 'react'
-import { LogoTile, LogoWordmark } from '../components/Logo.tsx'
+import { LogoWordmark } from '../components/Logo.tsx'
 import {
   IconBox,
   IconCheck,
@@ -858,13 +858,11 @@ export default function Home() {
         <div className="h-0.5 bg-gradient-to-r from-brand via-accent to-brand" />
         <div className="mx-auto grid max-w-6xl gap-8 px-4 py-10 md:grid-cols-3">
           <div>
-            <span className="inline-flex items-center gap-2">
-              <LogoTile size={36} />
-              <span className="text-xl font-extrabold">
-                <span className="text-white">Order</span>
-                <span className="text-accent">link</span>
-              </span>
-            </span>
+            <img
+              src="/orderlink-logo-tile.png"
+              alt="Orderlink"
+              className="h-9 w-auto"
+            />
             <p className="mt-3 text-sm leading-relaxed text-gray-400">
               ফেসবুক সেলারদের জন্য ল্যান্ডিং পেজ ও অটো অর্ডার সিস্টেম।
             </p>
