@@ -61,6 +61,7 @@ export type TemplateId =
   | 'fashion-store'
   | 'beauty-cosmetics'
   | 'tech-gadget'
+  | 'bd-single-product'
 
 export interface PageRow {
   id: string

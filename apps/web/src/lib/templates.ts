@@ -3,8 +3,8 @@
 // নিয়ম: ভুয়া রিভিউ/রেটিং/ছাড়/কাউন্টডাউন নেই — শুধু আসল সেভ করা ডাটা।
 // স্টিকি মোবাইল অর্ডার বার: aura/nova/social-proof/luxury-premium-এ
 // শেয়ার করা বার; fashion-store-এ নিজের সবুজ বার, tech-gadget-এ নিজের
-// সায়ান বার (রেজিস্ট্রিতে stickyBar: false — শেয়ার করা লাল বার যাতে
-// না বসে)।
+// সায়ান বার, bd-single-product-এ নিজের সবুজ COD বার (রেজিস্ট্রিতে
+// stickyBar: false — শেয়ার করা লাল বার যাতে না বসে)।
 
 import type { TemplateId } from './types.ts'
 
@@ -113,6 +113,14 @@ export const TEMPLATES: TemplateMeta[] = [
     dark: false,
     stickyBar: false,
     accentClass: 'bg-[#FCECEF] text-[#D86F91]',
+  },
+  {
+    id: 'bd-single-product',
+    nameBn: 'BD Single Product',
+    taglineBn: 'বাংলাদেশি ফেসবুক সেলারের ক্লাসিক সিঙ্গেল-প্রোডাক্ট পেজ',
+    dark: false,
+    stickyBar: false,
+    accentClass: 'bg-[#16A34A] text-white',
   },
 ]
 
