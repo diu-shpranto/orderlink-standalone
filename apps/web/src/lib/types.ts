@@ -88,6 +88,7 @@ export type TemplateId =
   | 'classic-green'
   | 'marketplace-pro'
   | 'template-1-earbuds'
+  | 'template-2-fashion'
 
 /** একই দোকানের অন্য প্রকাশিত পণ্য — "এই দোকানের আরও পণ্য" সারির
     জন্য (Marketplace Pro টেমপ্লেট)। fetchRelatedProducts থেকে আসে। */

@@ -18,6 +18,11 @@ import {
   templateOneProduct,
   templateOneSeller,
 } from './template1/adapter.ts'
+import TemplateTwo from './template2/TemplateTwo.tsx'
+import {
+  templateTwoProduct,
+  templateTwoSeller,
+} from './template2/adapter.ts'
 import { customerStrings } from '../lib/i18n.ts'
 import {
   discountPercent,
@@ -972,6 +977,17 @@ export default function CustomerPage({
       <TemplateOne
         seller={templateOneSeller(data)}
         product={templateOneProduct(data)}
+      />
+    )
+  }
+  // টেমপ্লেট ২ — ফ্যাশন ও লাইফস্টাইল: নিজের কম্পোনেন্টে
+  // রেন্ডার হয় (অ্যাডাপ্টার দিয়ে আসল ডাটা ম্যাপ করে)।
+  // বন্ধ নোটিশের গেটের পরে বসে — টেমপ্লেট ১-এর মতোই।
+  if (page.template === 'template-2-fashion') {
+    return (
+      <TemplateTwo
+        seller={templateTwoSeller(data)}
+        product={templateTwoProduct(data)}
       />
     )
   }
