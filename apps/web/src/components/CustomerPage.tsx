@@ -795,15 +795,18 @@ function StickyOrderBar({
   data,
   t,
   gold = false,
+  bottomClass = 'bottom-0',
 }: {
   data: CustomerPageData
   t: StringsType
   /** Luxury Premium টেমপ্লেটের সোনালি বার। */
   gold?: boolean
+  /** প্রিভিউতে ট্যাব বারের ওপরে ওঠাতে বদলানো হয় (bottom-[49px])। */
+  bottomClass?: string
 }) {
   return (
     <div
-      className={`fixed inset-x-0 bottom-0 z-40 flex items-center justify-between gap-3 border-t px-4 py-3 shadow-lg md:hidden ${
+      className={`fixed inset-x-0 ${bottomClass} z-40 flex items-center justify-between gap-3 border-t px-4 py-3 shadow-lg md:hidden ${
         gold
           ? 'border-[#34343A] bg-[#151518]'
           : 'border-gray-200 bg-white'
@@ -841,6 +844,16 @@ export default function CustomerPage({
   preview?: boolean
 }) {
   const { page, product, shop, images, sellerWhatsapp } = data
+  // বিল্ডার প্রিভিউতে পেজটা সেলার শেলের ভেতরে বসে — ফোনে নিচে
+  // ট্যাব বার (হোম/পণ্য/অর্ডার/সেটিংস, ৪৯px) থাকে। প্রিভিউতে স্টিকি
+  // অর্ডার বারগুলো তাই ট্যাব বারের ওপরে উঠে বসে, নইলে ট্যাব বার
+  // বারটাকে ঢেকে দেয় আর "অর্ডার করুন" চাপা যায় না। নিচের ফাঁকা
+  // জায়গাটাও (spacer) প্রিভিউতে ততটাই লম্বা হয়, যাতে ফুটারের
+  // শেষটুকু উঠে আসা বারের আড়ালে না পড়ে। লাইভ পেজে (preview=false)
+  // কিছু বদলায় না — বার আগের মতো একদম নিচে থাকে।
+  const stickyBarBottom = preview ? 'bottom-[49px]' : 'bottom-0'
+  const spacerMd = preview ? 'h-40 md:hidden' : 'h-20 md:hidden'
+  const spacerLg = preview ? 'h-40 lg:hidden' : 'h-20 lg:hidden'
   // ছোট বিবরণ থাকলে হিরোতে সেটাই এক লাইনে দেখায় (লাইভ অ্যাপের মতো);
   // না থাকলে আগের মতো বিস্তারিত বিবরণই হিরোর কপি। বিস্তারিত বিবরণ
   // গল্প/বিবরণ সেকশনে আগের মতোই থাকে।
@@ -1347,7 +1360,7 @@ const footer = (
   // সোনালি বার, fashion/tech/beauty/bd-র নিজের বার — এটা তারা
   // ব্যবহার করে না।
   const sticky = meta.stickyBar ? (
-    <StickyOrderBar data={data} t={t} />
+    <StickyOrderBar data={data} t={t} bottomClass={stickyBarBottom} />
   ) : null
 
   // ---- Luxury Premium (Template 01) — কালো-সোনালি বিলাসবহুল ডার্ক থিম ----
@@ -1795,8 +1808,8 @@ const footer = (
           </p>
         </footer>
         {/* স্টিকি বারের নিচে ফুটার ঢাকা না পড়ে — পেজের নিচে ফাঁকা জায়গা। */}
-        <div className="h-20 md:hidden" aria-hidden="true" />
-        <StickyOrderBar data={data} t={t} gold />
+        <div className={spacerMd} aria-hidden="true" />
+        <StickyOrderBar data={data} t={t} gold bottomClass={stickyBarBottom} />
       </div>
     )
   }
@@ -1885,7 +1898,7 @@ const footer = (
         </main>
         {footer}
         {/* স্টিকি বারের নিচে ফুটার ঢাকা না পড়ে — পেজের নিচে ফাঁকা জায়গা। */}
-        <div className="h-20 md:hidden" aria-hidden="true" />
+        <div className={spacerMd} aria-hidden="true" />
         {sticky}
       </div>
     )
@@ -1924,7 +1937,7 @@ const footer = (
         </main>
         {footer}
         {/* স্টিকি বারের নিচে ফুটার ঢাকা না পড়ে — পেজের নিচে ফাঁকা জায়গা। */}
-        <div className="h-20 md:hidden" aria-hidden="true" />
+        <div className={spacerMd} aria-hidden="true" />
         {sticky}
       </div>
     )
@@ -1993,7 +2006,7 @@ const footer = (
         </main>
         {footer}
         {/* স্টিকি বারের নিচে ফুটার ঢাকা না পড়ে — পেজের নিচে ফাঁকা জায়গা। */}
-        <div className="h-20 md:hidden" aria-hidden="true" />
+        <div className={spacerMd} aria-hidden="true" />
         {sticky}
       </div>
     )
@@ -2395,8 +2408,8 @@ const footer = (
         </main>
         {footer}
         {/* স্টিকি বারের নিচে ফুটার ঢাকা না পড়ে — পেজের নিচে ফাঁকা জায়গা। */}
-        <div className="h-20 md:hidden" aria-hidden="true" />
-        <div className="fixed inset-x-0 bottom-0 z-40 flex items-center justify-between gap-3 border-t border-[#EAE8E2] bg-white/95 px-4 py-3 shadow-lg backdrop-blur md:hidden">
+        <div className={spacerMd} aria-hidden="true" />
+        <div className={`fixed inset-x-0 ${stickyBarBottom} z-40 flex items-center justify-between gap-3 border-t border-[#EAE8E2] bg-white/95 px-4 py-3 shadow-lg backdrop-blur md:hidden`}>
           <div className="min-w-0">
             <p className="truncate text-xs text-[#777777]">{product.name}</p>
             <p className="text-lg font-extrabold">
@@ -2883,8 +2896,8 @@ const footer = (
         </footer>
         {/* স্টিকি অর্ডার বার — শুধু মোবাইলে */}
         {/* স্টিকি বারের নিচে ফুটার ঢাকা না পড়ে — পেজের নিচে ফাঁকা জায়গা। */}
-        <div className="h-20 md:hidden" aria-hidden="true" />
-        <div className="fixed inset-x-0 bottom-0 z-40 flex items-center justify-between gap-3 border-t border-[#F1E4E7] bg-white/95 px-4 py-3 shadow-lg backdrop-blur md:hidden">
+        <div className={spacerMd} aria-hidden="true" />
+        <div className={`fixed inset-x-0 ${stickyBarBottom} z-40 flex items-center justify-between gap-3 border-t border-[#F1E4E7] bg-white/95 px-4 py-3 shadow-lg backdrop-blur md:hidden`}>
           <div className="min-w-0">
             <p className="truncate text-xs text-[#887A80]">{product.name}</p>
             <p className="text-lg font-extrabold">
@@ -3470,8 +3483,8 @@ const footer = (
         </footer>
         {/* স্টিকি অর্ডার বার — শুধু মোবাইলে, নিজের সায়ান রূপ */}
         {/* স্টিকি বারের নিচে ফুটার ঢাকা না পড়ে — পেজের নিচে ফাঁকা জায়গা। */}
-        <div className="h-20 md:hidden" aria-hidden="true" />
-        <div className="fixed inset-x-0 bottom-0 z-40 flex items-center justify-between gap-3 border-t border-[#283A54] bg-[#101A2B]/95 px-4 py-3 shadow-lg backdrop-blur md:hidden">
+        <div className={spacerMd} aria-hidden="true" />
+        <div className={`fixed inset-x-0 ${stickyBarBottom} z-40 flex items-center justify-between gap-3 border-t border-[#283A54] bg-[#101A2B]/95 px-4 py-3 shadow-lg backdrop-blur md:hidden`}>
           <div className="min-w-0">
             <p className="truncate text-xs text-[#A8B5C8]">{product.name}</p>
             <p className="text-lg font-extrabold text-[#19C8F0]">
@@ -3980,8 +3993,8 @@ const footer = (
         </footer>
         {/* স্টিকি অর্ডার বার — শুধু মোবাইলে, নিজের সবুজ COD রূপ */}
         {/* স্টিকি বারের নিচে ফুটার ঢাকা না পড়ে — পেজের নিচে ফাঁকা জায়গা। */}
-        <div className="h-20 md:hidden" aria-hidden="true" />
-        <div className="fixed inset-x-0 bottom-0 z-40 flex items-center justify-between gap-3 border-t border-gray-200 bg-white px-4 py-3 shadow-lg md:hidden">
+        <div className={spacerMd} aria-hidden="true" />
+        <div className={`fixed inset-x-0 ${stickyBarBottom} z-40 flex items-center justify-between gap-3 border-t border-gray-200 bg-white px-4 py-3 shadow-lg md:hidden`}>
           <div className="min-w-0">
             <p className="truncate text-xs text-gray-500">{product.name}</p>
             <p className="text-lg font-extrabold text-[#E11D2E]">
@@ -4107,8 +4120,8 @@ const footer = (
         </main>
         {footer}
         {/* স্টিকি বারের নিচে ফুটার ঢাকা না পড়ে — পেজের নিচে ফাঁকা জায়গা। */}
-        <div className="h-20 lg:hidden" aria-hidden="true" />
-        <div className="fixed inset-x-0 bottom-0 z-40 flex items-center justify-between gap-3 border-t border-gray-200 bg-white px-4 py-3 shadow-lg lg:hidden">
+        <div className={spacerLg} aria-hidden="true" />
+        <div className={`fixed inset-x-0 ${stickyBarBottom} z-40 flex items-center justify-between gap-3 border-t border-gray-200 bg-white px-4 py-3 shadow-lg lg:hidden`}>
           <div className="min-w-0">
             <p className="truncate text-xs text-gray-500">{product.name}</p>
             <p className="text-lg font-extrabold text-[#7C3AED]">
@@ -4239,8 +4252,8 @@ const footer = (
         </main>
         {footer}
         {/* স্টিকি বারের নিচে ফুটার ঢাকা না পড়ে — পেজের নিচে ফাঁকা জায়গা। */}
-        <div className="h-20 lg:hidden" aria-hidden="true" />
-        <div className="fixed inset-x-0 bottom-0 z-40 flex items-center justify-between gap-3 border-t border-gray-200 bg-white px-4 py-3 shadow-lg lg:hidden">
+        <div className={spacerLg} aria-hidden="true" />
+        <div className={`fixed inset-x-0 ${stickyBarBottom} z-40 flex items-center justify-between gap-3 border-t border-gray-200 bg-white px-4 py-3 shadow-lg lg:hidden`}>
           <div className="min-w-0">
             <p className="truncate text-xs text-gray-500">{product.name}</p>
             <p className="text-lg font-extrabold text-[#047857]">
@@ -4392,8 +4405,8 @@ const footer = (
         </main>
         {footer}
         {/* স্টিকি বারের নিচে ফুটার ঢাকা না পড়ে — পেজের নিচে ফাঁকা জায়গা। */}
-        <div className="h-20 lg:hidden" aria-hidden="true" />
-        <div className="fixed inset-x-0 bottom-0 z-40 flex items-center justify-between gap-3 border-t border-[#232C44] bg-[#141B2E] px-4 py-3 shadow-lg lg:hidden">
+        <div className={spacerLg} aria-hidden="true" />
+        <div className={`fixed inset-x-0 ${stickyBarBottom} z-40 flex items-center justify-between gap-3 border-t border-[#232C44] bg-[#141B2E] px-4 py-3 shadow-lg lg:hidden`}>
           <div className="min-w-0">
             <p className="truncate text-xs text-gray-400">{product.name}</p>
             <p className="text-lg font-extrabold text-[#A78BFA]">
@@ -4519,8 +4532,8 @@ const footer = (
         </main>
         {footer}
         {/* স্টিকি বারের নিচে ফুটার ঢাকা না পড়ে — পেজের নিচে ফাঁকা জায়গা। */}
-        <div className="h-20 lg:hidden" aria-hidden="true" />
-        <div className="fixed inset-x-0 bottom-0 z-40 flex items-center justify-between gap-3 border-t border-gray-200 bg-white px-4 py-3 shadow-lg lg:hidden">
+        <div className={spacerLg} aria-hidden="true" />
+        <div className={`fixed inset-x-0 ${stickyBarBottom} z-40 flex items-center justify-between gap-3 border-t border-gray-200 bg-white px-4 py-3 shadow-lg lg:hidden`}>
           <div className="min-w-0">
             <p className="truncate text-xs text-gray-500">{product.name}</p>
             <p className="text-lg font-extrabold text-[#EA580C]">
@@ -4671,8 +4684,8 @@ const footer = (
         </main>
         {footer}
         {/* স্টিকি বারের নিচে ফুটার ঢাকা না পড়ে — পেজের নিচে ফাঁকা জায়গা। */}
-        <div className="h-20 lg:hidden" aria-hidden="true" />
-        <div className="fixed inset-x-0 bottom-0 z-40 flex items-center justify-between gap-3 border-t border-[#E7E1D4] bg-white px-4 py-3 shadow-lg lg:hidden">
+        <div className={spacerLg} aria-hidden="true" />
+        <div className={`fixed inset-x-0 ${stickyBarBottom} z-40 flex items-center justify-between gap-3 border-t border-[#E7E1D4] bg-white px-4 py-3 shadow-lg lg:hidden`}>
           <div className="min-w-0">
             <p className="truncate text-xs text-stone-500">{product.name}</p>
             <p className="text-lg font-extrabold text-[#14532D]">
@@ -5062,8 +5075,8 @@ const footer = (
         </main>
         {footer}
         {/* স্টিকি বারের নিচে ফুটার ঢাকা না পড়ে — পেজের নিচে ফাঁকা জায়গা। */}
-        <div className="h-20 lg:hidden" aria-hidden="true" />
-        <div className="fixed inset-x-0 bottom-0 z-40 flex items-center justify-between gap-3 bg-[#F97316] px-4 py-3 shadow-lg lg:hidden">
+        <div className={spacerLg} aria-hidden="true" />
+        <div className={`fixed inset-x-0 ${stickyBarBottom} z-40 flex items-center justify-between gap-3 bg-[#F97316] px-4 py-3 shadow-lg lg:hidden`}>
           <div className="min-w-0">
             <p className="truncate text-xs text-white/80">{product.name}</p>
             <p className="text-lg font-extrabold text-white">
@@ -5198,8 +5211,8 @@ const footer = (
         </main>
         {footer}
         {/* স্টিকি বারের নিচে ফুটার ঢাকা না পড়ে — পেজের নিচে ফাঁকা জায়গা। */}
-        <div className="h-20 lg:hidden" aria-hidden="true" />
-        <div className="fixed inset-x-0 bottom-0 z-40 flex items-center justify-between gap-3 bg-[#006a4e] px-4 py-3 shadow-lg lg:hidden">
+        <div className={spacerLg} aria-hidden="true" />
+        <div className={`fixed inset-x-0 ${stickyBarBottom} z-40 flex items-center justify-between gap-3 bg-[#006a4e] px-4 py-3 shadow-lg lg:hidden`}>
           <div className="min-w-0">
             <p className="truncate text-xs text-white/80">{product.name}</p>
             <p className="text-lg font-extrabold text-white">

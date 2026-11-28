@@ -190,12 +190,28 @@ export default function SellerShell({
                     {newOrders.map((o) => (
                       <li
                         key={o.id}
-                        className="border-b border-gray-100 px-4 py-3 text-sm last:border-0"
+                        className="border-b border-gray-100 last:border-0"
                       >
-                        <p className="font-semibold">
-                          {o.order_code} · {o.customer_name}
-                        </p>
-                        <p className="text-gray-500">{formatBDT(o.total)}</p>
+                        <button
+                          type="button"
+                          onClick={() => {
+                            setBellOpen(false)
+                            navigate(
+                              `/dashboard/orders?order=${encodeURIComponent(o.order_code)}`,
+                            )
+                          }}
+                          className="flex w-full cursor-pointer items-center gap-2 px-4 py-3 text-left text-sm transition hover:bg-gray-50 active:bg-gray-100"
+                        >
+                          <span className="min-w-0 flex-1">
+                            <span className="block font-semibold">
+                              {o.order_code} · {o.customer_name}
+                            </span>
+                            <span className="block text-gray-500">
+                              {formatBDT(o.total)}
+                            </span>
+                          </span>
+                          <IconChevronRight className="h-4 w-4 shrink-0 text-gray-400" />
+                        </button>
                       </li>
                     ))}
                   </ul>

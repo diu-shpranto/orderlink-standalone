@@ -8,7 +8,7 @@
 // স্ট্যাটাসের নিয়ম আগের মতোই — New → Confirmed → Processing →
 // Shipped → Delivered, বা বাতিল; ভুল পরিবর্তন সার্ভারও ফেরায়।
 // "Returned" স্ট্যাটাস এই অ্যাপে নেই, তাই তার ছাঁকনি যোগ করা হয়নি।
-import { useEffect, useMemo, useState } from 'react'
+import { useEffect, useMemo, useRef, useState } from 'react'
 import SellerShell, { STATUS_BN } from '../components/SellerShell.tsx'
 import { useAuth } from '../lib/auth.tsx'
 import {
@@ -684,6 +684,22 @@ export default function Orders() {
     })
   }, [search])
   const [page, setPage] = useState(1)
+  // বেল (নোটিফিকেশন) থেকে আসা — ?order=OL-1014 দিলে সেই অর্ডারের
+  // বিস্তারিত মোডাল খোলে। কোডটা ঠিকানায় থাকে, তাই রিফ্রেশ করলেও
+  // খোলে; ছাঁকনির বাইরের অর্ডার হলেও খোলে (পুরো তালিকায় খোঁজা হয়)।
+  // মোডাল বন্ধ করার পর তালিকা আবার লোড হলেও নিজে থেকে আর খোলে না —
+  // কোন কোডটা খোলা হয়েছে সেটা ref-এ মনে রাখা হয়।
+  const autoOpenedOrderRef = useRef('')
+  useEffect(() => {
+    const params = new URLSearchParams(search)
+    const code = params.get('order')
+    if (!code) return
+    if (autoOpenedOrderRef.current === code) return
+    const match = orders.find((o) => o.order_code === code)
+    if (!match) return
+    autoOpenedOrderRef.current = code
+    setSelected(match)
+  }, [search, orders])
   const [selected, setSelected] = useState<OrderRow | null>(null)
   // ডেস্কটপ টেবিলের ইনলাইন কাজ — মোডাল না খুলেই পরের ধাপ / কল / কপি।
   const [inlineBusyId, setInlineBusyId] = useState('')
