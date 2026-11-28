@@ -27,7 +27,6 @@ export type CustomerStrings = {
   phone: string
   division: string
   district: string
-  upazila: string
   addressLine: string
   deliveryArea: string
   insideDhaka: string
@@ -105,8 +104,7 @@ const BN: CustomerStrings = {
   phone: 'ফোন নম্বর',
   division: 'বিভাগ',
   district: 'জেলা',
-  upazila: 'উপজেলা',
-  addressLine: 'বিস্তারিত ঠিকানা (বাড়ি/রোড/এলাকা)',
+  addressLine: 'বিস্তারিত ঠিকানা (উপজেলা, বাড়ি/রোড/এলাকা)',
   deliveryArea: 'ডেলিভারি এলাকা',
   insideDhaka: 'ঢাকার ভেতরে',
   outsideDhaka: 'ঢাকার বাইরে',
@@ -184,8 +182,7 @@ const EN: CustomerStrings = {
   phone: 'Phone number',
   division: 'Division',
   district: 'District',
-  upazila: 'Upazila',
-  addressLine: 'Full address (house / road / area)',
+  addressLine: 'Full address (upazila, house / road / area)',
   deliveryArea: 'Delivery area',
   insideDhaka: 'Inside Dhaka',
   outsideDhaka: 'Outside Dhaka',

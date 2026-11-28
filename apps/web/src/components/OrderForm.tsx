@@ -1,5 +1,5 @@
-// কাস্টমার পেজের আসল অর্ডার ফর্ম — নাম, ফোন, ঠিকানা (বিভাগ/জেলা/
-// উপজেলা), ডেলিভারি এলাকা ও লাইভ মোট। লগইন লাগে না। ডেলিভারি চার্জ
+// কাস্টমার পেজের আসল অর্ডার ফর্ম — নাম, ফোন, ঠিকানা (বিভাগ/জেলা),
+// ডেলিভারি এলাকা ও লাইভ মোট। লগইন লাগে না। ডেলিভারি চার্জ
 // শুধু দোকানের সেটিংস থেকে; ফ্রি-ডেলিভারি সীমা থাকলে আসল হিসাবেই
 // প্রয়োগ হয়। একই ফোনে ২৪ ঘণ্টায় অর্ডার থাকলে নরম সতর্কতা দেখায়
 // (আটকায় না — কাস্টমার নিশ্চিত করলে জমা হয়)।
@@ -107,7 +107,6 @@ export default function OrderForm({
   const [phone, setPhone] = useState('')
   const [division, setDivision] = useState('')
   const [district, setDistrict] = useState('')
-  const [upazila, setUpazila] = useState('')
   const [addressLine, setAddressLine] = useState('')
   const [area, setArea] = useState<'inside' | 'outside'>('inside')
   // পরিমাণ — ফর্মের নিজের (লাইভ অ্যাপের মতো, হিরোতে সিলেক্টর নেই)।
@@ -186,7 +185,7 @@ export default function OrderForm({
         customerPhone: phoneValue,
         division,
         district,
-        upazila: upazila.trim(),
+        upazila: '', // আলাদা উপজেলা বক্স নেই — কাস্টমার উপজেলা ঠিকানার বক্সেই লেখে।
         addressLine,
         deliveryArea: area,
         quantity,
@@ -323,17 +322,6 @@ export default function OrderForm({
       </div>
 
       <label className="block">
-        <span className={labelClass}>{t.upazila}</span>
-        <input
-          type="text"
-          value={upazila}
-          onChange={(e) => setUpazila(e.target.value)}
-          className={inputClass}
-          placeholder="যেমন: সাভার"
-        />
-      </label>
-
-      <label className="block">
         <span className={labelClass}>{t.addressLine} *</span>
         <textarea
           required
@@ -341,7 +329,7 @@ export default function OrderForm({
           value={addressLine}
           onChange={(e) => setAddressLine(e.target.value)}
           className={inputClass}
-          placeholder="বাড়ি/ফ্ল্যাট, রোড, এলাকা"
+          placeholder="উপজেলা, বাড়ি/ফ্ল্যাট, রোড, এলাকা"
         />
       </label>
       </div>
