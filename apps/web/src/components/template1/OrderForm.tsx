@@ -49,6 +49,7 @@ export default function TemplateOneOrderForm({
   const [errors, setErrors] = useState<FieldErrors>({})
   const [busy, setBusy] = useState(false)
   const [placed, setPlaced] = useState(false)
+  const [orderCode, setOrderCode] = useState('')
   const [submitFailed, setSubmitFailed] = useState(false)
   const nameRef = useRef<HTMLInputElement>(null)
   const phoneRef = useRef<HTMLInputElement>(null)
@@ -103,6 +104,8 @@ export default function TemplateOneOrderForm({
       // Sheet সিঙ্ক — আগের শেয়ার করা ফর্মের মতোই, id থাকলেই
       // ফায়ার-অ্যান্ড-ফরগেট; সিঙ্ক ব্যর্থ হলেও অর্ডার আটকায় না।
       if (placed.id) triggerOrderSync(placed.id)
+      // কোডটা রেখে দিন — সফলতার পর্দায় কাস্টমারকে জানাতে হবে।
+      if (placed.orderCode) setOrderCode(placed.orderCode)
       setPlaced(true)
     } catch {
       setSubmitFailed(true)
@@ -118,6 +121,9 @@ export default function TemplateOneOrderForm({
         <p className="m-0 mt-2">
           অর্ডার পাওয়া গেছে, শীঘ্রই আপনাকে ফোন করা হবে।
         </p>
+        {orderCode ? (
+          <p className="m-0 mt-2 font-bold">অর্ডার নম্বর: {orderCode}</p>
+        ) : null}
       </div>
     )
   }
