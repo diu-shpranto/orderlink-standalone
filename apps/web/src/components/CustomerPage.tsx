@@ -667,8 +667,12 @@ function OrderSection({
           {formatBDT(product.price)}
         </p>
       </div>
-      <div className="lg:grid lg:grid-cols-5 lg:gap-8">
-        <div className="lg:col-span-3">
+      {/* প্রিভিউতে (বিল্ডার) ফর্মের জায়গায় শুধু নোট দেখায়, তাই
+          ডেস্কটপের সারসংক্ষেপ প্যানেল লুকানো থাকে — না হলে ফর্মের
+          কলামে ~৫০০px ফাঁকা জায়গা পড়ে। লাইভ পেজে (preview=false)
+          আগের মতোই ৫ কলামের গ্রিড + পাশের প্যানেল। */}
+      <div className={preview ? '' : 'lg:grid lg:grid-cols-5 lg:gap-8'}>
+        <div className={preview ? '' : 'lg:col-span-3'}>
           <div
             className={`mt-3 space-y-1 text-sm ${
               dark ? 'text-[#B8B8B8]' : 'text-gray-700'
@@ -715,7 +719,7 @@ function OrderSection({
             </div>
           )}
         </div>
-        <aside className="hidden lg:col-span-2 lg:block">
+        <aside className={preview ? 'hidden' : 'hidden lg:col-span-2 lg:block'}>
           <div
             className={`rounded-2xl border p-5 ${
               dark
