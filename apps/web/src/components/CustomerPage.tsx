@@ -890,8 +890,8 @@ export default function CustomerPage({
     page.sections['gallery'] !== false && images.length > 0
 
   const headingClass = dark
-    ? 'text-lg font-bold text-white'
-    : 'text-lg font-bold text-gray-900'
+    ? 'font-serif text-lg font-bold text-white'
+    : 'font-serif text-lg font-bold text-gray-900'
   const bodyClass = dark ? 'text-gray-300' : 'text-gray-700'
 
   function renderSection(id: string) {
@@ -1091,7 +1091,7 @@ export default function CustomerPage({
       </div>
       <div>
         <h1
-          className={`mt-5 text-2xl font-extrabold leading-snug md:text-3xl lg:mt-0 ${
+          className={`mt-5 font-serif text-2xl font-extrabold leading-snug md:text-3xl lg:mt-0 ${
             dark ? 'text-white' : 'text-gray-900'
           }`}
         >
@@ -1113,12 +1113,14 @@ export default function CustomerPage({
           {heroCopy}
         </p>
       ) : null}
-      <a
-        href="#order"
-        className="mt-5 block rounded-lg bg-accent px-4 py-3 text-center font-semibold text-white"
-      >
-        {t.orderNow}
-      </a>
+      {!meta.stickyBar ? (
+        <a
+          href="#order"
+          className="mt-5 block rounded-lg bg-accent px-4 py-3 text-center font-semibold text-white"
+        >
+          {t.orderNow}
+        </a>
+      ) : null}
       </div>
     </div>
   )
@@ -1225,44 +1227,71 @@ function ContactCard({ data, dark }: { data: CustomerPageData; dark: boolean }) 
   return (
     <div className="mx-auto mt-10 max-w-2xl px-4">
       <div
-        className={`rounded-2xl border p-5 shadow-sm ${
+        className={`overflow-hidden rounded-3xl border shadow-md ${
           dark
-            ? 'border-gray-700 bg-gray-800'
+            ? 'border-gray-700 bg-gray-800 shadow-black/30'
             : 'border-gray-200 bg-white'
         }`}
       >
-        <div className="flex items-center gap-3">
-          <span className="flex h-11 w-11 shrink-0 items-center justify-center rounded-full bg-brand text-lg font-extrabold text-white">
-            {shop.name.charAt(0)}
-          </span>
-          <div>
-            <p
-              className={`font-extrabold ${dark ? 'text-white' : 'text-gray-900'}`}
-            >
-              আমাদের সাথে যোগাযোগ করুন
-            </p>
-            <p className={`text-sm ${dark ? 'text-gray-400' : 'text-gray-500'}`}>
-              {shop.name}
-            </p>
+        <div className="h-1.5 bg-gradient-to-r from-brand via-accent to-brand" />
+        <div className="p-5 sm:p-6">
+          <div className="flex items-center gap-4">
+            {shop.logo_url ? (
+              <img
+                src={shop.logo_url}
+                alt=""
+                className="h-14 w-14 shrink-0 rounded-full object-cover ring-2 ring-brand/30"
+              />
+            ) : (
+              <span className="flex h-14 w-14 shrink-0 items-center justify-center rounded-full bg-gradient-to-br from-brand to-[#004d38] text-2xl font-extrabold text-white shadow-md ring-2 ring-brand/20">
+                {shop.name.charAt(0)}
+              </span>
+            )}
+            <div className="min-w-0">
+              <p
+                className={`font-serif text-lg font-bold leading-snug ${
+                  dark ? 'text-white' : 'text-gray-900'
+                }`}
+              >
+                আমাদের সাথে যোগাযোগ করুন
+              </p>
+              <p
+                className={`mt-0.5 truncate text-sm ${
+                  dark ? 'text-gray-400' : 'text-gray-500'
+                }`}
+              >
+                {shop.name}
+              </p>
+            </div>
           </div>
-        </div>
-        <a
-          href={`https://wa.me/${sellerWhatsapp}?text=${waText}`}
-          target="_blank"
-          rel="noreferrer"
-          className="mt-4 block rounded-xl bg-[#25d366] px-4 py-3 text-center font-bold text-white"
-        >
-          WhatsApp-এ মেসেজ করুন
-        </a>
-        <div
-          className={`mt-4 flex flex-wrap justify-center gap-x-5 gap-y-1 border-t pt-3 text-xs ${
-            dark
-              ? 'border-gray-700 text-gray-400'
-              : 'border-gray-100 text-gray-500'
-          }`}
-        >
-          <span>✓ সারা দেশে ডেলিভারি</span>
-          <span>✓ অর্ডার কনফার্ম করে পাঠানো হয়</span>
+          <a
+            href={`https://wa.me/${sellerWhatsapp}?text=${waText}`}
+            target="_blank"
+            rel="noreferrer"
+            className="mt-5 block rounded-xl bg-[#25d366] px-4 py-3.5 text-center text-base font-bold text-white shadow-md shadow-[#25d366]/30 transition hover:bg-[#1fb857] active:scale-[0.99]"
+          >
+            WhatsApp-এ মেসেজ করুন
+          </a>
+          <div
+            className={`mt-5 flex flex-wrap items-center justify-center gap-x-5 gap-y-1.5 border-t pt-4 text-xs font-medium ${
+              dark
+                ? 'border-gray-700 text-gray-400'
+                : 'border-gray-100 text-gray-500'
+            }`}
+          >
+            <span className="flex items-center gap-1.5">
+              <span className="flex h-4 w-4 items-center justify-center rounded-full bg-emerald-500/15 text-[10px] font-bold text-emerald-600">
+                ✓
+              </span>
+              সারা দেশে ডেলিভারি
+            </span>
+            <span className="flex items-center gap-1.5">
+              <span className="flex h-4 w-4 items-center justify-center rounded-full bg-emerald-500/15 text-[10px] font-bold text-emerald-600">
+                ✓
+              </span>
+              অর্ডার কনফার্ম করে পাঠানো হয়
+            </span>
+          </div>
         </div>
       </div>
     </div>
@@ -1853,12 +1882,6 @@ const footer = (
               {heroCopy}
             </p>
           ) : null}
-          <a
-            href="#order"
-            className="mt-6 block rounded-lg bg-gray-900 px-4 py-3 text-center font-semibold text-white"
-          >
-            {t.orderNow}
-          </a>
           <div className="mt-10">{sections}</div>
           {orderBox}
         </main>

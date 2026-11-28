@@ -53,8 +53,12 @@ export default function OrderForm({
     ? 'text-sm font-semibold text-[#B8B8B8]'
     : 'text-sm font-semibold text-gray-700'
   const inputClass = dark
-    ? 'mt-1 w-full rounded-lg border border-[#34343A] bg-[#151518] px-3 py-2 text-sm text-white placeholder:text-[#8a8a90]'
-    : 'mt-1 w-full rounded-lg border border-gray-300 px-3 py-2 text-sm'
+    ? 'mt-1 w-full rounded-xl border border-[#34343A] bg-[#151518] px-3.5 py-2.5 text-sm text-white transition placeholder:text-[#8a8a90] focus:border-[#D6B36A] focus:outline-none focus:ring-2 focus:ring-[#D6B36A]/30'
+    : 'mt-1 w-full rounded-xl border border-gray-300 bg-white px-3.5 py-2.5 text-sm transition placeholder:text-gray-400 focus:border-brand focus:outline-none focus:ring-2 focus:ring-brand/25'
+  // গ্রুপ প্যানেল — যোগাযোগ / ঠিকানা / ডেলিভারি আলাদা কার্ডে সাজে।
+  const groupClass = dark
+    ? 'rounded-2xl border border-[#34343A] bg-[#151518]/60 p-4'
+    : 'rounded-2xl border border-gray-200 bg-gray-50/70 p-4'
   const [name, setName] = useState('')
   const [phone, setPhone] = useState('')
   const [division, setDivision] = useState('')
@@ -168,7 +172,7 @@ export default function OrderForm({
   }
 
   return (
-    <form onSubmit={handleSubmit} noValidate className="space-y-4">
+    <form onSubmit={handleSubmit} noValidate className="space-y-5">
       {error ? (
         <p className="rounded-lg bg-red-50 px-4 py-3 text-sm text-red-700">
           {error}
@@ -201,30 +205,33 @@ export default function OrderForm({
         </div>
       ) : null}
 
-      <label className="block">
-        <span className={labelClass}>{t.yourName} *</span>
-        <input
-          type="text"
-          required
-          value={name}
-          onChange={(e) => setName(e.target.value)}
-          className={inputClass}
-          placeholder="যেমন: রহিম উদ্দিন"
-        />
-      </label>
+      <div className={`${groupClass} space-y-4`}>
+        <label className="block">
+          <span className={labelClass}>{t.yourName} *</span>
+          <input
+            type="text"
+            required
+            value={name}
+            onChange={(e) => setName(e.target.value)}
+            className={inputClass}
+            placeholder="যেমন: রহিম উদ্দিন"
+          />
+        </label>
 
-      <label className="block">
-        <span className={labelClass}>{t.phone} *</span>
-        <input
-          type="tel"
-          required
-          value={phone}
-          onChange={(e) => setPhone(e.target.value)}
-          className={inputClass}
-          placeholder="01XXXXXXXXX"
-        />
-      </label>
+        <label className="block">
+          <span className={labelClass}>{t.phone} *</span>
+          <input
+            type="tel"
+            required
+            value={phone}
+            onChange={(e) => setPhone(e.target.value)}
+            className={inputClass}
+            placeholder="01XXXXXXXXX"
+          />
+        </label>
+      </div>
 
+      <div className={`${groupClass} space-y-4`}>
       <div className="grid grid-cols-2 gap-3">
         <label className="block">
           <span className={labelClass}>{t.division} *</span>
@@ -283,7 +290,9 @@ export default function OrderForm({
           placeholder="বাড়ি/ফ্ল্যাট, রোড, এলাকা"
         />
       </label>
+      </div>
 
+      <div className={`${groupClass} space-y-4`}>
       <fieldset>
         <legend className={labelClass}>
           {t.deliveryArea} *
@@ -299,7 +308,7 @@ export default function OrderForm({
               key={value}
               type="button"
               onClick={() => setArea(value)}
-              className={`flex-1 rounded-lg border px-3 py-2 text-sm font-semibold ${
+              className={`flex-1 rounded-xl border px-3 py-2.5 text-sm font-semibold shadow-sm transition ${
                 area === value
                   ? dark
                     ? 'border-transparent'
@@ -307,8 +316,8 @@ export default function OrderForm({
                       ? 'border-transparent text-white'
                       : 'border-brand bg-brand text-white'
                   : dark
-                    ? 'border-[#34343A] bg-[#151518] text-white'
-                    : 'border-gray-300 bg-white text-gray-700'
+                    ? 'border-[#34343A] bg-[#151518] text-white hover:border-[#55555c]'
+                    : 'border-gray-300 bg-white text-gray-700 hover:border-gray-400'
               }`}
               style={
                 area === value && dark
@@ -341,34 +350,37 @@ export default function OrderForm({
 
       <div className="flex items-center justify-between">
         <span className={labelClass}>{t.quantity}</span>
-        <span className="flex items-center gap-3">
+        <span className="flex items-center gap-2">
           <button
             type="button"
             onClick={() => changeQuantity(-1)}
             disabled={quantity <= 1}
-            className={`flex h-9 w-9 items-center justify-center rounded-lg border text-lg font-bold disabled:opacity-40 ${dark ? 'border-[#34343A] text-white' : 'border-gray-300'}`} 
+            className={`flex h-10 w-10 items-center justify-center rounded-xl border text-lg font-bold transition disabled:opacity-40 ${dark ? 'border-[#34343A] bg-[#151518] text-white hover:border-[#55555c]' : 'border-gray-300 bg-white hover:border-gray-400 hover:bg-gray-50'}`}
             aria-label="কম"
           >
             −
           </button>
-          <span className={`w-8 text-center text-lg font-bold ${dark ? 'text-white' : ''}`}>
+          <span className={`w-10 text-center text-lg font-extrabold ${dark ? 'text-white' : 'text-gray-900'}`}>
             {toBnDigits(quantity)}
           </span>
           <button
             type="button"
             onClick={() => changeQuantity(1)}
             disabled={quantity >= 99}
-            className={`flex h-9 w-9 items-center justify-center rounded-lg border text-lg font-bold disabled:opacity-40 ${dark ? 'border-[#34343A] text-white' : 'border-gray-300'}`} 
+            className={`flex h-10 w-10 items-center justify-center rounded-xl border text-lg font-bold transition disabled:opacity-40 ${dark ? 'border-[#34343A] bg-[#151518] text-white hover:border-[#55555c]' : 'border-gray-300 bg-white hover:border-gray-400 hover:bg-gray-50'}`}
             aria-label="বেশি"
           >
             +
           </button>
         </span>
       </div>
+      </div>
 
       <div
-        className={`space-y-1 rounded-xl px-4 py-3 text-sm ${
-          dark ? 'border border-[#34343A] bg-[#151518]' : 'bg-gray-50'
+        className={`space-y-1.5 rounded-2xl border px-4 py-3.5 text-sm shadow-sm ${
+          dark
+            ? 'border-[#34343A] bg-[#151518]'
+            : 'border-gray-200 bg-gray-50'
         }`}
       >
         <p className="flex justify-between">
@@ -413,7 +425,7 @@ export default function OrderForm({
       <button
         type="submit"
         disabled={busy}
-        className={`w-full rounded-lg px-4 py-3 font-semibold disabled:opacity-50 ${
+        className={`w-full rounded-xl px-4 py-3.5 text-base font-bold shadow-md transition hover:brightness-105 active:scale-[0.99] disabled:opacity-50 ${
           dark ? '' : lightAccent ? '' : 'bg-accent text-white'
         }`}
         style={
@@ -434,7 +446,7 @@ export default function OrderForm({
           )}`}
           target="_blank"
           rel="noreferrer"
-          className={`block rounded-lg border px-4 py-3 text-center text-sm font-semibold ${dark ? 'border-[#34343A] text-white' : 'border-gray-300 text-gray-700'}`} 
+          className={`block rounded-xl border px-4 py-3 text-center text-sm font-semibold transition ${dark ? 'border-[#34343A] text-white hover:border-[#55555c] hover:bg-[#1d1d21]' : 'border-gray-300 text-gray-700 hover:border-[#25d366] hover:bg-[#25d366]/5 hover:text-[#128c4b]'}`}
         >
           {t.whatsappOrder}
         </a>

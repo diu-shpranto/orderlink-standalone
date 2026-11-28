@@ -17,6 +17,23 @@
   unicode-range: U+09E6-09EF;
 }
 
+/* `font-serif` শুধু কাস্টমার পেজে ব্যবহৃত হয় (CustomerPage.tsx) —
+   সেলার প্যানেলে কোথাও নেই — তাই এখানে ওভাররাইড নিরাপদ। Tailwind-এর
+   font-serif (Georgia) বদলে Noto Serif Bengali হবে: প্রোডাক্টের
+   নাম ও সেকশন হেডিং সেরিফে, বডি Hind Siliguri-তেই থাকবে। সংখ্যার
+   জন্য 'OrderLink Bengali Digits' সবার আগে — ০–৯ আগের মতোই
+   Noto Sans Bengali ডিজিট ফেসে রেন্ডার হবে। আনলেয়ার্ড অথর CSS
+   Tailwind-এর লেয়ার্ড ইউটিলিটির ওপরে জেতে, তাই @tailwind-এর
+   পরে লেখাই যথেষ্ট। */
+.font-serif {
+  font-family:
+    'OrderLink Bengali Digits',
+    'Noto Serif Bengali',
+    'Hind Siliguri',
+    Georgia,
+    serif;
+}
+
 html {
   scroll-behavior: smooth;
 }
