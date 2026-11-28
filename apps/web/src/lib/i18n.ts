@@ -52,6 +52,7 @@ export type CustomerStrings = {
   invalidPhone: string
   selectDivision: string
   selectDistrict: string
+  selectDivisionFirst: string
   freeDeliveryApplies: string
   freeDeliveryAbove: (amount: string) => string
   luxuryEyebrow: string
@@ -130,6 +131,7 @@ const BN: CustomerStrings = {
   invalidPhone: 'সঠিক মোবাইল নম্বর দিন (যেমন: 01XXXXXXXXX)।',
   selectDivision: 'বিভাগ বাছুন',
   selectDistrict: 'জেলা বাছুন',
+  selectDivisionFirst: 'আগে বিভাগ বাছুন',
   freeDeliveryApplies: 'ফ্রি ডেলিভারি প্রযোজ্য হয়েছে',
   freeDeliveryAbove: (amount) => `${amount}-এর বেশি অর্ডারে ডেলিভারি ফ্রি`,
   luxuryEyebrow: 'প্রিমিয়াম কালেকশন',
@@ -209,6 +211,7 @@ const EN: CustomerStrings = {
   invalidPhone: 'Enter a valid mobile number (e.g. 01XXXXXXXXX).',
   selectDivision: 'Select division',
   selectDistrict: 'Select district',
+  selectDivisionFirst: 'Select a division first',
   freeDeliveryApplies: 'Free delivery applied',
   freeDeliveryAbove: (amount) => `Free delivery on orders above ${amount}`,
   luxuryEyebrow: 'Premium Collection',

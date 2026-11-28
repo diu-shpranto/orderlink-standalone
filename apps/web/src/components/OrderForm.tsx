@@ -55,6 +55,27 @@ export default function OrderForm({
   const inputClass = dark
     ? 'mt-1 w-full rounded-xl border border-[#34343A] bg-[#151518] px-3.5 py-2.5 text-sm text-white transition placeholder:text-[#8a8a90] focus:border-[#D6B36A] focus:outline-none focus:ring-2 focus:ring-[#D6B36A]/30'
     : 'mt-1 w-full rounded-xl border border-gray-300 bg-white px-3.5 py-2.5 text-sm transition placeholder:text-gray-400 focus:border-brand focus:outline-none focus:ring-2 focus:ring-brand/25'
+  // সিলেক্টের নিজের ক্লাস — ইনপুটের মতোই, তবে নেটিভ তির সরিয়ে নিজের
+  // চেভরন বসে (নিচের র‍্যাপারে); বন্ধ অবস্থায় স্পষ্ট ধূসর হয়।
+  const selectClass = dark
+    ? 'w-full appearance-none rounded-xl border border-[#34343A] bg-[#151518] px-3.5 py-2.5 pr-10 text-sm text-white transition focus:border-[#D6B36A] focus:outline-none focus:ring-2 focus:ring-[#D6B36A]/30 disabled:cursor-not-allowed disabled:opacity-50'
+    : 'w-full appearance-none rounded-xl border border-gray-300 bg-white px-3.5 py-2.5 pr-10 text-sm transition focus:border-brand focus:outline-none focus:ring-2 focus:ring-brand/25 disabled:cursor-not-allowed disabled:bg-gray-100 disabled:text-gray-400 disabled:opacity-70'
+  const chevron = (
+    <svg
+      className={`pointer-events-none absolute right-3.5 top-1/2 h-4 w-4 -translate-y-1/2 ${
+        dark ? 'text-[#8a8a90]' : 'text-gray-400'
+      }`}
+      viewBox="0 0 20 20"
+      fill="currentColor"
+      aria-hidden="true"
+    >
+      <path
+        fillRule="evenodd"
+        d="M5.23 7.21a.75.75 0 011.06.02L10 11.168l3.71-3.938a.75.75 0 111.08 1.04l-4.25 4.5a.75.75 0 01-1.08 0l-4.25-4.5a.75.75 0 01.02-1.06z"
+        clipRule="evenodd"
+      />
+    </svg>
+  )
   // গ্রুপ প্যানেল — যোগাযোগ / ঠিকানা / ডেলিভারি আলাদা কার্ডে সাজে।
   // নম্বরযুক্ত শিরোনাম (১/২/৩) সহ, যাতে ধাপগুলো এক নজরে চোখে পড়ে।
   const groupClass = dark
@@ -257,39 +278,47 @@ export default function OrderForm({
 
       <div className={`${groupClass} space-y-4`}>
       <SectionHead step={2} title={t.formAddress} />
-      <div className="grid grid-cols-2 gap-3">
+      <div className="grid grid-cols-1 gap-3 sm:grid-cols-2">
         <label className="block">
           <span className={labelClass}>{t.division} *</span>
-          <select
-            required
-            value={division}
-            onChange={(e) => handleDivisionChange(e.target.value)}
-            className={inputClass}
-          >
-            <option value="">{t.selectDivision}</option>
-            {DIVISIONS.map((d) => (
-              <option key={d} value={d}>
-                {d}
-              </option>
-            ))}
-          </select>
+          <div className="relative mt-1">
+            <select
+              required
+              value={division}
+              onChange={(e) => handleDivisionChange(e.target.value)}
+              className={selectClass}
+            >
+              <option value="">{t.selectDivision}</option>
+              {DIVISIONS.map((d) => (
+                <option key={d} value={d}>
+                  {d}
+                </option>
+              ))}
+            </select>
+            {chevron}
+          </div>
         </label>
         <label className="block">
           <span className={labelClass}>{t.district} *</span>
-          <select
-            required
-            value={district}
-            disabled={!division}
-            onChange={(e) => setDistrict(e.target.value)}
-            className={inputClass}
-          >
-            <option value="">{t.selectDistrict}</option>
-            {districts.map((d) => (
-              <option key={d} value={d}>
-                {d}
+          <div className="relative mt-1">
+            <select
+              required
+              value={district}
+              disabled={!division}
+              onChange={(e) => setDistrict(e.target.value)}
+              className={selectClass}
+            >
+              <option value="">
+                {!division ? t.selectDivisionFirst : t.selectDistrict}
               </option>
-            ))}
-          </select>
+              {districts.map((d) => (
+                <option key={d} value={d}>
+                  {d}
+                </option>
+              ))}
+            </select>
+            {chevron}
+          </div>
         </label>
       </div>
 

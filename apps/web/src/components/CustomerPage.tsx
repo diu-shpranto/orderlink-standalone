@@ -1329,10 +1329,14 @@ const footer = (
         dark ? 'border-gray-700 text-gray-400' : 'border-gray-200 text-gray-500'
       }`}
     >
-      <p className="font-bold">
+      <a
+        href="/"
+        className="inline-block font-bold"
+        aria-label="Orderlink — হোম পেজ"
+      >
         <span className="text-brand">Order</span>
         <span className="text-accent">link</span>
-      </p>
+      </a>
       <p className="mt-1">{shop.name}</p>
     </footer>
   </>
@@ -1767,10 +1771,14 @@ const footer = (
         </main>
         <ContactCard data={data} dark />
         <footer className="mt-10 border-t border-[#34343A] px-4 py-8 text-center">
-          <p className="font-serif text-xl font-bold">
+          <a
+            href="/"
+            className="inline-block font-serif text-xl font-bold"
+            aria-label="Orderlink — হোম পেজ"
+          >
             <span className="text-[#D6B36A]">Order</span>
             <span className="text-white">link</span>
-          </p>
+          </a>
           <p className="mt-2 text-sm font-semibold text-white">{shop.name}</p>
           {sellerWhatsapp ? (
             <a
@@ -2850,10 +2858,14 @@ const footer = (
         </main>
         <ContactCard data={data} dark={false} />
         <footer className="mt-10 border-t border-[#F1E4E7] bg-[#FCECEF] px-4 py-8 text-center">
-          <p className="font-serif text-xl font-bold">
+          <a
+            href="/"
+            className="inline-block font-serif text-xl font-bold"
+            aria-label="Orderlink — হোম পেজ"
+          >
             <span className="text-[#D86F91]">Order</span>
             <span className="text-[#30252A]">link</span>
-          </p>
+          </a>
           <p className="mt-2 text-sm font-semibold">{shop.name}</p>
           {sellerWhatsapp ? (
             <a
@@ -3433,10 +3445,14 @@ const footer = (
         </main>
         <ContactCard data={data} dark />
         <footer className="mt-10 border-t border-[#283A54] px-4 py-8 text-center">
-          <p className="text-xl font-extrabold">
+          <a
+            href="/"
+            className="inline-block text-xl font-extrabold"
+            aria-label="Orderlink — হোম পেজ"
+          >
             <span className="text-[#19C8F0]">Order</span>
             <span className="text-white">link</span>
-          </p>
+          </a>
           <p className="mt-2 text-sm font-semibold text-white">{shop.name}</p>
           {sellerWhatsapp ? (
             <a
@@ -3939,10 +3955,14 @@ const footer = (
         </main>
         <ContactCard data={data} dark={false} />
         <footer className="mt-10 border-t border-gray-200 bg-gray-50 px-4 py-8 text-center">
-          <p className="text-xl font-extrabold">
+          <a
+            href="/"
+            className="inline-block text-xl font-extrabold"
+            aria-label="Orderlink — হোম পেজ"
+          >
             <span className="text-[#16A34A]">Order</span>
             <span className="text-[#E11D2E]">link</span>
-          </p>
+          </a>
           <p className="mt-2 text-sm font-bold text-gray-900">{shop.name}</p>
           {sellerWhatsapp ? (
             <a
