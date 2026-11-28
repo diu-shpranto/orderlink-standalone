@@ -194,15 +194,17 @@ function BuilderSummary({
   discount: number
   slug: string
   shopSlug: string
-  template: TemplateId
+  // টেমপ্লেট না বাছা থাকলে '' (নতুন পণ্য, রেজিস্ট্রি খালি)।
+  template: TemplateId | ''
   imageCount: number
   reviewCount: number
   faqCount: number
   hasVideo: boolean
   isPublished: boolean
 }) {
+  // রেজিস্ট্রিতে না থাকলে (সরানো টেমপ্লেট) নামের বদলে '—'।
   const templateName =
-    TEMPLATES.find((t) => t.id === template)?.nameBn ?? template
+    TEMPLATES.find((t) => t.id === template)?.nameBn ?? '—'
   return (
     <div className="sticky top-6 space-y-5">
       <div className="rounded-2xl border border-gray-200 bg-white p-5 shadow-sm">
@@ -339,8 +341,10 @@ export default function ProductBuilder({
   const [faqA, setFaqA] = useState('')
   const [deliveryInfo, setDeliveryInfo] = useState('')
 
-  // ধাপ ১ ও ৭ — টেমপ্লেট ও প্রকাশ
-  const [template, setTemplate] = useState<TemplateId>('minimal-white')
+  // ধাপ ১ ও ৭ — টেমপ্লেট ও প্রকাশ। রেজিস্ট্রি খালি বলে নতুন
+  // পণ্যে টেমপ্লেট '' দিয়ে শুরু হয়; পুরনো পণ্য লোড হলে সেভ করা
+  // টেমপ্লেট id-ই বসে (নিচে)।
+  const [template, setTemplate] = useState<TemplateId | ''>('')
   const [sections, setSections] =
     useState<Record<string, boolean>>(DEFAULT_SECTIONS)
   const [sectionOrder, setSectionOrder] =
@@ -431,7 +435,7 @@ export default function ProductBuilder({
     setReviews((d.reviews ?? []).map((r) => ({ ...r })))
     setFaqs(Array.isArray(d.faqs) ? d.faqs : [])
     setDeliveryInfo(d.deliveryInfo ?? '')
-    setTemplate(d.template ?? 'minimal-white')
+    setTemplate(d.template ?? '')
     setSections({ ...DEFAULT_SECTIONS, ...(d.sections ?? {}) })
     setSectionOrder(
       Array.isArray(d.sectionOrder) && d.sectionOrder.length > 0
@@ -795,6 +799,18 @@ export default function ProductBuilder({
       setStep(4)
       return
     }
+    // টেমপ্লেট না বাছা থাকলে সেভ করা যাবে না — ডাটাবেসের
+    // pages.template চেক (মাইগ্রেশন 0002) খালি স্ট্রিং নেয় না।
+    // নতুন পণ্যে এটাই স্বাভাবিক অবস্থা (রেজিস্ট্রি খালি); পুরনো
+    // পণ্যে সেভ করা টেমপ্লেট id থাকে বলে সেভ চলে, আর সেই id-ই
+    // সংরক্ষিত হয় — কখনো খালি/undefined দিয়ে লেখা হয় না।
+    if (!template) {
+      setError(
+        'আপাতত কোনো টেমপ্লেট নেই — নতুন ডিজাইন আসলে তবেই সেভ করা যাবে।',
+      )
+      setStep(1)
+      return
+    }
     if (!seller || !shop) {
       setError('দোকানের তথ্য পাওয়া যায়নি — আবার লগইন করুন।')
       return
@@ -1001,7 +1017,10 @@ export default function ProductBuilder({
             seller_id: seller.id,
             shop_id: shop.id,
             slug: slug || 'draft',
-            template,
+            // টেমপ্লেট না বাছা থাকলে প্রিভিউয়ের টাইপের জন্য পুরনো
+            // id — CustomerPage-এর গেট রেজিস্ট্রিতে নেই বলে বন্ধ
+            // নোটিশই দেখায়, তাই দেখতে একই থাকে।
+            template: template || 'minimal-white',
             sections,
             section_order: sectionOrder,
             video_url: videos[0]?.url.trim() || null,
@@ -1062,6 +1081,15 @@ export default function ProductBuilder({
   }
 
   const goNext = () => {
+    // ধাপ ১-এ টেমপ্লেট না বাছা থাকলে এগোনো যাবে না — রেজিস্ট্রি
+    // খালি বলে নতুন পণ্যে এটাই স্বাভাবিক অবস্থা; পুরনো পণ্যে
+    // সেভ করা টেমপ্লেট id থাকে বলে এগোতে পারে।
+    if (step === 1 && !template) {
+      setError(
+        'আপাতত কোনো টেমপ্লেট নেই — নতুন ডিজাইন আসলে তবেই পরের ধাপে যাওয়া যাবে।',
+      )
+      return
+    }
     if (step === 2) {
       const err = validateInfo()
       if (err) {
@@ -1180,38 +1208,50 @@ export default function ProductBuilder({
               title="টেমপ্লেট বেছে নিন"
               subtitle="টেমপ্লেট বদলালে শুধু ডিজাইন বদলাবে — কোনো তথ্য মুছবে না"
             >
-              <div className="grid grid-cols-2 gap-3">
-                {TEMPLATES.map((t) => (
-                  <button
-                    key={t.id}
-                    type="button"
-                    onClick={() => setTemplate(t.id)}
-                    className={`rounded-2xl border-2 p-3 text-left ${
-                      template === t.id
-                        ? 'border-brand bg-brand-light'
-                        : 'border-gray-200 bg-white'
-                    }`}
-                  >
-                    <TemplateThumb t={t} />
-                    <span className="mt-3 block font-bold text-gray-900">
-                      {t.nameBn}
-                    </span>
-                    <span className="mt-0.5 block text-xs leading-relaxed text-gray-600">
-                      {t.taglineBn}
-                    </span>
-                    {template === t.id ? (
-                      <span className="mt-2 inline-block rounded-full bg-brand px-2 py-0.5 text-[10px] font-bold text-white">
-                        ✓ বাছাই করা
+              {TEMPLATES.length === 0 ? (
+                <div className="rounded-2xl border border-dashed border-gray-300 bg-gray-50 px-4 py-8 text-center">
+                  <p className="font-bold text-gray-900">
+                    আপাতত কোনো টেমপ্লেট নেই
+                  </p>
+                  <p className="mt-1 text-sm text-gray-600">
+                    নতুন ডিজাইন আসছে — টেমপ্লেট এলে এখান থেকে বেছে নিতে
+                    পারবেন।
+                  </p>
+                </div>
+              ) : (
+                <div className="grid grid-cols-2 gap-3">
+                  {TEMPLATES.map((t) => (
+                    <button
+                      key={t.id}
+                      type="button"
+                      onClick={() => setTemplate(t.id)}
+                      className={`rounded-2xl border-2 p-3 text-left ${
+                        template === t.id
+                          ? 'border-brand bg-brand-light'
+                          : 'border-gray-200 bg-white'
+                      }`}
+                    >
+                      <TemplateThumb t={t} />
+                      <span className="mt-3 block font-bold text-gray-900">
+                        {t.nameBn}
                       </span>
-                    ) : null}
-                    {t.stickyBar ? (
-                      <span className="mt-2 inline-block rounded-full bg-gray-100 px-2 py-0.5 text-[10px] font-bold text-gray-600">
-                        স্টিকি অর্ডার বার
+                      <span className="mt-0.5 block text-xs leading-relaxed text-gray-600">
+                        {t.taglineBn}
                       </span>
-                    ) : null}
-                  </button>
-                ))}
-              </div>
+                      {template === t.id ? (
+                        <span className="mt-2 inline-block rounded-full bg-brand px-2 py-0.5 text-[10px] font-bold text-white">
+                          ✓ বাছাই করা
+                        </span>
+                      ) : null}
+                      {t.stickyBar ? (
+                        <span className="mt-2 inline-block rounded-full bg-gray-100 px-2 py-0.5 text-[10px] font-bold text-gray-600">
+                          স্টিকি অর্ডার বার
+                        </span>
+                      ) : null}
+                    </button>
+                  ))}
+                </div>
+              )}
             </StepCard>
 
             <div className="rounded-2xl border border-gray-200 bg-white p-5">
@@ -1305,7 +1345,8 @@ export default function ProductBuilder({
               <button
                 type="button"
                 onClick={goNext}
-                className="rounded-xl bg-brand px-6 py-3 font-semibold text-white"
+                disabled={!template}
+                className="rounded-xl bg-brand px-6 py-3 font-semibold text-white disabled:opacity-50"
               >
                 পরের ধাপ →
               </button>

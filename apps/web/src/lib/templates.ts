@@ -1,12 +1,11 @@
-// ২০টি ল্যান্ডিং পেজ টেমপ্লেট — বিল্ডারে সবগুলোই বাছাই করা যায়।
-// হোম পেজের গ্যালারিতে শুধু ৪টি দেখানো হয় (নিচে INTRO_TEMPLATES)।
+// টেমপ্লেট রেজিস্ট্রি — আপাতত খালি। ২০টি পুরনো টেমপ্লেট সরিয়ে দেওয়া
+// হয়েছে (২৮ নভে ২০২৬, মালিকের সিদ্ধান্ত) — একটা একটা করে নতুন
+// ডিজাইনে আবার বানানো হবে। রেজিস্ট্রি খালি থাকায় কোনো কাস্টমার
+// পেজ পুরনো ডিজাইনে দেখাবে না, বিল্ডারে বাছাই করার মতো কিছু
+// থাকবে না, আর নতুন পেজ প্রকাশ করা যাবে না। পুরনো টেমপ্লেটের
+// কোড মুছে ফেলা হয়নি — CustomerPage-এর ব্রাঞ্চগুলো গিট
+// ইতিহাসে আছে, তবে রেজিস্ট্রি খালি বলে এখন অচল (unreachable)।
 // নিয়ম: ভুয়া রিভিউ/রেটিং/ছাড়/কাউন্টডাউন নেই — শুধু আসল সেভ করা ডাটা।
-// স্টিকি মোবাইল অর্ডার বার: aura/nova/social-proof-এ শেয়ার করা বার;
-// luxury-premium-এ নিজের সোনালি বার, fashion-store-এ নিজের সবুজ বার,
-// tech-gadget-এ নিজের সায়ান বার, bd-single-product-এ নিজের সবুজ COD বার,
-// lavender-premium/emerald-trust/midnight-premium/sunset-offer/
-// signature-pro/classic-green/marketplace-pro-এ নিজের বার (রেজিস্ট্রিতে stickyBar: false — শেয়ার করা
-// লাল বার যাতে না বসে)।
 
 import type { TemplateId } from './types.ts'
 
@@ -19,179 +18,15 @@ export interface TemplateMeta {
   accentClass: string
 }
 
-export const TEMPLATES: TemplateMeta[] = [
-  {
-    id: 'minimal-white',
-    nameBn: 'Minimal White',
-    taglineBn: 'পরিষ্কার সাদা, পণ্যটাই মূল আকর্ষণ',
-    dark: false,
-    stickyBar: false,
-    accentClass: 'bg-white text-gray-900',
-  },
-  {
-    id: 'offer-special',
-    nameBn: 'Offer Special',
-    taglineBn: 'ছাড়ের অফার বড় করে দেখায়',
-    dark: false,
-    stickyBar: false,
-    accentClass: 'bg-accent text-white',
-  },
-  {
-    id: 'modern-premium',
-    nameBn: 'Modern Premium',
-    taglineBn: 'গাঢ় সবুজ হেডার, প্রিমিয়াম কার্ড',
-    dark: false,
-    stickyBar: false,
-    accentClass: 'bg-brand text-white',
-  },
-  {
-    id: 'premium-ecommerce',
-    nameBn: 'Premium E-commerce',
-    taglineBn: 'দোকানের মতো দুই কলামের লেআউট',
-    dark: false,
-    stickyBar: false,
-    accentClass: 'bg-white text-gray-900',
-  },
-  {
-    id: 'premium-dark',
-    nameBn: 'Premium Dark',
-    taglineBn: 'গাঢ় অন্ধকার থিম',
-    dark: true,
-    stickyBar: false,
-    accentClass: 'bg-gray-900 text-white',
-  },
-  {
-    id: 'aura-premium',
-    nameBn: 'Aura Premium',
-    taglineBn: 'নরম গ্রেডিয়েন্ট, গোলাকার কার্ড',
-    dark: false,
-    stickyBar: true,
-    accentClass: 'bg-brand text-white',
-  },
-  {
-    id: 'nova-editorial',
-    nameBn: 'Nova Editorial',
-    taglineBn: 'ম্যাগাজিনের মতো বড় টাইপ',
-    dark: false,
-    stickyBar: true,
-    accentClass: 'bg-gray-900 text-white',
-  },
-  {
-    id: 'social-proof',
-    nameBn: 'Social Proof',
-    taglineBn: 'রিভিউ সামনে, আস্থা বাড়ায়',
-    dark: false,
-    stickyBar: true,
-    accentClass: 'bg-brand text-white',
-  },
-  {
-    id: 'luxury-premium',
-    nameBn: 'Luxury Premium',
-    taglineBn: 'কালো-সোনালি বিলাসবহুল ডার্ক থিম',
-    dark: true,
-    stickyBar: true,
-    accentClass: 'bg-[#D6B36A] text-[#0B0B0D]',
-  },
-  {
-    id: 'fashion-store',
-    nameBn: 'Fashion Store',
-    taglineBn: 'ফ্যাশন এডিটোরিয়াল, হালকা আইভরি লুক',
-    dark: false,
-    stickyBar: false,
-    accentClass: 'bg-[#EAF3ED] text-[#1D7658]',
-  },
-  {
-    id: 'tech-gadget',
-    nameBn: 'Tech & Gadget',
-    taglineBn: 'ফিউচারিস্টিক টেক লুক, গাঢ় নেভি-সায়ান থিম',
-    dark: true,
-    stickyBar: false,
-    accentClass: 'bg-[#19C8F0] text-[#080D18]',
-  },
-  {
-    id: 'beauty-cosmetics',
-    nameBn: 'Beauty & Cosmetics',
-    taglineBn: 'নরম গোলাপি বিউটি লুক, ম্যাগাজিন স্টাইল',
-    dark: false,
-    stickyBar: false,
-    accentClass: 'bg-[#FCECEF] text-[#D86F91]',
-  },
-  {
-    id: 'bd-single-product',
-    nameBn: 'BD Single Product',
-    taglineBn: 'বাংলাদেশি ফেসবুক সেলারের ক্লাসিক সিঙ্গেল-প্রোডাক্ট পেজ',
-    dark: false,
-    stickyBar: false,
-    accentClass: 'bg-[#16A34A] text-white',
-  },
-  {
-    id: 'lavender-premium',
-    nameBn: 'Lavender Premium',
-    taglineBn: 'নরম ল্যাভেন্ডার, দুই কলামের প্রিমিয়াম হিরো',
-    dark: false,
-    stickyBar: false,
-    accentClass: 'bg-[#EDE9FE] text-[#7C3AED]',
-  },
-  {
-    id: 'emerald-trust',
-    nameBn: 'Emerald Trust',
-    taglineBn: 'পরিষ্কার সবুজ, আস্থার ট্রাস্ট স্ট্রিপ',
-    dark: false,
-    stickyBar: false,
-    accentClass: 'bg-[#D1FAE5] text-[#047857]',
-  },
-  {
-    id: 'midnight-premium',
-    nameBn: 'Midnight Premium',
-    taglineBn: 'গাঢ় মিডনাইট নীল, ভায়োলেট অ্যাকসেন্ট',
-    dark: true,
-    stickyBar: false,
-    accentClass: 'bg-[#1E1B3A] text-[#A78BFA]',
-  },
-  {
-    id: 'sunset-offer',
-    nameBn: 'Sunset Offer',
-    taglineBn: 'উষ্ণ অফার লুক, ছাড় বড় করে',
-    dark: false,
-    stickyBar: false,
-    accentClass: 'bg-[#FFEDD5] text-[#EA580C]',
-  },
-  {
-    id: 'signature-pro',
-    nameBn: 'Signature Pro',
-    taglineBn: 'সেরা পেশাদার লুক — শান্ত, পরিমিত, প্রিমিয়াম',
-    dark: false,
-    stickyBar: false,
-    accentClass: 'bg-[#F1EEE5] text-[#14532D]',
-  },
-  {
-    id: 'classic-green',
-    nameBn: 'Classic Green',
-    taglineBn: 'ক্লাসিক সবুজ — সহজ, পরিষ্কার, সবার চেনা লুক',
-    dark: false,
-    stickyBar: false,
-    accentClass: 'bg-[#006a4e] text-white',
-  },
-  {
-    id: 'marketplace-pro',
-    nameBn: 'Marketplace Pro',
-    taglineBn: 'মার্কেটপ্লেস ধাঁচের প্রোডাক্ট পেজ — ব্রেডক্রাম্ব, ডেলিভারি বাক্স, আরও পণ্য',
-    dark: false,
-    stickyBar: false,
-    accentClass: 'bg-[#F97316] text-white',
-  },
-]
+export const TEMPLATES: TemplateMeta[] = []
 
-// হোম পেজের গ্যালারিতে ঠিক এই ৪টি দেখানো হয়।
-export const INTRO_TEMPLATES: TemplateId[] = [
-  'minimal-white',
-  'signature-pro',
-  'marketplace-pro',
-  'midnight-premium',
-]
+// হোম পেজের গ্যালারির তালিকা — রেজিস্ট্রির মতোই খালি।
+export const INTRO_TEMPLATES: TemplateId[] = []
 
-export function templateById(id: TemplateId): TemplateMeta {
-  return TEMPLATES.find((t) => t.id === id) ?? TEMPLATES[0]
+// রেজিস্ট্রিতে না থাকলে undefined — কলারকে গার্ড করতে হয়
+// (CustomerPage বন্ধ নোটিশ দেখায়, Products '—' দেখায়)।
+export function templateById(id: TemplateId): TemplateMeta | undefined {
+  return TEMPLATES.find((t) => t.id === id)
 }
 
 // পেজের সেকশন — ক্রম ও চালু/বন্ধ বিল্ডার থেকে বদলানো যায়।

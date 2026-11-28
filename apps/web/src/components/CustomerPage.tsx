@@ -19,7 +19,7 @@ import {
   formatBDT,
   toBnDigits,
 } from '../lib/pricing.ts'
-import { templateById } from '../lib/templates.ts'
+import { TEMPLATES, templateById } from '../lib/templates.ts'
 import type {
   CustomerPageData,
   PageRow,
@@ -852,6 +852,9 @@ export default function CustomerPage({
   preview?: boolean
 }) {
   const { page, product, shop, images, sellerWhatsapp } = data
+  // টেমপ্লেট সরানো হয়েছে — রেজিস্ট্রি খালি। পণ্যের টেমপ্লেট
+  // রেজিস্ট্রিতে না থাকলে পেজটা বন্ধ নোটিশই দেখাবে (নিচের গেট)।
+  const closed = !TEMPLATES.some((t) => t.id === page.template)
   // বিল্ডার প্রিভিউতে পেজটা সেলার শেলের ভেতরে বসে — ফোনে নিচে
   // ট্যাব বার (হোম/পণ্য/অর্ডার/সেটিংস, ৪৯px) থাকে। প্রিভিউতে স্টিকি
   // অর্ডার বারগুলো তাই ট্যাব বারের ওপরে উঠে বসে, নইলে ট্যাব বার
@@ -876,6 +879,11 @@ export default function CustomerPage({
   // আলাদা ধাপ হিসেবে লাগবে (এই কাজে নেই)।
   useEffect(() => {
     if (preview) return
+    // বন্ধ পেজে পণ্যের SEO/OG মেটা বসবে না — শুধু দোকানের নাম।
+    if (closed) {
+      document.title = shop.name
+      return
+    }
     const title = `${product.name} | ${shop.name}`
     document.title = title
     const descText = (shortDesc ?? product.description ?? '')
@@ -926,6 +934,30 @@ export default function CustomerPage({
   const [techOpenFaq, setTechOpenFaq] = useState<number | null>(null)
   const t: StringsType = customerStrings(page.page_lang)
   const meta = templateById(page.template)
+  // টেমপ্লেট সরানো হয়েছে — রেজিস্ট্রিতে নেই এমন টেমপ্লেটের পেজ
+  // শুধু বন্ধ নোটিশ দেখাবে: দোকানের নাম + দুই লাইন। হিরো,
+  // গ্যালারি, দাম, সেকশন, ফর্ম, স্টিকি বার, যোগাযোগ কার্ড,
+  // অর্ডারের বোতাম — কিছুই রেন্ডার হবে না। বিল্ডার প্রিভিউতেও
+  // একই নোটিশ (preview=true হলেও গেটের আগেই সব হুক চলেছে,
+  // তাই হুকের নিয়ম ভাঙে না)।
+  if (!meta) {
+    return (
+      <div className="flex min-h-screen flex-col items-center justify-center bg-white px-6 py-16 text-center">
+        <span className="flex h-14 w-14 items-center justify-center rounded-full bg-[#006a4e] text-2xl font-extrabold text-white">
+          {shop.name.charAt(0)}
+        </span>
+        <p className="mt-4 text-xl font-extrabold text-gray-900">
+          {shop.name}
+        </p>
+        <p className="mt-3 text-base font-bold text-[#006a4e]">
+          এই পেজটি এখন বন্ধ আছে
+        </p>
+        <p className="mt-1 text-sm text-gray-600">
+          নতুন ডিজাইনে শীঘ্রই ফিরে আসছে।
+        </p>
+      </div>
+    )
+  }
   const dark = meta.dark
   const discount = discountPercent(product.price, product.old_price)
   const showGallery =

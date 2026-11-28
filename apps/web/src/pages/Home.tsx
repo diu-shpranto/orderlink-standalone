@@ -2,14 +2,15 @@
 // সাদা ন্যাভবার (গাঢ় সবুজ লিংক), গাঢ় সবুজ হিরো + গ্লো, CSS ফোন মকআপ
 // (আঁকা ওয়ালেট), সমস্যার স্ট্রিপ (ডট টেক্সচার), ৪ ধাপের স্লাইডার
 // (প্রতি ধাপে ছোট ফোন ভিজ্যুয়াল; ফোনে শুধু সক্রিয় ধাপ),
-// সবুজ টাইলসহ ৬ ফিচার, টেমপ্লেট গ্যালারি (ঠিক ৪টি, ব্রাউজার ফ্রেমে
-// আসল ডেমো পেজের রেন্ডার), প্রাইসিং (৪ প্যাকেজ), ৫ প্রশ্নের FAQ,
+// সবুজ টাইলসহ ৫ ফিচার, প্রাইসিং (৪ প্যাকেজ), ৫ প্রশ্নের FAQ,
+// ৮৮০px গ্রেডিয়েন্ট CTA কার্ড, প্রিমিয়াম ফুটার। টেমপ্লেট
+// গ্যালারি সরানো হয়েছে (২৮ নভে ২০২৬) — টেমপ্লেট একটা একটা
+// করে নতুন ডিজাইনে আসছে।
 // ৮৮০px গ্রেডিয়েন্ট CTA কার্ড, প্রিমিয়াম ফুটার।
 // কোনো ভুয়া পরিসংখ্যান নেই — সংখ্যা শুধু প্যাকেজের দাম/সীমা।
 import { useEffect, useState } from 'react'
 import { LogoWordmark } from '../components/Logo.tsx'
 import {
-  IconBox,
   IconCheck,
   IconDoc,
   IconMenu,
@@ -23,7 +24,6 @@ import { storageLabel } from '../lib/catalog.ts'
 import { fetchPlans, type PlanRow } from '../lib/subscription.ts'
 import { discountPercent, formatBDT, toBnDigits } from '../lib/pricing.ts'
 import { navigate } from '../lib/router.ts'
-import { INTRO_TEMPLATES, templateById } from '../lib/templates.ts'
 
 const DEMO_WALLET = {
   shopName: 'ডেমো শপ',
@@ -32,17 +32,6 @@ const DEMO_WALLET = {
   oldPrice: 1200,
 }
 
-const DEMO_EARBUDS = {
-  shopName: 'ডেমো শপ',
-  productName: 'ওয়্যারলেস ব্লুটুথ ইয়ারবাড',
-  price: 1250,
-  oldPrice: 1800,
-}
-
-// গ্যালারির ৪ কার্ডে দুই ডেমো পণ্য পর্যায়ক্রমে — লাইভ অ্যাপের মতো
-// প্রতিটা কার্ড আলাদা টেমপ্লেটের পরিচয় নিয়ে আসে।
-const GALLERY_PRODUCTS = [DEMO_WALLET, DEMO_EARBUDS, DEMO_WALLET, DEMO_EARBUDS]
-
 const STEPS = [
   {
     title: 'অ্যাকাউন্ট খুলুন',
@@ -50,7 +39,7 @@ const STEPS = [
   },
   {
     title: 'প্রোডাক্ট যোগ করুন',
-    text: 'ছবি, দাম, বিবরণ দিন — ২০টি টেমপ্লেট থেকে পেজের ডিজাইন বেছে নিন।',
+    text: 'ছবি, দাম, বিবরণ দিন — পেজের ডিজাইন বেছে নিন।',
   },
   {
     title: 'লিংক শেয়ার করুন',
@@ -77,11 +66,6 @@ const FEATURES = [
     title: 'অর্ডার ব্যবস্থাপনা',
     text: 'অর্ডারের স্ট্যাটাস, ফোনে কল, হিসাব — সব এক জায়গায়।',
     icon: <IconReceipt className="h-5 w-5" />,
-  },
-  {
-    title: '২০টি টেমপ্লেট',
-    text: 'পণ্য অনুযায়ী ডিজাইন বেছে নিন — সাদা, অফার, প্রিমিয়াম, ডার্ক, মার্কেটপ্লেস।',
-    icon: <IconBox className="h-5 w-5" />,
   },
   {
     title: 'মোবাইল-ফ্রেন্ডলি',
@@ -122,7 +106,6 @@ const NAV_LINKS = [
   { href: '#home', label: 'হোম' },
   { href: '#features', label: 'ফিচার' },
   { href: '#how', label: 'কীভাবে কাজ করে' },
-  { href: '#templates', label: 'টেমপ্লেট' },
   { href: '#pricing', label: 'প্রাইসিং' },
   { href: '#faq', label: 'জিজ্ঞাসা' },
 ]
@@ -296,91 +279,6 @@ function StepPhone({ step }: { step: number }) {
         )}
       </div>
     </div>
-  )
-}
-
-function TemplateMiniCard({
-  templateId,
-  product,
-}: {
-  templateId: string
-  product: typeof DEMO_WALLET
-}) {
-  const meta = templateById(
-    templateId as Parameters<typeof templateById>[0],
-  )
-  const dark = meta.dark
-  const headerClass =
-    templateId === 'offer-special'
-      ? 'bg-accent text-white'
-      : templateId === 'premium-ecommerce'
-        ? 'bg-brand text-white'
-        : dark
-          ? 'bg-gray-800 text-white'
-          : 'bg-gray-100 text-gray-700'
-  const bodyClass = dark
-    ? 'bg-gray-900'
-    : templateId === 'offer-special'
-      ? 'bg-red-50'
-      : templateId === 'premium-ecommerce'
-        ? 'bg-brand-light/60'
-        : 'bg-white'
-  const discount = discountPercent(product.price, product.oldPrice)
-  return (
-    <article className="overflow-hidden rounded-2xl border border-gray-200 bg-white shadow-sm">
-      {/* ব্রাউজার ফ্রেম */}
-      <div className="flex items-center gap-1.5 border-b border-gray-100 bg-gray-50 px-3 py-2">
-        <span className="h-2.5 w-2.5 rounded-full bg-red-400" />
-        <span className="h-2.5 w-2.5 rounded-full bg-amber-400" />
-        <span className="h-2.5 w-2.5 rounded-full bg-green-400" />
-        <span className="ml-1 min-w-0 flex-1 truncate rounded-md bg-white px-2 py-0.5 text-[10px] text-gray-400">
-          orderlinkbd.netlify.app/ডেমো-শপ/…
-        </span>
-        <span className="shrink-0 rounded-full bg-brand-light px-2 py-0.5 text-[10px] font-bold text-brand-dark">
-          প্রিভিউ
-        </span>
-      </div>
-      {/* মিনি পেজ রেন্ডার */}
-      <div className={`p-3 ${bodyClass}`}>
-        <div
-          className={`rounded-lg px-3 py-2 text-xs font-bold ${headerClass}`}
-        >
-          {meta.nameBn}
-        </div>
-        <div className="mt-2.5">
-          <ProductArt
-            product={product}
-            className="aspect-[16/10] w-full rounded-xl"
-          />
-        </div>
-        <p
-          className={`mt-2.5 text-sm font-bold ${dark ? 'text-white' : 'text-gray-900'}`}
-        >
-          {product.productName}
-        </p>
-        <p className="mt-1 text-sm">
-          <span
-            className={`font-extrabold ${dark ? 'text-white' : 'text-gray-900'}`}
-          >
-            {formatBDT(product.price)}
-          </span>{' '}
-          <span className="text-gray-400 line-through">
-            {formatBDT(product.oldPrice)}
-          </span>{' '}
-          {discount > 0 ? (
-            <span className="rounded-full bg-accent px-2 py-0.5 text-[10px] font-bold text-white">
-              {toBnDigits(discount)}% ছাড়
-            </span>
-          ) : null}
-        </p>
-      </div>
-      <div className="border-t border-gray-100 p-4">
-        <p className="text-sm font-bold text-gray-900">{meta.nameBn}</p>
-        <p className="mt-1 text-xs leading-relaxed text-gray-500">
-          {meta.taglineBn}
-        </p>
-      </div>
-    </article>
   )
 }
 
@@ -701,26 +599,6 @@ export default function Home() {
         </div>
       </section>
 
-      {/* টেমপ্লেট গ্যালারি — ঠিক ৪টি */}
-      <section id="templates" className="bg-gray-50 py-12">
-        <div className="mx-auto max-w-[1320px] px-4">
-          <h2 className="text-center text-2xl font-extrabold">
-            পেজের ডিজাইন বেছে নিন
-          </h2>
-          <p className="mt-2 text-center text-sm text-gray-600">
-            বিল্ডারে মোট ২০টি টেমপ্লেট — এখানে ৪টির নমুনা।
-          </p>
-          <div className="mt-8 grid gap-4 sm:grid-cols-2 lg:grid-cols-4">
-            {INTRO_TEMPLATES.map((id, i) => (
-              <TemplateMiniCard
-                key={id}
-                templateId={id}
-                product={GALLERY_PRODUCTS[i % GALLERY_PRODUCTS.length]}
-              />
-            ))}
-          </div>
-        </div>
-      </section>
 
       {/* প্রাইসিং */}
       <section id="pricing" className="bg-cream py-12">

@@ -38,7 +38,9 @@ export interface BuilderDraft {
   reviews: ReviewItem[]
   faqs: FaqItem[]
   deliveryInfo: string
-  template: TemplateId
+  // টেমপ্লেট না বাছা থাকলে '' — রেজিস্ট্রি খালি বলে নতুন পণ্যে
+  // এটাই ডিফল্ট; পুরনো পণ্যের সেভ করা টেমপ্লেট id অপরিবর্তিত থাকে।
+  template: TemplateId | ''
   sections: Record<string, boolean>
   sectionOrder: string[]
   pageLang: PageLang

@@ -599,7 +599,10 @@ export default function Products() {
                             {fullUrl || '—'}
                           </p>
                           {item.page ? (
-                            <p>{templateById(item.page.template).nameBn}</p>
+                            <p>
+                              {templateById(item.page.template)?.nameBn ??
+                                '—'}
+                            </p>
                           ) : null}
                           <p>
                             {formatCountBn(item.orderCount)}টি অর্ডার এসেছে
