@@ -47,6 +47,9 @@ export interface ReviewItem {
   photo_url?: string
   /** রিভিউর স্ক্রিনশট (Storage-এর পাবলিক URL) — ঐচ্ছিক, আসল আকারেই থাকে। */
   screenshot_url?: string
+  /** যাচাইকৃত ক্রয় — ডাটায় স্পষ্টভাবে true থাকলেই ব্যাজ দেখায়;
+      ফ্ল্যাগ না থাকলে কখনো আন্দাজে "যাচাইকৃত" ধরা হয় না। */
+  verified?: boolean
 }
 
 /** একাধিক ভিডিও — pages.video_urls (JSONB) এর একটি এন্ট্রি। */

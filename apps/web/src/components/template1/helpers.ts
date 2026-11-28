@@ -4,6 +4,8 @@
 // টেমপ্লেটের চেহারা মেলাতে)।
 import { toBnDigits } from '../../lib/pricing.ts'
 
+import type { DeliveryArea } from './types.ts'
+
 /** সংখ্যা বাংলায় — 1490 → "১,৪৯০"। */
 export function bn(value: number): string {
   return value.toLocaleString('bn-BD')
@@ -27,6 +29,39 @@ export function telHref(phone: string): string {
   if (phone.startsWith('880')) return `tel:+${phone}`
   if (phone.startsWith('0')) return `tel:+88${phone}`
   return `tel:${phone}`
+}
+
+/** YouTube লিংক থেকে ভিডিও আইডি — watch / youtu.be / shorts /
+    embed সব আকার চলে (CustomerPage-এর youtubeEmbedId-এর মতোই)।
+    YouTube-এর বাইরের লিংক হলে null। */
+export function youtubeEmbedId(url: string): string | null {
+  const m = url.match(
+    /(?:youtu\.be\/|youtube\.com\/(?:watch\?v=|embed\/|shorts\/))([A-Za-z0-9_-]{6,})/,
+  )
+  return m ? m[1] : null
+}
+
+/** কার্যকর ডেলিভারি চার্জ — lib/orders.ts-এর deliveryChargeFor-এর
+    নিয়মেরই আয়না: ফ্রি-ডেলিভারি সীমা থাকলে আর পণ্যের মোট সেই
+    সীমা ছাড়ালে চার্জ ০, নইলে এলাকা অনুযায়ী চার্জ। দেখানো হিসাব
+    আর placeOrder-এ জমা হওয়া চার্জ একই নিয়মে হয় বলে দুটো
+    কখনো আলাদা হয় না। নিয়ম বদলালে দুই জায়গাতেই বদলাতে হবে। */
+export function effectiveDeliveryCharge(
+  inside: number,
+  outside: number,
+  freeDeliveryThreshold: number | null | undefined,
+  subtotal: number,
+  area: DeliveryArea,
+): number {
+  if (
+    freeDeliveryThreshold !== null &&
+    freeDeliveryThreshold !== undefined &&
+    freeDeliveryThreshold > 0 &&
+    subtotal >= freeDeliveryThreshold
+  ) {
+    return 0
+  }
+  return area === 'inside' ? inside : outside
 }
 
 /** কিবোর্ড ফোকাসে দেখা যায় এমন আউটলাইন (রেফারেন্সের সবুজ রিং)। */

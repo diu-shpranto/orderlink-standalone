@@ -5,12 +5,17 @@
 // "অপেক্ষা করুন..." আর ডাবল ক্লিক বন্ধ থাকে। সফল হলে ফর্ম
 // লুকিয়ে "অর্ডার পাওয়া গেছে" দেখায়। পরিমাণ ও এলাকা
 // TemplateOne-এর স্টেট (সারাংশের হিসাবের জন্য লিফট করা)।
+// জমা আসল: lib/orders.ts-এর placeOrder দিয়ে অর্ডার সেলারের
+// ড্যাশবোর্ডে যায়, তারপর triggerOrderSync-এ Google Sheet-এ
+// সিঙ্ক হয় (আগের শেয়ার করা ফর্মের মতোই)। এই ফর্মে বিভাগ/
+// জেলার আলাদা বক্স নেই — ঠিকানা এক বক্সেই লেখা হয়, তাই
+// division/district/upazila খালি যায়; নোটের বক্সও নেই।
 import { useRef, useState } from 'react'
 import type { FormEvent } from 'react'
-import { submitOrder } from '../../services/orders.ts'
-import type { DeliveryArea } from '../../services/orders.ts'
-import { bdt, bn, FOCUS_RING } from './helpers.ts'
-import type { TemplateOneProduct } from './types.ts'
+import { placeOrder } from '../../lib/orders.ts'
+import { triggerOrderSync } from '../../lib/sheets.ts'
+import { bdt, bn, effectiveDeliveryCharge, FOCUS_RING } from './helpers.ts'
+import type { DeliveryArea, TemplateOneProduct } from './types.ts'
 
 const PHONE_RE = /^01[3-9][0-9]{8}$/
 
@@ -49,12 +54,6 @@ export default function TemplateOneOrderForm({
   const phoneRef = useRef<HTMLInputElement>(null)
   const addressRef = useRef<HTMLTextAreaElement>(null)
 
-  const deliveryCharge =
-    area === 'inside'
-      ? product.deliveryCharges.inside
-      : product.deliveryCharges.outside
-  const total = product.price * quantity + deliveryCharge
-
   function validate(): FieldErrors {
     const next: FieldErrors = {}
     if (name.trim().length < 2) next.name = 'আপনার নাম লিখুন'
@@ -84,16 +83,26 @@ export default function TemplateOneOrderForm({
     setSubmitFailed(false)
     setBusy(true)
     try {
-      await submitOrder({
-        productName: product.name,
+      // আসল জমা — orderContext না থাকলে (শুধু নমুনা প্রিভিউ)
+      // অর্ডার তৈরি হয় না, শুধু ব্যর্থতার লেখা দেখায়।
+      const orderContext = product.orderContext
+      if (!orderContext) throw new Error('অর্ডার জমা দেওয়া যায়নি।')
+      const placed = await placeOrder({
+        shop: orderContext.shop,
+        product: orderContext.product,
         customerName: name.trim(),
         customerPhone: phone.trim(),
-        address: address.trim(),
+        division: '',
+        district: '',
+        upazila: '',
+        addressLine: address.trim(),
         deliveryArea: area,
-        deliveryCharge,
         quantity,
-        total,
+        customerNote: '',
       })
+      // Sheet সিঙ্ক — আগের শেয়ার করা ফর্মের মতোই, id থাকলেই
+      // ফায়ার-অ্যান্ড-ফরগেট; সিঙ্ক ব্যর্থ হলেও অর্ডার আটকায় না।
+      if (placed.id) triggerOrderSync(placed.id)
       setPlaced(true)
     } catch {
       setSubmitFailed(true)
@@ -219,10 +228,15 @@ export default function TemplateOneOrderForm({
               { value: 'outside', label: 'ঢাকার বাইরে' },
             ] as const
           ).map((option) => {
-            const charge =
-              option.value === 'inside'
-                ? product.deliveryCharges.inside
-                : product.deliveryCharges.outside
+            // প্রতিটা এলাকার চার্জও একই নিয়মে (ফ্রি-ডেলিভারি সীমাসহ)
+            // — লেবেলের চার্জ আর মোটের চার্জ কখনো আলাদা হয় না।
+            const charge = effectiveDeliveryCharge(
+              product.deliveryCharges.inside,
+              product.deliveryCharges.outside,
+              product.freeDeliveryThreshold,
+              product.price * quantity,
+              option.value,
+            )
             const checked = area === option.value
             return (
               <label
@@ -242,7 +256,8 @@ export default function TemplateOneOrderForm({
                   className="h-[18px] w-[18px] shrink-0 accent-[#0B5D3B]"
                 />
                 <span>
-                  {option.label} {bdt(charge)}
+                  {option.label}{' '}
+                  {charge > 0 ? bdt(charge) : 'ফ্রি ডেলিভারি'}
                 </span>
               </label>
             )

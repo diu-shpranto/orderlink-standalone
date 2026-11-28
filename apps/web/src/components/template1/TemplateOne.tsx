@@ -1,20 +1,26 @@
 // "টেমপ্লেট ১ — ইয়ারবাডস" — একটাই product অবজেক্ট + seller
 // থেকে পুরো ল্যান্ডিং পেজ। রেফারেন্স ডিজাইনের মতো: হেডার,
-// দুই কলামের হিরো (গ্যালারি + তথ্য), স্পেসিফিকেশন, সবুজ
-// অর্ডার ব্লক (বাঁয়ে সারাংশ, ডানে ফর্ম), ফুটার, মোবাইল
-// স্টিকি বার, লাইটবক্স। পরিমাণ ও ডেলিভারি এলাকার স্টেট
-// এখানে থাকে, যাতে সারাংশের হিসাব লাইভ বদলায়।
+// দুই কলামের হিরো (গ্যালারি + তথ্য), বিবরণ, স্পেসিফিকেশন,
+// ভিডিও, কাস্টমার রিভিউ, সবুজ অর্ডার ব্লক (বাঁয়ে সারাংশ,
+// ডানে ফর্ম), ফুটার, মোবাইল স্টিকি বার, লাইটবক্স। পরিমাণ ও
+// ডেলিভারি এলাকার স্টেট এখানে থাকে, যাতে সারাংশের হিসাব
+// লাইভ বদলায়। ভিডিও/রিভিউ/বিবরণ না থাকলে সেই সেকশন আসে না।
 import { useCallback, useState } from 'react'
-import type { DeliveryArea } from '../../services/orders.ts'
 import TemplateOneGallery from './Gallery.tsx'
 import TemplateOneHeader from './Header.tsx'
-import { bdt } from './helpers.ts'
+import { bdt, effectiveDeliveryCharge } from './helpers.ts'
 import TemplateOneLightbox from './Lightbox.tsx'
 import TemplateOneOrderForm from './OrderForm.tsx'
 import TemplateOneProductInfo from './ProductInfo.tsx'
+import TemplateOneReviews from './Reviews.tsx'
 import TemplateOneSpecs from './Specs.tsx'
 import TemplateOneStickyBar from './StickyBar.tsx'
-import type { TemplateOneProduct, TemplateOneSeller } from './types.ts'
+import TemplateOneVideoSection from './VideoSection.tsx'
+import type {
+  DeliveryArea,
+  TemplateOneProduct,
+  TemplateOneSeller,
+} from './types.ts'
 
 export default function TemplateOne({
   seller,
@@ -28,12 +34,19 @@ export default function TemplateOne({
   const [lightboxIndex, setLightboxIndex] = useState<number | null>(null)
   const [quantity, setQuantity] = useState(1)
   const [area, setArea] = useState<DeliveryArea>('inside')
+  const [activeVideo, setActiveVideo] = useState(0)
+  const [autoplayVideo, setAutoplayVideo] = useState(false)
 
-  const deliveryCharge =
-    area === 'inside'
-      ? product.deliveryCharges.inside
-      : product.deliveryCharges.outside
   const productTotal = product.price * quantity
+  // দেখানো ডেলিভারি চার্জ আর placeOrder-এ জমা হওয়া চার্জ একই
+  // নিয়মে (ফ্রি-ডেলিভারি সীমাসহ) হিসাব হয় — দুটো আলাদা হয় না।
+  const deliveryCharge = effectiveDeliveryCharge(
+    product.deliveryCharges.inside,
+    product.deliveryCharges.outside,
+    product.freeDeliveryThreshold,
+    productTotal,
+    area,
+  )
   const total = productTotal + deliveryCharge
 
   const openLightbox = useCallback((index: number) => {
@@ -51,6 +64,20 @@ export default function TemplateOne({
     [images.length],
   )
 
+  const selectVideo = useCallback((index: number) => {
+    setActiveVideo(index)
+    setAutoplayVideo(true)
+  }, [])
+  const selectVideoFromGallery = useCallback((index: number) => {
+    selectVideo(index)
+    const reduced = window.matchMedia(
+      '(prefers-reduced-motion: reduce)',
+    ).matches
+    document
+      .getElementById('video')
+      ?.scrollIntoView({ behavior: reduced ? 'auto' : 'smooth' })
+  }, [selectVideo])
+
   return (
     <div className="min-h-screen bg-[#FAFAF7] text-[17px] leading-[1.6] text-[#14211A] max-[860px]:text-base">
       <TemplateOneHeader seller={seller} />
@@ -62,11 +89,38 @@ export default function TemplateOne({
             activeIndex={activeIndex}
             onSelect={setActiveIndex}
             onOpen={openLightbox}
+            videos={product.videos ?? []}
+            onSelectVideo={selectVideoFromGallery}
           />
           <TemplateOneProductInfo product={product} />
         </div>
 
+        {product.shortDescription ? (
+          <section className="py-6">
+            <h2 className="mb-3 text-2xl font-bold min-[861px]:text-[28px]">
+              পণ্যের বিবরণ
+            </h2>
+            <p className="m-0 max-w-[720px] leading-relaxed">
+              {product.shortDescription}
+            </p>
+          </section>
+        ) : null}
+
         <TemplateOneSpecs specs={product.specs} />
+
+        <TemplateOneVideoSection
+          videos={product.videos ?? []}
+          productName={product.name}
+          activeIndex={activeVideo}
+          onSelect={selectVideo}
+          autoplay={autoplayVideo}
+        />
+
+        <TemplateOneReviews
+          reviews={product.reviews ?? []}
+          rating={product.rating}
+          reviewCount={product.reviewCount}
+        />
 
         <section
           id="order"

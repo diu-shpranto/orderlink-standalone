@@ -10,7 +10,7 @@ export default function TemplateOneSpecs({
 }) {
   if (specs.length === 0) return null
   return (
-    <section className="py-9">
+    <section className="py-7">
       <h2 className="mb-5 text-2xl font-bold min-[861px]:text-[28px]">
         স্পেসিফিকেশন
       </h2>
