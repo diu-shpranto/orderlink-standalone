@@ -133,7 +133,7 @@ export default function SubscriptionSettings() {
     setSubmitError('')
     setSubmitDone(false)
     if (!selectedPlan) {
-      setSubmitError('প্যাকেজ বাছুন।')
+      setSubmitError('প্যাকেজ বেছে নিন।')
       return
     }
     if (!trxid.trim()) {
@@ -338,7 +338,7 @@ export default function SubscriptionSettings() {
         ) : (
           <form onSubmit={handleSubmitPayment}>
             <p className="mt-3 text-sm font-bold text-gray-800">
-              প্যাকেজ বাছুন
+              প্যাকেজ বেছে নিন
             </p>
             <div className="mt-2 grid gap-2 sm:grid-cols-2">
               {plans.map((pkg) => {

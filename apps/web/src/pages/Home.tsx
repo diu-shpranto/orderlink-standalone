@@ -50,7 +50,7 @@ const STEPS = [
   },
   {
     title: 'প্রোডাক্ট যোগ করুন',
-    text: 'ছবি, দাম, বিবরণ দিন — ৮টি টেমপ্লেট থেকে পেজের ডিজাইন বাছুন।',
+    text: 'ছবি, দাম, বিবরণ দিন — ৮টি টেমপ্লেট থেকে পেজের ডিজাইন বেছে নিন।',
   },
   {
     title: 'লিংক শেয়ার করুন',
@@ -80,7 +80,7 @@ const FEATURES = [
   },
   {
     title: '৮টি টেমপ্লেট',
-    text: 'পণ্য অনুযায়ী ডিজাইন বাছুন — সাদা, অফার, প্রিমিয়াম, ডার্ক।',
+    text: 'পণ্য অনুযায়ী ডিজাইন বেছে নিন — সাদা, অফার, প্রিমিয়াম, ডার্ক।',
     icon: <IconBox className="h-5 w-5" />,
   },
   {
@@ -705,7 +705,7 @@ export default function Home() {
       <section id="templates" className="bg-gray-50 py-12">
         <div className="mx-auto max-w-[1320px] px-4">
           <h2 className="text-center text-2xl font-extrabold">
-            পেজের ডিজাইন বাছুন
+            পেজের ডিজাইন বেছে নিন
           </h2>
           <p className="mt-2 text-center text-sm text-gray-600">
             বিল্ডারে মোট ৮টি টেমপ্লেট — এখানে ৪টির নমুনা।

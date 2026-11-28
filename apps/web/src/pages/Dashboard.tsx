@@ -168,7 +168,7 @@ function SheetStatusCard() {
             onClick={() => navigate('/dashboard/settings')}
             className="mt-3 text-sm font-bold text-brand-dark underline"
           >
-            Sheet বাছুন →
+            Sheet বেছে নিন →
           </button>
         </>
       ) : (

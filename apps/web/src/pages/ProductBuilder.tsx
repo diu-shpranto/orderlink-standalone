@@ -1177,7 +1177,7 @@ export default function ProductBuilder({
           <div className="min-w-0 space-y-5">
             <StepCard
               n={1}
-              title="টেমপ্লেট বাছুন"
+              title="টেমপ্লেট বেছে নিন"
               subtitle="টেমপ্লেট বদলালে শুধু ডিজাইন বদলাবে — কোনো তথ্য মুছবে না"
             >
               <div className="grid grid-cols-2 gap-3">
@@ -1587,7 +1587,7 @@ export default function ProductBuilder({
                   void addFiles(e.dataTransfer.files)
                 }}
               >
-                ছবি বাছুন বা এখানে টেনে ছাড়ুন (একসাথে একাধিক)
+                ছবি বেছে নিন বা এখানে টেনে ছাড়ুন (একসাথে একাধিক)
                 <input
                   type="file"
                   accept="image/*"
