@@ -205,12 +205,12 @@ export default function SetupWizard({
   }
 
   const inputClass =
-    'mt-1.5 w-full rounded-2xl border border-gray-300 bg-white px-4 py-3 text-[15px] placeholder:text-gray-400 outline-none transition focus:border-brand focus:ring-2 focus:ring-brand/20'
+    'mt-1.5 w-full rounded-xl border border-gray-300 bg-white px-4 py-3 text-[15px] placeholder:text-gray-400 outline-none transition focus:border-brand focus:ring-2 focus:ring-brand/20'
   const labelClass = 'text-sm font-bold text-gray-800'
   const primaryButtonClass =
-    'w-full rounded-2xl bg-gradient-to-r from-brand-dark via-brand to-brand px-4 py-3.5 font-bold text-white shadow-lg shadow-brand/30 disabled:opacity-50'
+    'w-full rounded-2xl bg-gradient-to-r from-brand-dark via-brand to-brand px-4 py-3.5 font-bold text-white shadow-lg shadow-brand/30 transition hover:brightness-105 active:scale-[0.99] disabled:opacity-50'
   const ghostButtonClass =
-    'rounded-2xl border border-gray-300 bg-white px-4 py-3 font-bold text-gray-700'
+    'rounded-xl border border-gray-300 bg-white px-4 py-3 font-bold text-gray-700 transition hover:border-brand/40'
 
   const content = (
     <>
@@ -227,6 +227,16 @@ export default function SetupWizard({
         <h2 className="text-lg font-extrabold text-gray-900">দোকানের তথ্য</h2>
       )}
       <p className="mt-2 text-sm font-medium text-gray-500">ধাপ {step} / ৩</p>
+      <div className="mt-3 flex w-full max-w-sm gap-1.5" aria-hidden="true">
+        {[1, 2, 3].map((n) => (
+          <span
+            key={n}
+            className={`h-1.5 flex-1 rounded-full transition ${
+              n <= step ? 'bg-brand' : 'bg-gray-200'
+            }`}
+          />
+        ))}
+      </div>
 
       {error ? (
         <p className="mt-4 w-full max-w-sm rounded-2xl bg-red-50 px-4 py-3 text-sm font-medium text-red-700">

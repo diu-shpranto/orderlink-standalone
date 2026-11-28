@@ -63,7 +63,7 @@ const PAYMENT_STATUS_CLASS: Record<PaymentRow['status'], string> = {
 }
 
 const inputClass =
-  'mt-1.5 w-full rounded-2xl border border-gray-300 bg-white px-4 py-3 text-[15px] outline-none transition focus:border-brand focus:ring-2 focus:ring-brand/20'
+  'mt-1.5 w-full rounded-xl border border-gray-300 bg-white px-4 py-3 text-[15px] outline-none transition focus:border-brand focus:ring-2 focus:ring-brand/20'
 
 export default function SubscriptionSettings() {
   const { seller } = useAuth()
@@ -199,7 +199,7 @@ export default function SubscriptionSettings() {
       ) : null}
 
       {/* বর্তমান প্যাকেজ */}
-      <div className="rounded-[28px] border border-gray-200 bg-white p-5 shadow-sm sm:p-6">
+      <div className="rounded-[28px] border border-gray-200 bg-white p-5 shadow-[0_10px_40px_rgba(0,0,0,0.06)] sm:p-6">
         <h2 className="text-lg font-extrabold">বর্তমান প্যাকেজ</h2>
         {mySub?.plan ? (
           <>
@@ -284,7 +284,7 @@ export default function SubscriptionSettings() {
 
       {/* সাসপেন্ডেড পেজ — ফ্রি সার্ভিসে কোনটা চালু থাকবে */}
       {suspended.length > 0 ? (
-        <div className="rounded-[28px] border border-amber-300 bg-amber-50 p-5 shadow-sm sm:p-6">
+        <div className="rounded-[28px] border border-amber-300 bg-amber-50 p-5 shadow-[0_10px_40px_rgba(0,0,0,0.06)] sm:p-6">
           <h2 className="text-lg font-extrabold">সাসপেন্ডেড পেজ</h2>
           <p className="mt-2 text-sm leading-relaxed text-gray-600">
             ফ্রি সার্ভিসে শুধু ১টি পেজ চালু থাকে — বাকিগুলো বন্ধ আছে, মোছা
@@ -322,7 +322,7 @@ export default function SubscriptionSettings() {
       ) : null}
 
       {/* প্যাকেজ কেনা / নবায়ন */}
-      <div className="rounded-[28px] border border-gray-200 bg-white p-5 shadow-sm sm:p-6">
+      <div className="rounded-[28px] border border-gray-200 bg-white p-5 shadow-[0_10px_40px_rgba(0,0,0,0.06)] sm:p-6">
         <h2 className="text-lg font-extrabold">
           {mySub?.plan ? 'প্যাকেজ নবায়ন করুন' : 'প্যাকেজ কিনুন'}
         </h2>
@@ -465,7 +465,7 @@ export default function SubscriptionSettings() {
                 <button
                   type="submit"
                   disabled={submitting}
-                  className="mt-4 w-full rounded-2xl bg-gradient-to-r from-brand-dark via-brand to-brand px-4 py-3.5 font-bold text-white shadow-lg shadow-brand/25 disabled:opacity-50"
+                  className="mt-4 w-full rounded-2xl bg-gradient-to-r from-brand-dark via-brand to-brand px-4 py-3.5 font-bold text-white shadow-lg shadow-brand/25 transition hover:brightness-105 active:scale-[0.99] disabled:opacity-50"
                 >
                   {submitting ? 'জমা হচ্ছে…' : 'পেমেন্ট জমা দিন'}
                 </button>
@@ -480,7 +480,7 @@ export default function SubscriptionSettings() {
       </div>
 
       {/* পেমেন্টের ইতিহাস */}
-      <div className="rounded-[28px] border border-gray-200 bg-white p-5 shadow-sm sm:p-6">
+      <div className="rounded-[28px] border border-gray-200 bg-white p-5 shadow-[0_10px_40px_rgba(0,0,0,0.06)] sm:p-6">
         <h2 className="text-lg font-extrabold">পেমেন্টের ইতিহাস</h2>
         {payments.length === 0 ? (
           <p className="mt-3 text-sm text-gray-500">

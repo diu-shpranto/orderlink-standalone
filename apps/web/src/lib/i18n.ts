@@ -35,6 +35,9 @@ export type CustomerStrings = {
   formAddress: string
   formDelivery: string
   formSummary: string
+  formSpecialNote: string
+  specialNote: string
+  specialNotePlaceholder: string
   subtotal: string
   total: string
   placeOrder: string
@@ -112,6 +115,9 @@ const BN: CustomerStrings = {
   formAddress: 'ডেলিভারি ঠিকানা',
   formDelivery: 'ডেলিভারি ও পরিমাণ',
   formSummary: 'অর্ডারের হিসাব',
+  formSpecialNote: 'বিশেষ নোট',
+  specialNote: 'বিশেষ নোট (ঐচ্ছিক)',
+  specialNotePlaceholder: 'অর্ডার সম্পর্কে কিছু জানাতে চাইলে লিখুন (ঐচ্ছিক)',
   subtotal: 'পণ্যের দাম',
   total: 'মোট',
   placeOrder: 'অর্ডার করুন',
@@ -190,6 +196,10 @@ const EN: CustomerStrings = {
   formAddress: 'Delivery address',
   formDelivery: 'Delivery & quantity',
   formSummary: 'Order summary',
+  formSpecialNote: 'Special note',
+  specialNote: 'Special note (optional)',
+  specialNotePlaceholder:
+    'Anything you want us to know about this order (optional)',
   subtotal: 'Product price',
   total: 'Total',
   placeOrder: 'Place Order',

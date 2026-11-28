@@ -124,7 +124,7 @@ export default function GoogleSheetsSettings({
   const hasSheet = Boolean(connection?.sheet_id)
 
   return (
-    <div className="rounded-2xl border border-gray-200 bg-white p-5">
+    <div className="rounded-[28px] border border-gray-200 bg-white p-5 shadow-[0_10px_40px_rgba(0,0,0,0.06)] sm:p-6">
       <h2 className="text-lg font-bold">Google Sheets</h2>
       <p className="mt-1 text-sm leading-relaxed text-gray-600">
         প্রতিটা অর্ডার আপনার নিজের Google Sheet-এ নিজে থেকে যাবে — সেদিনের
@@ -137,12 +137,12 @@ export default function GoogleSheetsSettings({
       ) : (
         <>
           {error ? (
-            <p className="mt-4 rounded bg-red-50 px-4 py-3 text-sm text-red-700">
+            <p className="mt-4 rounded-xl bg-red-50 px-4 py-3 text-sm text-red-700">
               {error}
             </p>
           ) : null}
           {message ? (
-            <p className="mt-4 rounded bg-green-50 px-4 py-3 text-sm text-green-800">
+            <p className="mt-4 rounded-xl bg-green-50 px-4 py-3 text-sm text-green-800">
               {message}
             </p>
           ) : null}
@@ -161,7 +161,7 @@ export default function GoogleSheetsSettings({
                     'Google-এ যাচ্ছে… অনুমতি দিলে ফিরে আসবেন।',
                   )
                 }
-                className="mt-3 rounded-lg bg-brand px-4 py-2 text-sm font-semibold text-white disabled:opacity-50"
+                className="mt-3 rounded-xl bg-brand px-4 py-2.5 text-sm font-semibold text-white transition hover:brightness-110 active:scale-[0.99] disabled:opacity-50"
               >
                 Google অ্যাকাউন্ট যুক্ত করুন
               </button>
@@ -214,7 +214,7 @@ export default function GoogleSheetsSettings({
                           'নতুন Sheet বানানো হয়েছে — আগের অর্ডারগুলোও সিঙ্ক হচ্ছে।',
                         )
                       }
-                      className="rounded-lg bg-brand px-4 py-2 text-sm font-semibold text-white disabled:opacity-50"
+                      className="rounded-xl bg-brand px-4 py-2.5 text-sm font-semibold text-white transition hover:brightness-110 active:scale-[0.99] disabled:opacity-50"
                     >
                       {busy ? 'বানানো হচ্ছে…' : 'নতুন Sheet বানান'}
                     </button>
@@ -229,7 +229,7 @@ export default function GoogleSheetsSettings({
                         value={linkUrl}
                         onChange={(e) => setLinkUrl(e.target.value)}
                         placeholder="https://docs.google.com/spreadsheets/d/…"
-                        className="min-w-0 flex-1 rounded border border-gray-300 px-3 py-2 text-sm"
+                        className="min-w-0 flex-1 rounded-xl border border-gray-300 px-3.5 py-2.5 text-sm outline-none transition focus:border-brand focus:ring-2 focus:ring-brand/20"
                       />
                       <button
                         type="button"
@@ -243,7 +243,7 @@ export default function GoogleSheetsSettings({
                             'Sheet যুক্ত হয়েছে — আগের অর্ডারগুলোও সিঙ্ক হচ্ছে।',
                           )
                         }
-                        className="shrink-0 rounded-lg border border-gray-300 px-4 py-2 text-sm font-semibold disabled:opacity-50"
+                        className="shrink-0 rounded-xl border border-gray-300 px-4 py-2.5 text-sm font-semibold transition hover:border-brand/40 disabled:opacity-50"
                       >
                         যাচাই করে যুক্ত করুন
                       </button>
@@ -266,7 +266,7 @@ export default function GoogleSheetsSettings({
                     Google সংযোগ ছিন্ন করুন
                   </button>
                 ) : (
-                  <div className="rounded-lg bg-red-50 px-4 py-3 text-sm">
+                  <div className="rounded-xl bg-red-50 px-4 py-3 text-sm">
                     <p className="text-red-800">
                       সংযোগ ছিন্ন করলে আর অর্ডার Sheet-এ যাবে না। Sheet-এর
                       ভেতরের সারি থেকে যাবে, Sheet নিজে মোছা হবে না।
@@ -285,14 +285,14 @@ export default function GoogleSheetsSettings({
                             'Google সংযোগ ছিন্ন হয়েছে।',
                           )
                         }
-                        className="rounded-lg bg-red-600 px-3 py-2 text-sm font-semibold text-white disabled:opacity-50"
+                        className="rounded-xl bg-red-600 px-3.5 py-2.5 text-sm font-semibold text-white transition hover:brightness-110 active:scale-[0.99] disabled:opacity-50"
                       >
                         হ্যাঁ, ছিন্ন করুন
                       </button>
                       <button
                         type="button"
                         onClick={() => setConfirmDisconnect(false)}
-                        className="rounded-lg border border-gray-300 bg-white px-3 py-2 text-sm font-semibold"
+                        className="rounded-xl border border-gray-300 bg-white px-3.5 py-2.5 text-sm font-semibold transition hover:border-brand/40"
                       >
                         ফিরে যান
                       </button>
@@ -308,25 +308,25 @@ export default function GoogleSheetsSettings({
             <h3 className="font-bold">সিঙ্কের অবস্থা</h3>
             {summary ? (
               <div className="mt-3 grid grid-cols-2 gap-3 sm:grid-cols-4">
-                <div className="rounded-xl bg-gray-50 p-3">
+                <div className="rounded-xl border border-gray-100 bg-cream p-3">
                   <p className="text-xs text-gray-500">সিঙ্ক হয়েছে</p>
                   <p className="mt-1 text-xl font-extrabold">
                     {formatCountBn(summary.synced)}
                   </p>
                 </div>
-                <div className="rounded-xl bg-gray-50 p-3">
+                <div className="rounded-xl border border-gray-100 bg-cream p-3">
                   <p className="text-xs text-gray-500">অপেক্ষায়</p>
                   <p className="mt-1 text-xl font-extrabold">
                     {formatCountBn(summary.pending)}
                   </p>
                 </div>
-                <div className="rounded-xl bg-gray-50 p-3">
+                <div className="rounded-xl border border-gray-100 bg-cream p-3">
                   <p className="text-xs text-gray-500">ব্যর্থ</p>
                   <p className="mt-1 text-xl font-extrabold">
                     {formatCountBn(summary.failed)}
                   </p>
                 </div>
-                <div className="rounded-xl bg-gray-50 p-3">
+                <div className="rounded-xl border border-gray-100 bg-cream p-3">
                   <p className="text-xs text-gray-500">শেষ সিঙ্ক</p>
                   <p className="mt-1 text-sm font-bold">
                     {summary.lastSyncedAt
@@ -360,7 +360,7 @@ export default function GoogleSheetsSettings({
                     })
                     .finally(() => setBusy(false))
                 }}
-                className="mt-3 rounded-lg border border-gray-300 px-4 py-2 text-sm font-semibold disabled:opacity-50"
+                className="mt-3 rounded-xl border border-gray-300 px-4 py-2.5 text-sm font-semibold transition hover:border-brand/40 disabled:opacity-50"
               >
                 ব্যর্থ সিঙ্ক আবার চেষ্টা করুন
               </button>

@@ -108,6 +108,7 @@ export default function OrderForm({
   const [division, setDivision] = useState('')
   const [district, setDistrict] = useState('')
   const [addressLine, setAddressLine] = useState('')
+  const [customerNote, setCustomerNote] = useState('')
   const [area, setArea] = useState<'inside' | 'outside'>('inside')
   // পরিমাণ — ফর্মের নিজের (লাইভ অ্যাপের মতো, হিরোতে সিলেক্টর নেই)।
   const [quantity, setQuantity] = useState(1)
@@ -187,6 +188,7 @@ export default function OrderForm({
         district,
         upazila: '', // আলাদা উপজেলা বক্স নেই — কাস্টমার উপজেলা ঠিকানার বক্সেই লেখে।
         addressLine,
+        customerNote: customerNote.trim(),
         deliveryArea: area,
         quantity,
       })
@@ -417,6 +419,20 @@ export default function OrderForm({
           </button>
         </span>
       </div>
+      </div>
+
+      <div className={`${groupClass} space-y-4`}>
+        <SectionHead step={4} title={t.formSpecialNote} />
+        <label className="block">
+          <span className={labelClass}>{t.specialNote}</span>
+          <textarea
+            rows={3}
+            value={customerNote}
+            onChange={(e) => setCustomerNote(e.target.value)}
+            className={inputClass}
+            placeholder={t.specialNotePlaceholder}
+          />
+        </label>
       </div>
 
       <div

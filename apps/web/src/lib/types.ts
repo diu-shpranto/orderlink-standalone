@@ -130,6 +130,7 @@ export interface OrderRow {
   district: string | null
   upazila: string | null
   address_line: string | null
+  customer_note: string | null
   delivery_area: 'inside' | 'outside'
   delivery_charge: number
   quantity: number

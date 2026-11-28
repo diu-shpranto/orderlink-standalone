@@ -33,6 +33,7 @@ const SHEET_HEADERS = [
   'Total',
   'Address',
   'Status',
+  'Special Note',
 ]
 
 function jsonResponse(body: unknown, status = 200): Response {
@@ -235,11 +236,11 @@ async function ensureTabWithHeaders(
     )
     await googleFetch(
       accessToken,
-      `https://sheets.googleapis.com/v4/spreadsheets/${sheetId}/values/${encodeURIComponent(`'${tabName}'!A1:K1`)}?valueInputOption=RAW`,
+      `https://sheets.googleapis.com/v4/spreadsheets/${sheetId}/values/${encodeURIComponent(`'${tabName}'!A1:L1`)}?valueInputOption=RAW`,
       {
         method: 'PUT',
         body: JSON.stringify({
-          range: `'${tabName}'!A1:K1`,
+          range: `'${tabName}'!A1:L1`,
           majorDimension: 'ROWS',
           values: [SHEET_HEADERS],
         }),

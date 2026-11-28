@@ -447,6 +447,14 @@ function OrderDetail({
             <span className="shrink-0 text-gray-500">ঠিকানা</span>
             <span className="text-right font-medium">{addressParts || '—'}</span>
           </p>
+          {order.customer_note ? (
+            <p className="flex justify-between gap-4">
+              <span className="shrink-0 text-gray-500">বিশেষ নোট</span>
+              <span className="text-right font-medium">
+                {order.customer_note}
+              </span>
+            </p>
+          ) : null}
           <p className="flex justify-between">
             <span className="text-gray-500">ডেলিভারি এলাকা</span>
             <span className="font-medium">

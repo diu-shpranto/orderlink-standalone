@@ -185,9 +185,9 @@ export const TEMPLATES: TemplateMeta[] = [
 // হোম পেজের গ্যালারিতে ঠিক এই ৪টি দেখানো হয়।
 export const INTRO_TEMPLATES: TemplateId[] = [
   'minimal-white',
-  'offer-special',
-  'premium-ecommerce',
-  'premium-dark',
+  'signature-pro',
+  'marketplace-pro',
+  'midnight-premium',
 ]
 
 export function templateById(id: TemplateId): TemplateMeta {

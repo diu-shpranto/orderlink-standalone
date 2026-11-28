@@ -113,6 +113,7 @@ export interface PlaceOrderInput {
   addressLine: string
   deliveryArea: 'inside' | 'outside'
   quantity: number
+  customerNote: string
 }
 
 export async function placeOrder(
@@ -141,6 +142,7 @@ export async function placeOrder(
     district: input.district,
     upazila: input.upazila || null,
     address_line: input.addressLine.trim(),
+    customer_note: input.customerNote?.trim() || null,
     delivery_area: input.deliveryArea,
     delivery_charge: deliveryCharge,
     quantity: input.quantity,
@@ -161,6 +163,14 @@ export async function placeOrder(
   let { error } = await client
     .from('orders')
     .insert({ ...payload, client_key: clientKey })
+  if (error && isUnknownColumnError(error, 'customer_note')) {
+    // মাইগ্রেশন 0009 এখনো লাইভে চালানো হয়নি — নোট ছাড়া জমা দিন;
+    // অর্ডার আটকাবে না, শুধু নোটটা সেভ হবে না।
+    const { customer_note: _dropped, ...payloadWithoutNote } = payload
+    ;({ error } = await client
+      .from('orders')
+      .insert({ ...payloadWithoutNote, client_key: clientKey }))
+  }
   if (error && isUnknownColumnError(error, 'client_key')) {
     // মাইগ্রেশন 0007 এখনো লাইভে চালানো হয়নি — কী ছাড়া জমা দিন;
     // কোড আনা হবে ফোন দিয়ে (check_recent_order, 0003 থেকেই আছে)।

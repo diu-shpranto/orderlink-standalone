@@ -37,6 +37,7 @@ const SHEET_HEADERS = [
   'Total',
   'Address',
   'Status',
+  'Special Note',
 ]
 
 const STATUS_BN: Record<string, string> = {
@@ -263,11 +264,11 @@ async function ensureTabWithHeaders(
     )
     await googleFetch(
       accessToken,
-      `https://sheets.googleapis.com/v4/spreadsheets/${sheetId}/values/${encodeURIComponent(`'${tabName}'!A1:K1`)}?valueInputOption=RAW`,
+      `https://sheets.googleapis.com/v4/spreadsheets/${sheetId}/values/${encodeURIComponent(`'${tabName}'!A1:L1`)}?valueInputOption=RAW`,
       {
         method: 'PUT',
         body: JSON.stringify({
-          range: `'${tabName}'!A1:K1`,
+          range: `'${tabName}'!A1:L1`,
           majorDimension: 'ROWS',
           values: [SHEET_HEADERS],
         }),
@@ -298,11 +299,11 @@ async function appendOrderRow(
 ): Promise<void> {
   await googleFetch(
     accessToken,
-    `https://sheets.googleapis.com/v4/spreadsheets/${sheetId}/values/${encodeURIComponent(`'${tabName}'!A:K`)}:append?valueInputOption=RAW&insertDataOption=INSERT_ROWS`,
+    `https://sheets.googleapis.com/v4/spreadsheets/${sheetId}/values/${encodeURIComponent(`'${tabName}'!A:L`)}:append?valueInputOption=RAW&insertDataOption=INSERT_ROWS`,
     {
       method: 'POST',
       body: JSON.stringify({
-        range: `'${tabName}'!A:K`,
+        range: `'${tabName}'!A:L`,
         majorDimension: 'ROWS',
         values: [row],
       }),
@@ -505,6 +506,7 @@ Deno.serve(async (req: Request) => {
         Number(o.total),
         address,
         STATUS_BN[(o.status as string) ?? 'new'] ?? (o.status as string),
+        (o.customer_note as string) ?? '',
       ])
       await markSynced()
       return jsonResponse({ ok: true })

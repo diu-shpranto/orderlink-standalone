@@ -771,12 +771,12 @@ function DeliverySettings({ shop }: { shop: ShopRow | null }) {
   }
 
   const inputClass =
-    'mt-1.5 w-full rounded-2xl border border-gray-300 bg-white px-4 py-3 text-[15px] outline-none transition focus:border-brand focus:ring-2 focus:ring-brand/20'
+    'mt-1.5 w-full rounded-xl border border-gray-300 bg-white px-4 py-3 text-[15px] outline-none transition focus:border-brand focus:ring-2 focus:ring-brand/20'
 
   return (
     <form
       onSubmit={handleSave}
-      className="rounded-[28px] border border-gray-200 bg-white p-5 shadow-sm sm:p-6"
+      className="rounded-[28px] border border-gray-200 bg-white p-5 shadow-[0_10px_40px_rgba(0,0,0,0.06)] sm:p-6"
     >
       <h2 className="text-lg font-extrabold">ডেলিভারি সেটিংস</h2>
       {saved ? (
@@ -835,7 +835,7 @@ function DeliverySettings({ shop }: { shop: ShopRow | null }) {
         <button
           type="submit"
           disabled={busy}
-          className="w-full rounded-2xl bg-gradient-to-r from-brand-dark via-brand to-brand px-4 py-3.5 font-bold text-white shadow-lg shadow-brand/25 disabled:opacity-50"
+          className="w-full rounded-2xl bg-gradient-to-r from-brand-dark via-brand to-brand px-4 py-3.5 font-bold text-white shadow-lg shadow-brand/25 transition hover:brightness-105 active:scale-[0.99] disabled:opacity-50"
         >
           {busy ? 'সেভ হচ্ছে…' : 'সেভ করুন'}
         </button>
@@ -860,13 +860,13 @@ function ReadOnlyPanel({
   action?: React.ReactNode
 }) {
   return (
-    <div className="rounded-[28px] border border-gray-200 bg-white p-5 shadow-sm sm:p-6">
+    <div className="rounded-[28px] border border-gray-200 bg-white p-5 shadow-[0_10px_40px_rgba(0,0,0,0.06)] sm:p-6">
       <h2 className="text-lg font-extrabold">{title}</h2>
       <dl className="mt-4 space-y-3">
         {rows.map((row) => (
           <div
             key={row.label}
-            className="flex items-center justify-between gap-3 rounded-2xl bg-cream px-4 py-3 text-sm"
+            className="flex items-center justify-between gap-3 rounded-xl border border-gray-100 bg-cream px-4 py-3 text-sm"
           >
             <dt className="text-gray-500">{row.label}</dt>
             <dd className="font-bold text-gray-900">{row.value}</dd>
@@ -910,39 +910,63 @@ export function SettingsPage() {
         </p>
       ) : null}
 
-      <div className="mt-5 grid gap-5 lg:grid-cols-[340px_1fr] lg:items-start">
-        {/* ক্যাটাগরির তালিকা — ডেস্কটপে স্ক্রলেও চোখের সামনে থাকে */}
-        <div className="overflow-hidden rounded-[28px] border border-gray-200 bg-white shadow-sm lg:sticky lg:top-20">
-          {SETTINGS_CATEGORIES.map((cat, i) => {
-            const isActive = category === cat.id
-            return (
-              <button
-                key={cat.id}
-                type="button"
-                onClick={() => setCategory(cat.id)}
-                className={`flex w-full items-center gap-3.5 px-4 py-4 text-left transition ${
-                  i > 0 ? 'border-t border-gray-100' : ''
-                } ${isActive ? 'bg-brand-mint/60' : 'hover:bg-gray-50'}`}
-              >
-                <span className="flex h-14 w-14 shrink-0 items-center justify-center rounded-2xl bg-brand-mint text-brand-dark">
-                  {cat.icon('h-6 w-6')}
-                </span>
-                <span className="min-w-0 flex-1">
-                  <span className="block text-[17px] font-extrabold leading-snug text-gray-900">
-                    {cat.title}
+      <div className="mt-5 grid gap-4 lg:grid-cols-[340px_1fr] lg:items-start lg:gap-5">
+        {/* ক্যাটাগরির তালিকা — মোবাইলে চিপের সারি, ডেস্কটপে বাম সাইডবার */}
+        <div className="min-w-0 lg:sticky lg:top-20 lg:overflow-hidden lg:rounded-[28px] lg:border lg:border-gray-200 lg:bg-white lg:shadow-[0_10px_40px_rgba(0,0,0,0.06)]">
+          <div className="flex gap-2 overflow-x-auto pb-1 [scrollbar-width:none] [&::-webkit-scrollbar]:hidden lg:block lg:overflow-visible lg:pb-0">
+            {SETTINGS_CATEGORIES.map((cat, i) => {
+              const isActive = category === cat.id
+              return (
+                <button
+                  key={cat.id}
+                  type="button"
+                  onClick={() => setCategory(cat.id)}
+                  aria-current={isActive ? 'page' : undefined}
+                  className={`relative flex shrink-0 items-center gap-2.5 rounded-full border px-3 py-2 text-left transition lg:w-full lg:shrink lg:gap-3.5 lg:rounded-none lg:border-0 lg:px-4 lg:py-4 ${
+                    i > 0 ? 'lg:border-t lg:border-gray-100' : ''
+                  } ${
+                    isActive
+                      ? 'border-brand bg-brand text-white shadow-sm shadow-brand/30 lg:bg-brand-mint/70 lg:text-gray-900 lg:shadow-none'
+                      : 'border-gray-200 bg-white text-gray-700 hover:border-brand/40 lg:bg-transparent lg:hover:bg-gray-50'
+                  }`}
+                >
+                  {isActive ? (
+                    <span className="absolute inset-y-3 left-0 hidden w-1 rounded-r-full bg-brand lg:block" />
+                  ) : null}
+                  <span
+                    className={`flex h-8 w-8 shrink-0 items-center justify-center rounded-lg transition lg:h-14 lg:w-14 lg:rounded-2xl ${
+                      isActive
+                        ? 'bg-white/20 text-white lg:bg-brand lg:text-white'
+                        : 'bg-brand-mint text-brand-dark'
+                    }`}
+                  >
+                    {cat.icon('h-5 w-5 lg:h-6 lg:w-6')}
                   </span>
-                  <span className="mt-0.5 block text-sm leading-snug text-gray-500">
-                    {cat.sub}
+                  <span className="min-w-0 flex-1">
+                    <span
+                      className={`block whitespace-nowrap text-sm font-extrabold leading-snug lg:whitespace-normal lg:text-[17px] ${
+                        isActive ? 'text-white lg:text-gray-900' : 'text-gray-900'
+                      }`}
+                    >
+                      {cat.title}
+                    </span>
+                    <span className="mt-0.5 hidden text-sm leading-snug text-gray-500 lg:block">
+                      {cat.sub}
+                    </span>
                   </span>
-                </span>
-                <IconChevronRight className="h-5 w-5 shrink-0 text-gray-400" />
-              </button>
-            )
-          })}
+                  <IconChevronRight
+                    className={`hidden h-5 w-5 shrink-0 lg:block ${
+                      isActive ? 'text-brand' : 'text-gray-400'
+                    }`}
+                  />
+                </button>
+              )
+            })}
+          </div>
         </div>
 
         {/* নির্বাচিত ক্যাটাগরির বিবরণ */}
-        <div>
+        <div className="min-w-0">
           {category === 'shop' ? (
             !shopLoaded ? (
               <p className="text-sm text-gray-500">লোড হচ্ছে…</p>
@@ -1001,7 +1025,7 @@ export function SettingsPage() {
                 <button
                   type="button"
                   onClick={() => void signOut()}
-                  className="rounded-2xl border border-gray-300 bg-white px-4 py-2.5 text-sm font-bold"
+                  className="rounded-xl border border-gray-300 bg-white px-4 py-2.5 text-sm font-bold transition hover:border-red-300 hover:bg-red-50 hover:text-red-700"
                 >
                   লগআউট করুন
                 </button>
