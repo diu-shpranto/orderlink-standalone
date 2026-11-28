@@ -35,6 +35,7 @@ export default function OrderForm({
   accent = '#D6B36A',
   accentText = '#0B0B0D',
   lightAccent,
+  singleCard = false,
 }: {
   data: CustomerPageData
   t: StringsType
@@ -46,6 +47,8 @@ export default function OrderForm({
   accentText?: string
   /** হালকা থিমে CTA ও বাছাই করা ডেলিভারি এলাকার রং (শুধু Beauty টেমপ্লেট দেয়)। */
   lightAccent?: string
+  /** Template 1 (minimal-white): এক কার্ডের ফর্ম — শুধু এই টেমপ্লেটে। */
+  singleCard?: boolean
 }) {
   const { shop, product } = data
   // গাঢ় থিমের ইনপুট/লেবেল — হালকা থিমের ক্লাস একদম আগের মতো।
@@ -109,6 +112,9 @@ export default function OrderForm({
   const [district, setDistrict] = useState('')
   const [addressLine, setAddressLine] = useState('')
   const [customerNote, setCustomerNote] = useState('')
+  // এক কার্ডের ফর্মে নোট লুকানো থাকে — বোতাম চাপলে খোলে; লুকালেও
+  // লেখা মুছে না (customerNote স্টেটেই থাকে, জমা দেওয়ার সময় যায়)।
+  const [showNote, setShowNote] = useState(false)
   const [area, setArea] = useState<'inside' | 'outside'>('inside')
   // পরিমাণ — ফর্মের নিজের (লাইভ অ্যাপের মতো, হিরোতে সিলেক্টর নেই)।
   const [quantity, setQuantity] = useState(1)
@@ -217,7 +223,13 @@ export default function OrderForm({
   }
 
   return (
-    <form onSubmit={handleSubmit} noValidate className="space-y-5">
+    <form
+      onSubmit={handleSubmit}
+      noValidate
+      className={
+        singleCard ? `${groupClass} space-y-4` : 'space-y-5'
+      }
+    >
       {error ? (
         <p className="rounded-lg bg-red-50 px-4 py-3 text-sm text-red-700">
           {error}
@@ -250,8 +262,8 @@ export default function OrderForm({
         </div>
       ) : null}
 
-      <div className={`${groupClass} space-y-4`}>
-        <SectionHead step={1} title={t.formContact} />
+      <div className={singleCard ? 'space-y-4' : `${groupClass} space-y-4`}>
+        {singleCard ? null : <SectionHead step={1} title={t.formContact} />}
         <label className="block">
           <span className={labelClass}>{t.yourName} *</span>
           <input
@@ -277,9 +289,9 @@ export default function OrderForm({
         </label>
       </div>
 
-      <div className={`${groupClass} space-y-4`}>
-      <SectionHead step={2} title={t.formAddress} />
-      <div className="grid grid-cols-1 gap-3 sm:grid-cols-2">
+      <div className={singleCard ? 'space-y-4' : `${groupClass} space-y-4`}>
+      {singleCard ? null : <SectionHead step={2} title={t.formAddress} />}
+      <div className={singleCard ? 'grid grid-cols-1 gap-3' : 'grid grid-cols-1 gap-3 sm:grid-cols-2'}>
         <label className="block">
           <span className={labelClass}>{t.division} *</span>
           <div className="relative mt-1">
@@ -336,8 +348,8 @@ export default function OrderForm({
       </label>
       </div>
 
-      <div className={`${groupClass} space-y-4`}>
-      <SectionHead step={3} title={t.formDelivery} />
+      <div className={singleCard ? 'space-y-4' : `${groupClass} space-y-4`}>
+      {singleCard ? null : <SectionHead step={3} title={t.formDelivery} />}
       <fieldset>
         <legend className={labelClass}>
           {t.deliveryArea} *
@@ -421,28 +433,58 @@ export default function OrderForm({
       </div>
       </div>
 
-      <div className={`${groupClass} space-y-4`}>
-        <SectionHead step={4} title={t.formSpecialNote} />
-        <label className="block">
-          <span className={labelClass}>{t.specialNote}</span>
-          <textarea
-            rows={3}
-            value={customerNote}
-            onChange={(e) => setCustomerNote(e.target.value)}
-            className={inputClass}
-            placeholder={t.specialNotePlaceholder}
-          />
-        </label>
-      </div>
+      {singleCard ? (
+        <div>
+          <button
+            type="button"
+            onClick={() => setShowNote((v) => !v)}
+            className="text-sm font-semibold text-brand hover:underline"
+          >
+            {showNote ? t.hideNote : t.addNote}
+          </button>
+          {showNote ? (
+            <label className="mt-3 block">
+              <span className={labelClass}>{t.specialNote}</span>
+              <textarea
+                rows={3}
+                value={customerNote}
+                onChange={(e) => setCustomerNote(e.target.value)}
+                className={inputClass}
+                placeholder={t.specialNotePlaceholder}
+              />
+            </label>
+          ) : null}
+        </div>
+      ) : (
+        <div className={`${groupClass} space-y-4`}>
+          <SectionHead step={4} title={t.formSpecialNote} />
+          <label className="block">
+            <span className={labelClass}>{t.specialNote}</span>
+            <textarea
+              rows={3}
+              value={customerNote}
+              onChange={(e) => setCustomerNote(e.target.value)}
+              className={inputClass}
+              placeholder={t.specialNotePlaceholder}
+            />
+          </label>
+        </div>
+      )}
 
       <div
-        className={`space-y-1.5 rounded-2xl border px-4 py-3.5 text-sm shadow-sm ${
-          dark
-            ? 'border-[#34343A] bg-[#151518]'
-            : 'border-gray-200 bg-gray-50'
-        }`}
+        className={
+          singleCard
+            ? 'space-y-1.5 border-t pt-4 text-sm'
+            : `space-y-1.5 rounded-2xl border px-4 py-3.5 text-sm shadow-sm ${
+                dark
+                  ? 'border-[#34343A] bg-[#151518]'
+                  : 'border-gray-200 bg-gray-50'
+              }`
+        }
       >
-        <p className={`pb-1 ${sectionTitleClass}`}>{t.formSummary}</p>
+        {singleCard ? null : (
+          <p className={`pb-1 ${sectionTitleClass}`}>{t.formSummary}</p>
+        )}
         <p className="flex justify-between">
           <span className={dark ? 'text-[#B8B8B8]' : 'text-gray-600'}>
             {t.subtotal} (× {toBnDigits(quantity)})

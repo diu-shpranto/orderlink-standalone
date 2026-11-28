@@ -38,6 +38,8 @@ export type CustomerStrings = {
   formSpecialNote: string
   specialNote: string
   specialNotePlaceholder: string
+  addNote: string
+  hideNote: string
   subtotal: string
   total: string
   placeOrder: string
@@ -118,6 +120,8 @@ const BN: CustomerStrings = {
   formSpecialNote: 'বিশেষ নোট',
   specialNote: 'বিশেষ নোট (ঐচ্ছিক)',
   specialNotePlaceholder: 'অর্ডার সম্পর্কে কিছু জানাতে চাইলে লিখুন (ঐচ্ছিক)',
+  addNote: 'নোট যোগ করুন',
+  hideNote: 'নোট লুকান',
   subtotal: 'পণ্যের দাম',
   total: 'মোট',
   placeOrder: 'অর্ডার করুন',
@@ -200,6 +204,8 @@ const EN: CustomerStrings = {
   specialNote: 'Special note (optional)',
   specialNotePlaceholder:
     'Anything you want us to know about this order (optional)',
+  addNote: 'Add a note',
+  hideNote: 'Hide note',
   subtotal: 'Product price',
   total: 'Total',
   placeOrder: 'Place Order',

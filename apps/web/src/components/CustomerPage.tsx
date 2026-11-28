@@ -520,6 +520,7 @@ function OrderSection({
   accent = '#D6B36A',
   accentText = '#0B0B0D',
   lightAccent,
+  singleCard = false,
 }: {
   data: CustomerPageData
   t: StringsType
@@ -534,6 +535,8 @@ function OrderSection({
   accentText?: string
   /** হালকা থিমে ফর্মের CTA-র রং (শুধু Beauty টেমপ্লেট দেয়)। */
   lightAccent?: string
+  /** Template 1 (minimal-white): এক কার্ডের ফর্ম — ফর্মেও পাঠানো হয়। */
+  singleCard?: boolean
 }) {
   const { shop, sellerWhatsapp, product } = data
   if (placed) {
@@ -715,6 +718,7 @@ function OrderSection({
                 accent={accent}
                 accentText={accentText}
                 lightAccent={lightAccent}
+                singleCard={singleCard}
               />
             </div>
           )}
@@ -1179,26 +1183,46 @@ export default function CustomerPage({
   // সেকশন ব্যান্ড — ডেস্কটপে (lg+) প্রতিটি সেকশন পুরো চওড়ায় একটি
   // ব্যান্ডে বসে (পাল্টাপাল্টি হালকা টিন্ট), যাতে 1440–1920px-এ পেজ
   // ফাঁকা না লাগে। মোবাইলে ও বিল্ডার প্রিভিউতে আগের মতোই সরল স্ট্যাক।
-  const sections = preview ? (
-    <div className="space-y-8">{sectionOrder.map((id) => renderSection(id))}</div>
-  ) : (
-    <div className="space-y-8 lg:space-y-0">
-      {sectionOrder.map((id, i) => {
-        const node = renderSection(id)
-        if (!node) return null
-        return (
-          <div
-            key={id}
-            className={`lg:w-[100vw] lg:px-4 lg:py-12 lg:[margin-left:calc(50%-50vw)] ${
-              i % 2 === 0 ? (dark ? 'lg:bg-gray-800/60' : 'lg:bg-gray-50') : ''
-            }`}
-          >
-            <div className="mx-auto lg:max-w-6xl">{node}</div>
-          </div>
-        )
-      })}
-    </div>
-  )
+  // bandOffset: তালিকা ভাগ করলেও ব্যান্ডের জোড়/বিজোড় টিন্ট আগের মতো থাকে।
+  const buildSections = (ids: string[], bandOffset: number) =>
+    preview ? (
+      <div className="space-y-8">{ids.map((id) => renderSection(id))}</div>
+    ) : (
+      <div className="space-y-8 lg:space-y-0">
+        {ids.map((id, j) => {
+          const node = renderSection(id)
+          if (!node) return null
+          const i = bandOffset + j
+          return (
+            <div
+              key={id}
+              className={`lg:w-[100vw] lg:px-4 lg:py-12 lg:[margin-left:calc(50%-50vw)] ${
+                i % 2 === 0 ? (dark ? 'lg:bg-gray-800/60' : 'lg:bg-gray-50') : ''
+              }`}
+            >
+              <div className="mx-auto lg:max-w-6xl">{node}</div>
+            </div>
+          )
+        })}
+      </div>
+    )
+  const sections = buildSections(sectionOrder, 0)
+
+  // Template 1 (minimal-white): অর্ডার ফর্ম সুবিধা সেকশনের ঠিক পরেই
+  // বসে; বাকি সেকশন (স্পেসিফিকেশন, রিভিউ, FAQ, ডেলিভারি) ফর্মের নিচে।
+  // সুবিধা বন্ধ/নেই থাকলে ফর্ম হিরোর পরেই (সব সেকশনের আগে) বসে।
+  const isTemplate1 = page.template === 'minimal-white'
+  const benefitsIdx = isTemplate1 ? sectionOrder.indexOf('benefits') : -1
+  const beforeFormIds =
+    benefitsIdx >= 0 ? sectionOrder.slice(0, benefitsIdx + 1) : []
+  const afterFormIds =
+    benefitsIdx >= 0 ? sectionOrder.slice(benefitsIdx + 1) : sectionOrder
+  const sectionsBeforeForm = isTemplate1
+    ? buildSections(beforeFormIds, 0)
+    : null
+  const sectionsAfterForm = isTemplate1
+    ? buildSections(afterFormIds, beforeFormIds.length)
+    : null
 
   const shopHeader = (
     <header
@@ -1250,6 +1274,7 @@ export default function CustomerPage({
         preview={preview}
         onPlaced={setPlaced}
         onOrderAgain={() => setPlaced(null)}
+        singleCard={page.template === 'minimal-white'}
       />
     </div>
   )
@@ -5241,8 +5266,22 @@ const footer = (
       {shopHeader}
       <main className="mx-auto max-w-2xl px-4 pt-6 lg:max-w-6xl lg:pt-10">
         {hero}
-        <div className="mt-8">{sections}</div>
-        {orderBox}
+        {isTemplate1 ? (
+          <>
+            {beforeFormIds.length > 0 ? (
+              <div className="mt-8">{sectionsBeforeForm}</div>
+            ) : null}
+            {orderBox}
+            {afterFormIds.length > 0 ? (
+              <div className="mt-8">{sectionsAfterForm}</div>
+            ) : null}
+          </>
+        ) : (
+          <>
+            <div className="mt-8">{sections}</div>
+            {orderBox}
+          </>
+        )}
       </main>
       {footer}
       {sticky}
