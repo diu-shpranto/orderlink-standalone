@@ -637,17 +637,38 @@ function OrderSection({
   return (
     <section
       id="order"
-      className={`rounded-2xl border p-5 lg:p-8 ${
+      className={`overflow-hidden rounded-2xl border p-5 shadow-sm lg:p-8 ${
         dark ? 'border-[#34343A] bg-[#1D1D21]' : 'border-gray-200 bg-white'
       }`}
     >
-      <div className="lg:grid lg:grid-cols-5 lg:gap-8">
-        <div className="lg:col-span-3">
-          <h2
-            className={`text-lg font-bold lg:text-xl ${dark ? 'text-white' : 'text-gray-900'}`}
-          >
+      {/* ফর্মের রঙিন হেডার স্ট্রিপ — পণ্যের নাম ও দামসহ, যাতে নতুন ফর্ম
+          এক নজরে চোখে পড়ে। গাঢ় থিমে সোনালি, Beauty-তে গোলাপি। */}
+      <div
+        className={`-m-5 mb-5 flex items-center justify-between gap-3 px-5 py-4 lg:-m-8 lg:mb-8 lg:px-8 ${
+          dark ? '' : lightAccent ? '' : 'bg-accent text-white'
+        }`}
+        style={
+          dark
+            ? { backgroundColor: accent, color: accentText }
+            : lightAccent
+              ? { backgroundColor: lightAccent, color: '#FFFFFF' }
+              : undefined
+        }
+      >
+        <div className="min-w-0">
+          <h2 className="text-lg font-extrabold leading-snug lg:text-xl">
             {t.orderNow}
           </h2>
+          <p className="mt-0.5 truncate text-xs font-semibold opacity-85">
+            {product.name}
+          </p>
+        </div>
+        <p className="shrink-0 text-xl font-extrabold">
+          {formatBDT(product.price)}
+        </p>
+      </div>
+      <div className="lg:grid lg:grid-cols-5 lg:gap-8">
+        <div className="lg:col-span-3">
           <div
             className={`mt-3 space-y-1 text-sm ${
               dark ? 'text-[#B8B8B8]' : 'text-gray-700'
@@ -1167,9 +1188,11 @@ export default function CustomerPage({
       className={`flex items-center justify-between px-4 py-3 ${
         page.template === 'modern-premium'
           ? 'bg-brand text-white'
-          : dark
-            ? 'bg-gray-800 text-white'
-            : 'border-b border-gray-200 bg-white'
+          : page.template === 'social-proof'
+            ? 'border-b border-[#BBF7D0] bg-[#F0FDF4] text-gray-900'
+            : dark
+              ? 'bg-gray-800 text-white'
+              : 'border-b border-gray-200 bg-white'
       }`}
     >
       <span className="flex items-center gap-2 font-bold">
@@ -1225,7 +1248,7 @@ function ContactCard({ data, dark }: { data: CustomerPageData; dark: boolean }) 
     `আসসালামু আলাইকুম, ${shop.name} — ${product.name} সম্পর্কে জানতে চাই।`,
   )
   return (
-    <div className="mx-auto mt-10 max-w-2xl px-4">
+    <div className="mx-auto mt-6 max-w-2xl px-4">
       <div
         className={`overflow-hidden rounded-3xl border shadow-md ${
           dark
@@ -1412,7 +1435,7 @@ const footer = (
             <span className="text-xs text-[#B8B8B8]">{t.shopPage}</span>
           )}
         </header>
-        <main className="mx-auto max-w-2xl px-4 pb-28 pt-6 md:max-w-4xl lg:max-w-6xl md:pb-12">
+        <main className="mx-auto max-w-2xl px-4 pt-6 md:max-w-4xl lg:max-w-6xl">
           {/* ০৩ হিরো + ০৪ গ্যালারি */}
           <div className="grid gap-6 md:grid-cols-2 md:items-start">
             <div>
@@ -1763,6 +1786,8 @@ const footer = (
             © {toBnDigits(new Date().getFullYear())} {shop.name}
           </p>
         </footer>
+        {/* স্টিকি বারের নিচে ফুটার ঢাকা না পড়ে — পেজের নিচে ফাঁকা জায়গা। */}
+        <div className="h-20 md:hidden" aria-hidden="true" />
         <StickyOrderBar data={data} t={t} gold />
       </div>
     )
@@ -1771,38 +1796,40 @@ const footer = (
   // ---- বাকি ৮ টেমপ্লেটের লেআউট ----
   if (page.template === 'premium-ecommerce') {
     return (
-      <div className={`min-h-screen ${pageShell}`}>
+      <div className="min-h-screen bg-[#F3F4F6] text-gray-900">
         {announcement}
         {shopHeader}
-        <main className="mx-auto max-w-5xl px-4 py-6 lg:max-w-6xl lg:py-10">
-          <div className="grid gap-6 md:grid-cols-2">
-            <div>{showGallery ? <Gallery images={images} productName={product.name} /> : null}</div>
-            <div>
-              <h1 className="text-2xl font-extrabold text-gray-900 md:text-3xl">
-                {product.name}
-              </h1>
-              {product.category ? (
-                <p className="mt-1 text-xs font-bold text-gray-500">
-                  {product.category}
-                </p>
-              ) : null}
-              <div className="mt-2">
-                <RatingSummary data={data} t={t} />
+        <main className="mx-auto max-w-5xl px-4 pt-6 lg:max-w-6xl lg:pt-10">
+          <div className="rounded-2xl border border-gray-200 bg-white p-4 shadow-sm sm:p-6">
+            <div className="grid gap-6 md:grid-cols-2">
+              <div>{showGallery ? <Gallery images={images} productName={product.name} /> : null}</div>
+              <div>
+                <h1 className="text-2xl font-extrabold text-gray-900 md:text-3xl">
+                  {product.name}
+                </h1>
+                {product.category ? (
+                  <p className="mt-1 text-xs font-bold text-gray-500">
+                    {product.category}
+                  </p>
+                ) : null}
+                <div className="mt-2">
+                  <RatingSummary data={data} t={t} />
+                </div>
+                <div className="mt-3">
+                  <PriceRow data={data} dark={false} />
+                </div>
+                {heroCopy ? (
+                  <p className="mt-3 text-sm leading-relaxed text-gray-700">
+                    {heroCopy}
+                  </p>
+                ) : null}
+                <a
+                  href="#order"
+                  className="mt-5 block rounded-lg bg-accent px-4 py-3 text-center font-semibold text-white"
+                >
+                  {t.orderNow}
+                </a>
               </div>
-              <div className="mt-3">
-                <PriceRow data={data} dark={false} />
-              </div>
-              {heroCopy ? (
-                <p className="mt-3 text-sm leading-relaxed text-gray-700">
-                  {heroCopy}
-                </p>
-              ) : null}
-              <a
-                href="#order"
-                className="mt-5 block rounded-lg bg-accent px-4 py-3 text-center font-semibold text-white"
-              >
-                {t.orderNow}
-              </a>
             </div>
           </div>
           <div className="mt-8">{sections}</div>
@@ -1825,7 +1852,7 @@ const footer = (
           </p>
         </div>
         {shopHeader}
-        <main className="mx-auto max-w-2xl px-4 py-6 lg:max-w-6xl lg:py-10">
+        <main className="mx-auto max-w-2xl px-4 pt-6 lg:max-w-6xl lg:pt-10">
           {hero}
           <div className="mt-8">{sections}</div>
           {orderBox}
@@ -1841,7 +1868,7 @@ const footer = (
       <div className="min-h-screen bg-gradient-to-b from-brand-light via-white to-white text-gray-900">
         {announcement}
         {shopHeader}
-        <main className="mx-auto max-w-2xl px-4 py-6 pb-24 md:pb-6 lg:max-w-6xl">
+        <main className="mx-auto max-w-2xl px-4 pt-6 lg:max-w-6xl">
           <div className="rounded-3xl border border-gray-100 bg-white p-5 shadow-sm">
             {hero}
           </div>
@@ -1849,6 +1876,8 @@ const footer = (
           {orderBox}
         </main>
         {footer}
+        {/* স্টিকি বারের নিচে ফুটার ঢাকা না পড়ে — পেজের নিচে ফাঁকা জায়গা। */}
+        <div className="h-20 md:hidden" aria-hidden="true" />
         {sticky}
       </div>
     )
@@ -1859,7 +1888,7 @@ const footer = (
       <div className={`min-h-screen ${pageShell}`}>
         {announcement}
         {shopHeader}
-        <main className="mx-auto max-w-3xl px-4 py-8 pb-24 md:pb-8 lg:max-w-6xl">
+        <main className="mx-auto max-w-3xl px-4 pt-8 lg:max-w-6xl">
           {showGallery ? (
             <Gallery images={images} productName={product.name} />
           ) : null}
@@ -1886,6 +1915,8 @@ const footer = (
           {orderBox}
         </main>
         {footer}
+        {/* স্টিকি বারের নিচে ফুটার ঢাকা না পড়ে — পেজের নিচে ফাঁকা জায়গা। */}
+        <div className="h-20 md:hidden" aria-hidden="true" />
         {sticky}
       </div>
     )
@@ -1896,7 +1927,7 @@ const footer = (
       <div className={`min-h-screen ${pageShell}`}>
         {announcement}
         {shopHeader}
-        <main className="mx-auto max-w-2xl px-4 py-6 lg:max-w-6xl lg:py-10">
+        <main className="mx-auto max-w-2xl px-4 pt-6 lg:max-w-6xl lg:pt-10">
           <div className={cardClass}>{hero}</div>
           <div className="mt-8">{sections}</div>
           {orderBox}
@@ -1912,7 +1943,7 @@ const footer = (
       <div className={`min-h-screen ${pageShell}`}>
         {announcement}
         {shopHeader}
-        <main className="mx-auto max-w-2xl px-4 py-6 lg:max-w-6xl lg:py-10">
+        <main className="mx-auto max-w-2xl px-4 pt-6 lg:max-w-6xl lg:pt-10">
           {hero}
           <div className="mt-8">{sections}</div>
           {orderBox}
@@ -1924,16 +1955,37 @@ const footer = (
   }
 
   if (page.template === 'social-proof') {
+    // আস্থার ফিতা — শুধু আসল রেটিং থাকলেই দেখায় (RatingSummary-এর
+    // মতোই হিসাব; রিভিউ না থাকলে ফিতাটা আসে না, ভুয়া রেটিং নয়)।
+    const spRated = page.reviews.filter(
+      (r) => typeof r.rating === 'number' && r.rating > 0,
+    )
+    const spAvg =
+      spRated.length > 0
+        ? Math.round(
+            (spRated.reduce((sum, r) => sum + (r.rating ?? 0), 0) /
+              spRated.length) *
+              10,
+          ) / 10
+        : 0
     return (
       <div className={`min-h-screen ${pageShell}`}>
         {announcement}
         {shopHeader}
-        <main className="mx-auto max-w-2xl px-4 py-6 pb-24 md:pb-6 lg:max-w-6xl">
+        {spRated.length > 0 ? (
+          <div className="bg-[#DCFCE7] px-4 py-2 text-center text-sm font-bold text-[#166534]">
+            ★ {toBnDigits(String(spAvg))} ·{' '}
+            {t.basedOnReviews(spRated.length)}
+          </div>
+        ) : null}
+        <main className="mx-auto max-w-2xl px-4 pt-6 lg:max-w-6xl">
           {hero}
           <div className="mt-8">{sections}</div>
           {orderBox}
         </main>
         {footer}
+        {/* স্টিকি বারের নিচে ফুটার ঢাকা না পড়ে — পেজের নিচে ফাঁকা জায়গা। */}
+        <div className="h-20 md:hidden" aria-hidden="true" />
         {sticky}
       </div>
     )
@@ -2033,7 +2085,7 @@ const footer = (
           ) : null}
         </header>
 
-        <main className="mx-auto max-w-5xl px-4 pb-28 pt-6 md:pb-10 lg:max-w-6xl">
+        <main className="mx-auto max-w-5xl px-4 pt-6 lg:max-w-6xl">
           <div className="grid gap-8 md:grid-cols-2 md:gap-10">
             <div>
               {showGallery ? (
@@ -2334,6 +2386,8 @@ const footer = (
           ) : null}
         </main>
         {footer}
+        {/* স্টিকি বারের নিচে ফুটার ঢাকা না পড়ে — পেজের নিচে ফাঁকা জায়গা। */}
+        <div className="h-20 md:hidden" aria-hidden="true" />
         <div className="fixed inset-x-0 bottom-0 z-40 flex items-center justify-between gap-3 border-t border-[#EAE8E2] bg-white/95 px-4 py-3 shadow-lg backdrop-blur md:hidden">
           <div className="min-w-0">
             <p className="truncate text-xs text-[#777777]">{product.name}</p>
@@ -2449,7 +2503,7 @@ const footer = (
           ) : null}
         </header>
 
-        <main className="mx-auto max-w-5xl px-4 pb-28 pt-6 md:pb-10 lg:max-w-6xl">
+        <main className="mx-auto max-w-5xl px-4 pt-6 lg:max-w-6xl">
           {/* ০৩ হিরো + ০৪ গ্যালারি */}
           <div className="grid gap-8 md:grid-cols-2 md:gap-10">
             <div>
@@ -2816,6 +2870,8 @@ const footer = (
           </p>
         </footer>
         {/* স্টিকি অর্ডার বার — শুধু মোবাইলে */}
+        {/* স্টিকি বারের নিচে ফুটার ঢাকা না পড়ে — পেজের নিচে ফাঁকা জায়গা। */}
+        <div className="h-20 md:hidden" aria-hidden="true" />
         <div className="fixed inset-x-0 bottom-0 z-40 flex items-center justify-between gap-3 border-t border-[#F1E4E7] bg-white/95 px-4 py-3 shadow-lg backdrop-blur md:hidden">
           <div className="min-w-0">
             <p className="truncate text-xs text-[#887A80]">{product.name}</p>
@@ -2965,7 +3021,7 @@ const footer = (
           ) : null}
         </header>
 
-        <main className="mx-auto max-w-5xl px-4 pb-28 pt-6 md:pb-10 lg:max-w-6xl">
+        <main className="mx-auto max-w-5xl px-4 pt-6 lg:max-w-6xl">
           {/* ০৩ হিরো + ০৪ গ্যালারি */}
           <div className="grid gap-6 md:grid-cols-2 md:items-start">
             <div>
@@ -3397,6 +3453,8 @@ const footer = (
           </p>
         </footer>
         {/* স্টিকি অর্ডার বার — শুধু মোবাইলে, নিজের সায়ান রূপ */}
+        {/* স্টিকি বারের নিচে ফুটার ঢাকা না পড়ে — পেজের নিচে ফাঁকা জায়গা। */}
+        <div className="h-20 md:hidden" aria-hidden="true" />
         <div className="fixed inset-x-0 bottom-0 z-40 flex items-center justify-between gap-3 border-t border-[#283A54] bg-[#101A2B]/95 px-4 py-3 shadow-lg backdrop-blur md:hidden">
           <div className="min-w-0">
             <p className="truncate text-xs text-[#A8B5C8]">{product.name}</p>
@@ -3515,7 +3573,7 @@ const footer = (
             <span className="text-xs text-gray-500">{t.shopPage}</span>
           )}
         </header>
-        <main className="mx-auto max-w-2xl px-4 pb-28 pt-6 md:max-w-4xl lg:max-w-6xl md:pb-12">
+        <main className="mx-auto max-w-2xl px-4 pt-6 md:max-w-4xl lg:max-w-6xl">
           {/* ০৩ হিরো + ০৪ গ্যালারি */}
           <div className="grid gap-6 md:grid-cols-2 md:items-start">
             <div>
@@ -3901,6 +3959,8 @@ const footer = (
           </p>
         </footer>
         {/* স্টিকি অর্ডার বার — শুধু মোবাইলে, নিজের সবুজ COD রূপ */}
+        {/* স্টিকি বারের নিচে ফুটার ঢাকা না পড়ে — পেজের নিচে ফাঁকা জায়গা। */}
+        <div className="h-20 md:hidden" aria-hidden="true" />
         <div className="fixed inset-x-0 bottom-0 z-40 flex items-center justify-between gap-3 border-t border-gray-200 bg-white px-4 py-3 shadow-lg md:hidden">
           <div className="min-w-0">
             <p className="truncate text-xs text-gray-500">{product.name}</p>
@@ -3967,7 +4027,7 @@ const footer = (
             </div>
           </div>
         </header>
-        <main className="mx-auto max-w-6xl px-4 py-6 pb-24 lg:py-10 lg:pb-10">
+        <main className="mx-auto max-w-6xl px-4 pt-6 lg:pt-10">
           <div className="rounded-3xl border border-[#E9E2F7] bg-white p-5 shadow-sm lg:p-8">
             <div className="grid gap-8 lg:grid-cols-2 lg:items-start">
               <div>
@@ -4026,6 +4086,8 @@ const footer = (
           {orderBox}
         </main>
         {footer}
+        {/* স্টিকি বারের নিচে ফুটার ঢাকা না পড়ে — পেজের নিচে ফাঁকা জায়গা। */}
+        <div className="h-20 lg:hidden" aria-hidden="true" />
         <div className="fixed inset-x-0 bottom-0 z-40 flex items-center justify-between gap-3 border-t border-gray-200 bg-white px-4 py-3 shadow-lg lg:hidden">
           <div className="min-w-0">
             <p className="truncate text-xs text-gray-500">{product.name}</p>
@@ -4092,7 +4154,7 @@ const footer = (
             </div>
           </div>
         </header>
-        <main className="mx-auto max-w-6xl px-4 py-6 pb-24 lg:py-10 lg:pb-10">
+        <main className="mx-auto max-w-6xl px-4 pt-6 lg:pt-10">
           <div className="rounded-3xl bg-[#ECFDF5] p-5 lg:p-8">
             <div className="grid gap-8 lg:grid-cols-2 lg:items-start">
               <div>
@@ -4156,6 +4218,8 @@ const footer = (
           {orderBox}
         </main>
         {footer}
+        {/* স্টিকি বারের নিচে ফুটার ঢাকা না পড়ে — পেজের নিচে ফাঁকা জায়গা। */}
+        <div className="h-20 lg:hidden" aria-hidden="true" />
         <div className="fixed inset-x-0 bottom-0 z-40 flex items-center justify-between gap-3 border-t border-gray-200 bg-white px-4 py-3 shadow-lg lg:hidden">
           <div className="min-w-0">
             <p className="truncate text-xs text-gray-500">{product.name}</p>
@@ -4230,7 +4294,7 @@ const footer = (
             </div>
           </div>
         </header>
-        <main className="mx-auto max-w-6xl px-4 py-6 pb-24 lg:py-10 lg:pb-10">
+        <main className="mx-auto max-w-6xl px-4 pt-6 lg:pt-10">
           <div className="rounded-3xl border border-[#232C44] bg-[#141B2E] p-5 lg:p-8">
             <div className="grid gap-8 lg:grid-cols-2 lg:items-start">
               <div>
@@ -4307,6 +4371,8 @@ const footer = (
           </div>
         </main>
         {footer}
+        {/* স্টিকি বারের নিচে ফুটার ঢাকা না পড়ে — পেজের নিচে ফাঁকা জায়গা। */}
+        <div className="h-20 lg:hidden" aria-hidden="true" />
         <div className="fixed inset-x-0 bottom-0 z-40 flex items-center justify-between gap-3 border-t border-[#232C44] bg-[#141B2E] px-4 py-3 shadow-lg lg:hidden">
           <div className="min-w-0">
             <p className="truncate text-xs text-gray-400">{product.name}</p>
@@ -4373,7 +4439,7 @@ const footer = (
             </div>
           </div>
         </header>
-        <main className="mx-auto max-w-6xl px-4 py-6 pb-24 lg:py-10 lg:pb-10">
+        <main className="mx-auto max-w-6xl px-4 pt-6 lg:pt-10">
           <div className="rounded-3xl border border-[#FED7AA] bg-white p-5 shadow-sm lg:p-8">
             <div className="grid gap-8 lg:grid-cols-2 lg:items-start">
               <div>
@@ -4432,6 +4498,8 @@ const footer = (
           {orderBox}
         </main>
         {footer}
+        {/* স্টিকি বারের নিচে ফুটার ঢাকা না পড়ে — পেজের নিচে ফাঁকা জায়গা। */}
+        <div className="h-20 lg:hidden" aria-hidden="true" />
         <div className="fixed inset-x-0 bottom-0 z-40 flex items-center justify-between gap-3 border-t border-gray-200 bg-white px-4 py-3 shadow-lg lg:hidden">
           <div className="min-w-0">
             <p className="truncate text-xs text-gray-500">{product.name}</p>
@@ -4499,7 +4567,7 @@ const footer = (
             </div>
           </div>
         </header>
-        <main className="mx-auto max-w-6xl px-4 py-6 pb-24 lg:py-12 lg:pb-12">
+        <main className="mx-auto max-w-6xl px-4 pt-6 lg:pt-12">
           <div className="rounded-[2rem] border border-[#E7E1D4] border-t-4 border-t-[#14532D] bg-white p-5 shadow-sm lg:p-10">
             <div className="grid gap-8 lg:grid-cols-2 lg:items-start lg:gap-12">
               <div>
@@ -4582,6 +4650,8 @@ const footer = (
           </div>
         </main>
         {footer}
+        {/* স্টিকি বারের নিচে ফুটার ঢাকা না পড়ে — পেজের নিচে ফাঁকা জায়গা। */}
+        <div className="h-20 lg:hidden" aria-hidden="true" />
         <div className="fixed inset-x-0 bottom-0 z-40 flex items-center justify-between gap-3 border-t border-[#E7E1D4] bg-white px-4 py-3 shadow-lg lg:hidden">
           <div className="min-w-0">
             <p className="truncate text-xs text-stone-500">{product.name}</p>
@@ -4767,7 +4837,7 @@ const footer = (
             </div>
           </div>
         </header>
-        <main className="mx-auto max-w-6xl px-4 pb-24 lg:pb-12">
+        <main className="mx-auto max-w-6xl px-4">
           <nav
             aria-label="Breadcrumb"
             className="flex flex-wrap items-center gap-1.5 pt-4 text-xs text-gray-500"
@@ -4971,6 +5041,8 @@ const footer = (
           </div>
         </main>
         {footer}
+        {/* স্টিকি বারের নিচে ফুটার ঢাকা না পড়ে — পেজের নিচে ফাঁকা জায়গা। */}
+        <div className="h-20 lg:hidden" aria-hidden="true" />
         <div className="fixed inset-x-0 bottom-0 z-40 flex items-center justify-between gap-3 bg-[#F97316] px-4 py-3 shadow-lg lg:hidden">
           <div className="min-w-0">
             <p className="truncate text-xs text-white/80">{product.name}</p>
@@ -5034,7 +5106,7 @@ const footer = (
             </div>
           </div>
         </header>
-        <main className="mx-auto max-w-6xl px-4 py-6 pb-24 lg:py-10 lg:pb-12">
+        <main className="mx-auto max-w-6xl px-4 pt-6 lg:pt-10">
           <div className="rounded-2xl border border-[#CDE9DA] bg-white p-5 shadow-sm lg:p-8">
             <div className="grid gap-8 lg:grid-cols-2 lg:items-start">
               <div>
@@ -5105,6 +5177,8 @@ const footer = (
           </div>
         </main>
         {footer}
+        {/* স্টিকি বারের নিচে ফুটার ঢাকা না পড়ে — পেজের নিচে ফাঁকা জায়গা। */}
+        <div className="h-20 lg:hidden" aria-hidden="true" />
         <div className="fixed inset-x-0 bottom-0 z-40 flex items-center justify-between gap-3 bg-[#006a4e] px-4 py-3 shadow-lg lg:hidden">
           <div className="min-w-0">
             <p className="truncate text-xs text-white/80">{product.name}</p>
@@ -5128,7 +5202,7 @@ const footer = (
     <div className={`min-h-screen ${pageShell}`}>
       {announcement}
       {shopHeader}
-      <main className="mx-auto max-w-2xl px-4 py-6 lg:max-w-6xl lg:py-10">
+      <main className="mx-auto max-w-2xl px-4 pt-6 lg:max-w-6xl lg:pt-10">
         {hero}
         <div className="mt-8">{sections}</div>
         {orderBox}

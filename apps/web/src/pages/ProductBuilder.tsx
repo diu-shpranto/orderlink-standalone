@@ -84,7 +84,8 @@ interface ImageItem {
   sortOrder: number
 }
 
-const inputClass = 'mt-1 w-full rounded-2xl border border-gray-300 px-4 py-2.5'
+const inputClass =
+  'mt-1 w-full rounded-2xl border border-gray-300 px-4 py-2.5 outline-none focus:border-brand focus:ring-2 focus:ring-brand/20'
 const labelClass = 'text-sm font-bold text-gray-900'
 const hintClass = 'mt-1 block text-sm text-gray-500'
 
@@ -1110,30 +1111,42 @@ export default function ProductBuilder({
         </div>
       </div>
 
-      <ol className="mt-4 flex gap-2 overflow-x-auto pb-1 text-sm">
-        {STEPS.map((s) => (
-          <li key={s.n} className="shrink-0">
-            <button
-              type="button"
-              onClick={() => setStep(s.n)}
-              className={`flex items-center gap-2 whitespace-nowrap rounded-full border px-3 py-2 font-semibold ${
-                step === s.n
-                  ? 'border-brand bg-brand-light text-brand-dark'
-                  : 'border-gray-200 bg-white text-gray-600'
-              }`}
-            >
-              <span
-                className={`flex h-6 w-6 items-center justify-center rounded-full text-xs font-bold text-white ${
-                  step === s.n ? 'bg-brand' : 'bg-gray-400'
+      <div className="mt-4 flex items-center gap-2">
+        <ol className="flex min-w-0 flex-1 gap-2 overflow-x-auto pb-1 text-sm">
+          {STEPS.map((s) => (
+            <li key={s.n} className="shrink-0">
+              <button
+                type="button"
+                onClick={() => setStep(s.n)}
+                aria-current={step === s.n ? 'step' : undefined}
+                className={`flex min-h-[44px] items-center gap-2 whitespace-nowrap rounded-full border px-3 py-2.5 font-semibold ${
+                  step === s.n
+                    ? 'border-brand bg-brand-light text-brand-dark'
+                    : s.n < step
+                      ? 'border-brand/40 bg-white text-gray-700'
+                      : 'border-gray-200 bg-white text-gray-600'
                 }`}
               >
-                {toBnDigits(s.n)}
-              </span>
-              {s.label}
-            </button>
-          </li>
-        ))}
-      </ol>
+                <span
+                  className={`flex h-6 w-6 items-center justify-center rounded-full text-xs font-bold text-white ${
+                    step === s.n
+                      ? 'bg-brand'
+                      : s.n < step
+                        ? 'bg-brand/70'
+                        : 'bg-gray-400'
+                  }`}
+                >
+                  {s.n < step ? '✓' : toBnDigits(s.n)}
+                </span>
+                {s.label}
+              </button>
+            </li>
+          ))}
+        </ol>
+        <span className="shrink-0 rounded-full bg-gray-100 px-3 py-2 text-xs font-bold text-gray-600">
+          ধাপ {toBnDigits(step)} / ৭
+        </span>
+      </div>
 
       {error ? (
         <p className="mt-4 rounded-xl bg-red-50 px-4 py-3 text-sm font-medium text-red-700">
@@ -1186,6 +1199,11 @@ export default function ProductBuilder({
                     <span className="mt-0.5 block text-xs leading-relaxed text-gray-600">
                       {t.taglineBn}
                     </span>
+                    {template === t.id ? (
+                      <span className="mt-2 inline-block rounded-full bg-brand px-2 py-0.5 text-[10px] font-bold text-white">
+                        ✓ বাছাই করা
+                      </span>
+                    ) : null}
                     {t.stickyBar ? (
                       <span className="mt-2 inline-block rounded-full bg-gray-100 px-2 py-0.5 text-[10px] font-bold text-gray-600">
                         স্টিকি অর্ডার বার
@@ -1232,7 +1250,7 @@ export default function ProductBuilder({
                         setDragSection(null)
                         setDragOverSection(null)
                       }}
-                      className={`flex cursor-grab items-center justify-between gap-3 rounded-lg bg-gray-50 px-3 py-2 active:cursor-grabbing ${
+                      className={`flex cursor-grab items-center justify-between gap-3 rounded-xl border border-gray-100 bg-gray-50 px-3 py-2.5 active:cursor-grabbing ${
                         dragOverSection === i
                           ? 'ring-2 ring-brand'
                           : ''
@@ -1264,7 +1282,7 @@ export default function ProductBuilder({
                           type="button"
                           onClick={() => moveSection(i, -1)}
                           disabled={i === 0}
-                          className="rounded bg-white px-2 py-1 text-sm disabled:opacity-40"
+                          className="rounded-lg bg-white px-3 py-2 text-sm disabled:opacity-40"
                         >
                           ↑
                         </button>
@@ -1272,7 +1290,7 @@ export default function ProductBuilder({
                           type="button"
                           onClick={() => moveSection(i, 1)}
                           disabled={i === sectionOrder.length - 1}
-                          className="rounded bg-white px-2 py-1 text-sm disabled:opacity-40"
+                          className="rounded-lg bg-white px-3 py-2 text-sm disabled:opacity-40"
                         >
                           ↓
                         </button>
@@ -1287,7 +1305,7 @@ export default function ProductBuilder({
               <button
                 type="button"
                 onClick={goNext}
-                className="rounded-xl bg-brand px-6 py-2.5 font-semibold text-white"
+                className="rounded-xl bg-brand px-6 py-3 font-semibold text-white"
               >
                 পরের ধাপ →
               </button>
@@ -1302,7 +1320,11 @@ export default function ProductBuilder({
       {step === 2 && (
         <div className="mt-6 grid gap-5 xl:grid-cols-[minmax(0,1fr)_340px] xl:items-start">
           <div className="min-w-0 space-y-5">
-            <StepCard n={2} title="পণ্যের তথ্য">
+            <StepCard
+              n={2}
+              title="পণ্যের তথ্য"
+              subtitle="নাম ও দাম অবশ্যই দিন — * চিহ্নিত ঘর খালি রাখা যাবে না"
+            >
               <div>
                 <span className={labelClass}>পেজের ভাষা</span>
                 <div className="mt-1 flex overflow-hidden rounded-2xl border border-gray-300">
@@ -1438,7 +1460,7 @@ export default function ProductBuilder({
                   {benefits.map((b, i) => (
                     <li
                       key={i}
-                      className="flex items-center justify-between rounded-lg bg-gray-50 px-3 py-2 text-sm"
+                      className="flex items-center justify-between rounded-xl border border-gray-100 bg-gray-50 px-3 py-2 text-sm"
                     >
                       {b}
                       <button
@@ -1448,7 +1470,7 @@ export default function ProductBuilder({
                             prev.filter((_, j) => j !== i),
                           )
                         }
-                        className="text-red-600"
+                        className="shrink-0 rounded-lg px-2 py-1 text-red-600"
                         aria-label="মুছুন"
                       >
                         ✕
@@ -1495,7 +1517,7 @@ export default function ProductBuilder({
                   {specs.map((s, i) => (
                     <li
                       key={i}
-                      className="flex items-center justify-between rounded-lg bg-gray-50 px-3 py-2 text-sm"
+                      className="flex items-center justify-between rounded-xl border border-gray-100 bg-gray-50 px-3 py-2 text-sm"
                     >
                       <span>
                         {s.key}: {s.value}
@@ -1505,7 +1527,7 @@ export default function ProductBuilder({
                         onClick={() =>
                           setSpecs((prev) => prev.filter((_, j) => j !== i))
                         }
-                        className="text-red-600"
+                        className="shrink-0 rounded-lg px-2 py-1 text-red-600"
                         aria-label="মুছুন"
                       >
                         ✕
@@ -1520,14 +1542,14 @@ export default function ProductBuilder({
               <button
                 type="button"
                 onClick={() => setStep(1)}
-                className="rounded-xl border border-gray-300 bg-white px-6 py-2.5 font-semibold"
+                className="rounded-xl border border-gray-300 bg-white px-6 py-3 font-semibold"
               >
                 ← আগের ধাপ
               </button>
               <button
                 type="button"
                 onClick={goNext}
-                className="rounded-xl bg-brand px-6 py-2.5 font-semibold text-white"
+                className="rounded-xl bg-brand px-6 py-3 font-semibold text-white"
               >
                 পরের ধাপ →
               </button>
@@ -1628,7 +1650,7 @@ export default function ProductBuilder({
                               })),
                             )
                           }
-                          className={`rounded px-2 py-1 font-semibold ${
+                          className={`rounded-lg px-3 py-2 font-semibold ${
                             img.isMain
                               ? 'bg-brand text-white'
                               : 'bg-gray-100'
@@ -1640,7 +1662,7 @@ export default function ProductBuilder({
                           type="button"
                           onClick={() => moveImage(i, -1)}
                           disabled={i === 0}
-                          className="rounded bg-gray-100 px-2 py-1 disabled:opacity-40"
+                          className="rounded-lg bg-gray-100 px-3 py-2 disabled:opacity-40"
                         >
                           ↑
                         </button>
@@ -1648,11 +1670,11 @@ export default function ProductBuilder({
                           type="button"
                           onClick={() => moveImage(i, 1)}
                           disabled={i === images.length - 1}
-                          className="rounded bg-gray-100 px-2 py-1 disabled:opacity-40"
+                          className="rounded-lg bg-gray-100 px-3 py-2 disabled:opacity-40"
                         >
                           ↓
                         </button>
-                        <label className="cursor-pointer rounded bg-gray-100 px-2 py-1 font-semibold">
+                        <label className="cursor-pointer rounded-lg bg-gray-100 px-3 py-2 font-semibold">
                           বদলান
                           <input
                             type="file"
@@ -1670,7 +1692,7 @@ export default function ProductBuilder({
                         <button
                           type="button"
                           onClick={() => removeImage(i)}
-                          className="rounded bg-red-50 px-2 py-1 font-semibold text-red-600"
+                          className="rounded-lg bg-red-50 px-3 py-2 font-semibold text-red-600"
                         >
                           মুছুন
                         </button>
@@ -1689,14 +1711,14 @@ export default function ProductBuilder({
               <button
                 type="button"
                 onClick={() => setStep(2)}
-                className="rounded-xl border border-gray-300 bg-white px-6 py-2.5 font-semibold"
+                className="rounded-xl border border-gray-300 bg-white px-6 py-3 font-semibold"
               >
                 ← আগের ধাপ
               </button>
               <button
                 type="button"
                 onClick={goNext}
-                className="rounded-xl bg-brand px-6 py-2.5 font-semibold text-white"
+                className="rounded-xl bg-brand px-6 py-3 font-semibold text-white"
               >
                 পরের ধাপ →
               </button>
@@ -1784,7 +1806,7 @@ export default function ProductBuilder({
                             )
                           }
                           disabled={i === 0}
-                          className="rounded bg-white px-2 py-1 text-sm disabled:opacity-40"
+                          className="rounded-lg bg-white px-3 py-2 text-sm disabled:opacity-40"
                         >
                           ↑
                         </button>
@@ -1796,7 +1818,7 @@ export default function ProductBuilder({
                             )
                           }
                           disabled={i === videos.length - 1}
-                          className="rounded bg-white px-2 py-1 text-sm disabled:opacity-40"
+                          className="rounded-lg bg-white px-3 py-2 text-sm disabled:opacity-40"
                         >
                           ↓
                         </button>
@@ -1807,7 +1829,7 @@ export default function ProductBuilder({
                               prev.filter((_, j) => j !== i),
                             )
                           }
-                          className="rounded bg-red-50 px-2 py-1 text-sm font-semibold text-red-600"
+                          className="rounded-lg bg-red-50 px-3 py-2 text-sm font-semibold text-red-600"
                         >
                           মুছুন
                         </button>
@@ -1846,14 +1868,14 @@ export default function ProductBuilder({
               <button
                 type="button"
                 onClick={() => setStep(3)}
-                className="rounded-xl border border-gray-300 bg-white px-6 py-2.5 font-semibold"
+                className="rounded-xl border border-gray-300 bg-white px-6 py-3 font-semibold"
               >
                 ← আগের ধাপ
               </button>
               <button
                 type="button"
                 onClick={goNext}
-                className="rounded-xl bg-brand px-6 py-2.5 font-semibold text-white"
+                className="rounded-xl bg-brand px-6 py-3 font-semibold text-white"
               >
                 পরের ধাপ →
               </button>
@@ -1991,7 +2013,7 @@ export default function ProductBuilder({
                 {reviews.map((r, i) => (
                   <li
                     key={i}
-                    className="flex items-center justify-between rounded-lg bg-gray-50 px-3 py-2 text-sm"
+                    className="flex items-center justify-between rounded-xl border border-gray-100 bg-gray-50 px-3 py-2 text-sm"
                   >
                     <span className="flex min-w-0 items-center gap-2">
                       {r.photoPreview || r.photo_url ? (
@@ -2017,7 +2039,7 @@ export default function ProductBuilder({
                       onClick={() =>
                         setReviews((prev) => prev.filter((_, j) => j !== i))
                       }
-                      className="text-red-600"
+                      className="shrink-0 rounded-lg px-2 py-1 text-red-600"
                       aria-label="মুছুন"
                     >
                       ✕
@@ -2031,14 +2053,14 @@ export default function ProductBuilder({
               <button
                 type="button"
                 onClick={() => setStep(4)}
-                className="rounded-xl border border-gray-300 bg-white px-6 py-2.5 font-semibold"
+                className="rounded-xl border border-gray-300 bg-white px-6 py-3 font-semibold"
               >
                 ← আগের ধাপ
               </button>
               <button
                 type="button"
                 onClick={goNext}
-                className="rounded-xl bg-brand px-6 py-2.5 font-semibold text-white"
+                className="rounded-xl bg-brand px-6 py-3 font-semibold text-white"
               >
                 পরের ধাপ →
               </button>
@@ -2090,7 +2112,7 @@ export default function ProductBuilder({
                 {faqs.map((f, i) => (
                   <li
                     key={i}
-                    className="flex items-center justify-between rounded-lg bg-gray-50 px-3 py-2 text-sm"
+                    className="flex items-center justify-between rounded-xl border border-gray-100 bg-gray-50 px-3 py-2 text-sm"
                   >
                     <span>
                       {f.q} — {f.a}
@@ -2100,7 +2122,7 @@ export default function ProductBuilder({
                       onClick={() =>
                         setFaqs((prev) => prev.filter((_, j) => j !== i))
                       }
-                      className="text-red-600"
+                      className="shrink-0 rounded-lg px-2 py-1 text-red-600"
                       aria-label="মুছুন"
                     >
                       ✕
@@ -2127,14 +2149,14 @@ export default function ProductBuilder({
               <button
                 type="button"
                 onClick={() => setStep(5)}
-                className="rounded-xl border border-gray-300 bg-white px-6 py-2.5 font-semibold"
+                className="rounded-xl border border-gray-300 bg-white px-6 py-3 font-semibold"
               >
                 ← আগের ধাপ
               </button>
               <button
                 type="button"
                 onClick={goNext}
-                className="rounded-xl bg-brand px-6 py-2.5 font-semibold text-white"
+                className="rounded-xl bg-brand px-6 py-3 font-semibold text-white"
               >
                 পরের ধাপ →
               </button>
@@ -2206,7 +2228,7 @@ export default function ProductBuilder({
                 <button
                   type="button"
                   onClick={() => setStep(6)}
-                  className="rounded-xl border border-gray-300 bg-white px-6 py-2.5 font-semibold"
+                  className="rounded-xl border border-gray-300 bg-white px-6 py-3 font-semibold"
                 >
                   ← আগের ধাপ
                 </button>

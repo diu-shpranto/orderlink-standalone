@@ -56,9 +56,32 @@ export default function OrderForm({
     ? 'mt-1 w-full rounded-xl border border-[#34343A] bg-[#151518] px-3.5 py-2.5 text-sm text-white transition placeholder:text-[#8a8a90] focus:border-[#D6B36A] focus:outline-none focus:ring-2 focus:ring-[#D6B36A]/30'
     : 'mt-1 w-full rounded-xl border border-gray-300 bg-white px-3.5 py-2.5 text-sm transition placeholder:text-gray-400 focus:border-brand focus:outline-none focus:ring-2 focus:ring-brand/25'
   // গ্রুপ প্যানেল — যোগাযোগ / ঠিকানা / ডেলিভারি আলাদা কার্ডে সাজে।
+  // নম্বরযুক্ত শিরোনাম (১/২/৩) সহ, যাতে ধাপগুলো এক নজরে চোখে পড়ে।
   const groupClass = dark
-    ? 'rounded-2xl border border-[#34343A] bg-[#151518]/60 p-4'
-    : 'rounded-2xl border border-gray-200 bg-gray-50/70 p-4'
+    ? 'rounded-2xl border border-[#34343A] bg-[#151518]/60 p-5 shadow-sm'
+    : 'rounded-2xl border border-gray-200 bg-gray-50 p-5 shadow-sm'
+  const badgeStyle =
+    dark
+      ? { backgroundColor: accent, color: accentText }
+      : lightAccent
+        ? { backgroundColor: lightAccent, color: '#FFFFFF' }
+        : undefined
+  const badgeClass = `flex h-7 w-7 shrink-0 items-center justify-center rounded-full text-sm font-extrabold ${
+    dark || lightAccent ? '' : 'bg-brand text-white'
+  }`
+  const sectionTitleClass = `text-[15px] font-extrabold ${
+    dark ? 'text-white' : 'text-gray-900'
+  }`
+  function SectionHead({ step, title }: { step: number; title: string }) {
+    return (
+      <div className="mb-4 flex items-center gap-2.5">
+        <span className={badgeClass} style={badgeStyle}>
+          {toBnDigits(step)}
+        </span>
+        <span className={sectionTitleClass}>{title}</span>
+      </div>
+    )
+  }
   const [name, setName] = useState('')
   const [phone, setPhone] = useState('')
   const [division, setDivision] = useState('')
@@ -206,6 +229,7 @@ export default function OrderForm({
       ) : null}
 
       <div className={`${groupClass} space-y-4`}>
+        <SectionHead step={1} title={t.formContact} />
         <label className="block">
           <span className={labelClass}>{t.yourName} *</span>
           <input
@@ -232,6 +256,7 @@ export default function OrderForm({
       </div>
 
       <div className={`${groupClass} space-y-4`}>
+      <SectionHead step={2} title={t.formAddress} />
       <div className="grid grid-cols-2 gap-3">
         <label className="block">
           <span className={labelClass}>{t.division} *</span>
@@ -293,6 +318,7 @@ export default function OrderForm({
       </div>
 
       <div className={`${groupClass} space-y-4`}>
+      <SectionHead step={3} title={t.formDelivery} />
       <fieldset>
         <legend className={labelClass}>
           {t.deliveryArea} *
@@ -383,6 +409,7 @@ export default function OrderForm({
             : 'border-gray-200 bg-gray-50'
         }`}
       >
+        <p className={`pb-1 ${sectionTitleClass}`}>{t.formSummary}</p>
         <p className="flex justify-between">
           <span className={dark ? 'text-[#B8B8B8]' : 'text-gray-600'}>
             {t.subtotal} (× {toBnDigits(quantity)})

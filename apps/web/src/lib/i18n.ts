@@ -32,6 +32,10 @@ export type CustomerStrings = {
   deliveryArea: string
   insideDhaka: string
   outsideDhaka: string
+  formContact: string
+  formAddress: string
+  formDelivery: string
+  formSummary: string
   subtotal: string
   total: string
   placeOrder: string
@@ -105,6 +109,10 @@ const BN: CustomerStrings = {
   deliveryArea: 'ডেলিভারি এলাকা',
   insideDhaka: 'ঢাকার ভেতরে',
   outsideDhaka: 'ঢাকার বাইরে',
+  formContact: 'যোগাযোগের তথ্য',
+  formAddress: 'ডেলিভারি ঠিকানা',
+  formDelivery: 'ডেলিভারি ও পরিমাণ',
+  formSummary: 'অর্ডারের হিসাব',
   subtotal: 'পণ্যের দাম',
   total: 'মোট',
   placeOrder: 'অর্ডার করুন',
@@ -179,6 +187,10 @@ const EN: CustomerStrings = {
   deliveryArea: 'Delivery area',
   insideDhaka: 'Inside Dhaka',
   outsideDhaka: 'Outside Dhaka',
+  formContact: 'Contact info',
+  formAddress: 'Delivery address',
+  formDelivery: 'Delivery & quantity',
+  formSummary: 'Order summary',
   subtotal: 'Product price',
   total: 'Total',
   placeOrder: 'Place Order',
